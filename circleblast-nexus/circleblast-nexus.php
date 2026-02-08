@@ -47,13 +47,21 @@ function cbnexus_activate(): void {
 	if (class_exists('CBNexus_Migration_Runner')) {
 		CBNexus_Migration_Runner::run();
 	}
+
+	if (class_exists('CBNexus_Log_Retention')) {
+		CBNexus_Log_Retention::schedule();
+	}
 }
+
 register_activation_hook(__FILE__, 'cbnexus_activate');
 
 /**
  * Deactivation placeholder (keep for future use; do not remove behavior).
  */
 function cbnexus_deactivate(): void {
-	// Intentionally left minimal.
+	if (class_exists('CBNexus_Log_Retention')) {
+		CBNexus_Log_Retention::unschedule();
+	}
 }
+
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');
