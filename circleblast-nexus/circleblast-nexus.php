@@ -31,6 +31,14 @@ if (!defined('CBNEXUS_OPTION_MIGRATIONS')) {
  */
 require_once CBNEXUS_PLUGIN_DIR . 'includes/logging/class-logger.php';
 require_once CBNEXUS_PLUGIN_DIR . 'includes/migrations/class-migration-runner.php';
+require_once CBNEXUS_PLUGIN_DIR . 'includes/logging/class-log-retention.php';
+
+if (is_admin()) {
+	require_once CBNEXUS_PLUGIN_DIR . 'includes/admin/class-admin-logs.php';
+}
+
+add_action('cbnexus_log_cleanup', ['CBNexus_Log_Retention', 'cleanup']);
+
 
 /**
  * Activation: run migrations (activation-only policy, approved).
