@@ -66,6 +66,13 @@ final class CBNexus_Autoloader {
 		// Public Portal — CircleUp & Dashboard (ITER-0014, ITER-0015)
 		'CBNexus_Portal_CircleUp'  => 'includes/public/class-portal-circleup.php',
 		'CBNexus_Portal_Dashboard' => 'includes/public/class-portal-dashboard.php',
+
+		// Club Dashboard (ITER-0016)
+		'CBNexus_Portal_Club' => 'includes/public/class-portal-club.php',
+
+		// Admin Analytics & Recruitment (ITER-0017)
+		'CBNexus_Admin_Analytics'   => 'includes/admin/class-admin-analytics.php',
+		'CBNexus_Admin_Recruitment' => 'includes/admin/class-admin-recruitment.php',
 	];
 
 	/**

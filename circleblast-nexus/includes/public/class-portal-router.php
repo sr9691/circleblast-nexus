@@ -50,6 +50,11 @@ final class CBNexus_Portal_Router {
 				'icon'     => 'dashicons-megaphone',
 				'callback' => ['CBNexus_Portal_CircleUp', 'render'],
 			],
+			'club' => [
+				'label'    => __('Club Stats', 'circleblast-nexus'),
+				'icon'     => 'dashicons-chart-area',
+				'callback' => ['CBNexus_Portal_Club', 'render'],
+			],
 			'profile' => [
 				'label'    => __('My Profile', 'circleblast-nexus'),
 				'icon'     => 'dashicons-admin-users',

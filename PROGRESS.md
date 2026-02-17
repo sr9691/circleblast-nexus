@@ -1,5 +1,56 @@
 # CircleBlast Nexus – Progress Tracker
 
+## ✅ PROJECT FEATURE-COMPLETE — ITER-0003 through ITER-0017
+
+---
+
+## Completed Iteration: ITER-0017 (Admin Analytics, Reports & Recruitment Pipeline)
+
+### Goals
+
+- Admin tools for engagement monitoring, automated reports, and new-member pipeline
+
+### Deliverables
+
+- [x] Migration 013: cb_candidates table (name, email, company, industry, referrer_id, stage, notes, timestamps)
+- [x] includes/admin/class-admin-analytics.php — Club overview cards (members, meetings, suggestions, acceptance rate). Per-member engagement table: meetings, unique met, CircleUp, notes %, accept %, engagement score (0-100 weighted composite), churn risk (low/medium/high based on inactivity + score). CSV export with all analytics columns. Automated monthly report email to admins/super admins via WP-Cron.
+- [x] includes/admin/class-admin-recruitment.php — Pipeline funnel with stage filter buttons (referral→contacted→invited→visited→decision→accepted→declined). Inline candidate intake form with referrer dropdown. Stage updates via dropdown auto-submit. Full candidate list with stage, notes, referrer, updated date.
+- [x] templates/emails/monthly_admin_report.php — Stat cards (members, meetings, acceptance rate, high-risk count) + portal link
+- [x] WP-Cron: monthly admin report
+- [x] Updated autoloader, migration runner, main bootstrap
+
+### Engagement Score Formula
+
+- Meetings completed: up to 30pts (3pts × min(meetings, 10))
+- Unique connections: up to 24pts (3pts × min(unique, 8))
+- CircleUp attendance: up to 24pts (4pts × min(circleup, 6))
+- Notes completion: up to 12pts (notes_pct × 0.12)
+- Acceptance rate: up to 10pts (accept_pct × 0.10)
+
+### Churn Risk Criteria
+
+- High: >90 days inactive OR score <20
+- Medium: >45 days inactive OR score <40
+- Low: everything else
+
+---
+
+## Completed Iteration: ITER-0016 (Club Dashboard & Presentation Mode)
+
+### Goals
+
+- Group-wide analytics and screen-share-optimized presentation for CircleUp meetings
+
+### Deliverables
+
+- [x] includes/public/class-portal-club.php — Club dashboard with 6 stat cards (active members, new members 90d, 1:1 meetings, network density %, CircleUp count, wins total). Top connectors leaderboard (UNION query across member_a/b). Discussion topic cloud (word frequency from CircleUp items, 20 keywords). Recent wins grid (6 cards). Presentation mode: fullscreen dark-gradient layout with giant stat numbers, wins grid, connectors leaderboard, QR code (via qrserver.com API) for portal access.
+- [x] "Club Stats" section added to portal navigation with chart-area icon
+- [x] Nightly analytics snapshot via WP-Cron (club-scope: total_members, meetings_total, network_density, wins_total → cb_analytics_snapshots)
+- [x] Presentation CSS: dark gradient background, gradient header text, stat cards, wins grid with frosted glass effect, ranked leaderboard, responsive
+- [x] Updated autoloader, portal router, main bootstrap
+
+---
+
 ## Completed Iteration: ITER-0015 (Personal Member Dashboard)
 
 ### Goals

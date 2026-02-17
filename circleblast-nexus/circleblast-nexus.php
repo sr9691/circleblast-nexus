@@ -84,6 +84,8 @@ add_action('cbnexus_meeting_reminders', ['CBNexus_Meeting_Service', 'send_remind
 add_action('cbnexus_suggestion_cycle', ['CBNexus_Suggestion_Generator', 'cron_run']);
 add_action('cbnexus_suggestion_reminders', ['CBNexus_Suggestion_Generator', 'send_follow_up_reminders']);
 add_action('cbnexus_ai_extraction', ['CBNexus_AI_Extractor', 'process_pending']);
+add_action('cbnexus_analytics_snapshot', ['CBNexus_Portal_Club', 'take_snapshot']);
+add_action('cbnexus_monthly_report', ['CBNexus_Admin_Analytics', 'send_monthly_report']);
 
 /**
  * Initialize admin features when in admin context.
@@ -94,6 +96,8 @@ if (is_admin()) {
 	CBNexus_Admin_Member_Form::init();
 	CBNexus_Admin_Matching::init();
 	CBNexus_Admin_Archivist::init();
+	CBNexus_Admin_Analytics::init();
+	CBNexus_Admin_Recruitment::init();
 }
 
 /**
@@ -106,6 +110,7 @@ CBNexus_Portal_Meetings::init();
 CBNexus_Suggestion_Generator::init();
 CBNexus_Fireflies_Webhook::init();
 CBNexus_Portal_CircleUp::init();
+CBNexus_Portal_Club::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -150,6 +155,16 @@ function cbnexus_activate(): void {
 	if (!wp_next_scheduled('cbnexus_ai_extraction')) {
 		wp_schedule_event(time(), 'daily', 'cbnexus_ai_extraction');
 	}
+
+	// ITER-0016: Nightly analytics snapshot.
+	if (!wp_next_scheduled('cbnexus_analytics_snapshot')) {
+		wp_schedule_event(time(), 'daily', 'cbnexus_analytics_snapshot');
+	}
+
+	// ITER-0017: Monthly admin report.
+	if (!wp_next_scheduled('cbnexus_monthly_report')) {
+		wp_schedule_event(time(), 'monthly', 'cbnexus_monthly_report');
+	}
 }
 
 register_activation_hook(__FILE__, 'cbnexus_activate');
@@ -165,6 +180,8 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_suggestion_cycle');
 	wp_clear_scheduled_hook('cbnexus_suggestion_reminders');
 	wp_clear_scheduled_hook('cbnexus_ai_extraction');
+	wp_clear_scheduled_hook('cbnexus_analytics_snapshot');
+	wp_clear_scheduled_hook('cbnexus_monthly_report');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');

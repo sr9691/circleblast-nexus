@@ -108,6 +108,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_012_Create_Analytics_Snapshots',
 				'method' => 'up',
 			],
+			'013_create_candidates' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/013-create-candidates.php',
+				'class'  => 'CBNexus_Migration_013_Create_Candidates',
+				'method' => 'up',
+			],
 		];
 	}
 
