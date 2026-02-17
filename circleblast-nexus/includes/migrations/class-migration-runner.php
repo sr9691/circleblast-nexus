@@ -88,6 +88,21 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_008_Create_Matching_Rules',
 				'method' => 'up',
 			],
+			'009_create_circleup_meetings' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/009-create-circleup-meetings.php',
+				'class'  => 'CBNexus_Migration_009_Create_CircleUp_Meetings',
+				'method' => 'up',
+			],
+			'010_create_circleup_attendees' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/010-create-circleup-attendees.php',
+				'class'  => 'CBNexus_Migration_010_Create_CircleUp_Attendees',
+				'method' => 'up',
+			],
+			'011_create_circleup_items' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/011-create-circleup-items.php',
+				'class'  => 'CBNexus_Migration_011_Create_CircleUp_Items',
+				'method' => 'up',
+			],
 		];
 	}
 

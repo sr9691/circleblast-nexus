@@ -56,6 +56,12 @@ final class CBNexus_Autoloader {
 		'CBNexus_Matching_Engine'      => 'includes/matching/class-matching-engine.php',
 		'CBNexus_Suggestion_Generator' => 'includes/matching/class-suggestion-generator.php',
 		'CBNexus_Admin_Matching'       => 'includes/admin/class-admin-matching.php',
+
+		// CircleUp (ITER-0012)
+		'CBNexus_CircleUp_Repository'  => 'includes/circleup/class-circleup-repository.php',
+		'CBNexus_Fireflies_Webhook'    => 'includes/circleup/class-fireflies-webhook.php',
+		'CBNexus_AI_Extractor'         => 'includes/circleup/class-ai-extractor.php',
+		'CBNexus_Admin_Archivist'      => 'includes/admin/class-admin-archivist.php',
 	];
 
 	/**

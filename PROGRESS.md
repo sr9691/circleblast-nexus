@@ -1,5 +1,54 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0013 (AI Extraction Pipeline & Archivist Workflow)
+
+### Goals
+
+- Extract structured insights from transcripts via Claude API
+- Archivist review tools: edit, approve/reject items, curate summaries
+- Publish workflow with auto-generated summary email to all members
+
+### Deliverables
+
+- [x] includes/circleup/class-ai-extractor.php — Claude API integration: builds prompt with member name map for speaker attribution, parses structured JSON response (wins, insights, opportunities, actions), resolves speaker names to user IDs, handles code fence stripping, 120s timeout
+- [x] includes/admin/class-admin-archivist.php — Full admin CRUD: CircleUp list page with status/item counts, Add Meeting form (manual transcript paste), Edit/Review page with curated summary editor, attendee checkboxes, per-item approve/reject dropdowns, collapsible transcript viewer, "Run AI Extraction" and "Publish & Email" action buttons
+- [x] templates/emails/circleup_summary.php — "What We Won / Learned / Next" email with stat cards (wins, insights, actions counts), curated summary, portal link
+- [x] WP-Cron: daily AI extraction for new unprocessed transcripts
+- [x] Updated PROGRESS.md
+
+### Risks / Notes
+
+- Claude API key required: CBNEXUS_CLAUDE_API_KEY in wp-config.php (never in DB per SECURITY.md)
+- Long transcripts truncated at 100k chars before sending to API
+- AI extraction replaces existing items on re-run; Archivist should approve before re-extracting
+- Summary email sends to all active members on publish
+
+---
+
+## Completed Iteration: ITER-0012 (CircleUp + Fireflies Integration)
+
+### Goals
+
+- Database foundation for CircleUp meetings, attendees, and extracted items
+- Fireflies.ai webhook to receive transcripts automatically
+
+### Deliverables
+
+- [x] Migration 009: cb_circleup_meetings table (meeting_date, title, fireflies_id, full_transcript, ai_summary, curated_summary, duration, recording_url, status, published_by/at)
+- [x] Migration 010: cb_circleup_attendees table (circleup_meeting_id, member_id, attendance_status)
+- [x] Migration 011: cb_circleup_items table (circleup_meeting_id, item_type, content, speaker_id, assigned_to, due_date, status)
+- [x] includes/circleup/class-circleup-repository.php — Full CRUD for meetings (including by fireflies_id), attendees (with display_name join), items (bulk insert, typed queries, member action items)
+- [x] includes/circleup/class-fireflies-webhook.php — REST endpoint at /wp-json/cbnexus/v1/fireflies-webhook, secret validation (Bearer token or query param), flexible payload parsing for multiple Fireflies shapes, duplicate detection, auto-attendee matching by name search
+- [x] Updated autoloader, migration runner, main bootstrap
+
+### Risks / Notes
+
+- Fireflies webhook secret: CBNEXUS_FIREFLIES_SECRET in wp-config.php (accepts all if not set for dev)
+- Webhook handles multiple payload formats (sentences array, plain text, nested transcript object)
+- Attendee matching is best-effort by name search; manual correction via Archivist UI
+
+---
+
 ## Completed Iteration: ITER-0011 (Automated Suggestion Generation)
 
 ### Goals

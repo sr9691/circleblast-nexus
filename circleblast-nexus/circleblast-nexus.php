@@ -83,6 +83,7 @@ add_action('cbnexus_log_cleanup', ['CBNexus_Log_Retention', 'cleanup']);
 add_action('cbnexus_meeting_reminders', ['CBNexus_Meeting_Service', 'send_reminders']);
 add_action('cbnexus_suggestion_cycle', ['CBNexus_Suggestion_Generator', 'cron_run']);
 add_action('cbnexus_suggestion_reminders', ['CBNexus_Suggestion_Generator', 'send_follow_up_reminders']);
+add_action('cbnexus_ai_extraction', ['CBNexus_AI_Extractor', 'process_pending']);
 
 /**
  * Initialize admin features when in admin context.
@@ -92,6 +93,7 @@ if (is_admin()) {
 	CBNexus_Admin_Members::init();
 	CBNexus_Admin_Member_Form::init();
 	CBNexus_Admin_Matching::init();
+	CBNexus_Admin_Archivist::init();
 }
 
 /**
@@ -102,6 +104,7 @@ CBNexus_Portal_Profile::init();
 CBNexus_Directory::init();
 CBNexus_Portal_Meetings::init();
 CBNexus_Suggestion_Generator::init();
+CBNexus_Fireflies_Webhook::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -141,6 +144,11 @@ function cbnexus_activate(): void {
 	if (!wp_next_scheduled('cbnexus_suggestion_reminders')) {
 		wp_schedule_event(time(), 'weekly', 'cbnexus_suggestion_reminders');
 	}
+
+	// ITER-0013: Schedule daily AI extraction for new transcripts.
+	if (!wp_next_scheduled('cbnexus_ai_extraction')) {
+		wp_schedule_event(time(), 'daily', 'cbnexus_ai_extraction');
+	}
 }
 
 register_activation_hook(__FILE__, 'cbnexus_activate');
@@ -155,6 +163,7 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_meeting_reminders');
 	wp_clear_scheduled_hook('cbnexus_suggestion_cycle');
 	wp_clear_scheduled_hook('cbnexus_suggestion_reminders');
+	wp_clear_scheduled_hook('cbnexus_ai_extraction');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');
