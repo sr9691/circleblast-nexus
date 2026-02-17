@@ -53,6 +53,16 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_001_Create_Log_Table',
 				'method' => 'up',
 			],
+			'002_register_roles' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/002-register-roles.php',
+				'class'  => 'CBNexus_Migration_002_Register_Roles',
+				'method' => 'up',
+			],
+			'003_register_member_meta' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/003-register-member-meta.php',
+				'class'  => 'CBNexus_Migration_003_Register_Member_Meta',
+				'method' => 'up',
+			],
 		];
 	}
 
