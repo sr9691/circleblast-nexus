@@ -62,6 +62,10 @@ final class CBNexus_Autoloader {
 		'CBNexus_Fireflies_Webhook'    => 'includes/circleup/class-fireflies-webhook.php',
 		'CBNexus_AI_Extractor'         => 'includes/circleup/class-ai-extractor.php',
 		'CBNexus_Admin_Archivist'      => 'includes/admin/class-admin-archivist.php',
+
+		// Public Portal — CircleUp & Dashboard (ITER-0014, ITER-0015)
+		'CBNexus_Portal_CircleUp'  => 'includes/public/class-portal-circleup.php',
+		'CBNexus_Portal_Dashboard' => 'includes/public/class-portal-dashboard.php',
 	];
 
 	/**

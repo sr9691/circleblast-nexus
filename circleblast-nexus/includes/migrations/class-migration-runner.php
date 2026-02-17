@@ -103,6 +103,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_011_Create_CircleUp_Items',
 				'method' => 'up',
 			],
+			'012_create_analytics_snapshots' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/012-create-analytics-snapshots.php',
+				'class'  => 'CBNexus_Migration_012_Create_Analytics_Snapshots',
+				'method' => 'up',
+			],
 		];
 	}
 

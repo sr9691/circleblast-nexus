@@ -1,5 +1,52 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0015 (Personal Member Dashboard)
+
+### Goals
+
+- Individual engagement metrics and activity tracking replacing the placeholder dashboard
+- Live data from meetings, CircleUp, and member systems
+
+### Deliverables
+
+- [x] includes/public/class-portal-dashboard.php — Personal dashboard with live stats: 1:1 meetings completed, unique members met (with % of total), CircleUp attendance count, notes completion rate, wins/insights contributed count
+- [x] Action Required section: pending meeting requests + meetings needing notes, with direct links
+- [x] Two-column layout: Upcoming meetings (with status pills) + Personal action items (from CircleUp)
+- [x] Recent meeting history with notes completion status per meeting
+- [x] Migration 012: cb_analytics_snapshots table (snapshot_date, scope, member_id, metric_key, metric_value) for future trend tracking
+- [x] Dashboard CSS: highlight cards, alert rows, two-column grid, responsive
+- [x] Portal router: dashboard section now renders CBNexus_Portal_Dashboard::render
+
+### Risks / Notes
+
+- Stats computed live via SQL on each render; fine for small groups, snapshot table available for future caching
+- get_upcoming currently returns all non-terminal meetings; will refine in ITER-0016
+
+---
+
+## Completed Iteration: ITER-0014 (CircleUp Archive & Member Submissions)
+
+### Goals
+
+- Member-facing archive of published CircleUp meetings with search and browse
+- Quick submission form and personal action item tracker
+
+### Deliverables
+
+- [x] includes/public/class-portal-circleup.php — Timeline of published meetings with summary previews and stat badges (wins, insights, duration). Individual meeting detail pages with expandable sections per item type (wins, insights, opportunities, actions) with speaker attribution. Full-text search across all approved items via AJAX. Quick submit form (win/insight/opportunity) attached to most recent meeting. Personal action items page with due dates and status.
+- [x] assets/js/circleup.js — 400ms debounce search, quick submit form with success/error messaging
+- [x] Portal router: "CircleUp" section added to navigation with megaphone icon
+- [x] CircleUp archive CSS: timeline with dot markers, submit row, items list, actions table, responsive
+- [x] Updated autoloader, main bootstrap
+
+### Risks / Notes
+
+- Quick submissions attach to most recent published meeting; no standalone bucket yet
+- Search is SQL LIKE on item content; adequate for small datasets, consider fulltext index at scale
+- Action items are read-only in portal; status updates through admin Archivist UI
+
+---
+
 ## Completed Iteration: ITER-0013 (AI Extraction Pipeline & Archivist Workflow)
 
 ### Goals

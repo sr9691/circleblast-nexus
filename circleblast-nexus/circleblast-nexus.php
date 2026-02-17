@@ -105,6 +105,7 @@ CBNexus_Directory::init();
 CBNexus_Portal_Meetings::init();
 CBNexus_Suggestion_Generator::init();
 CBNexus_Fireflies_Webhook::init();
+CBNexus_Portal_CircleUp::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).

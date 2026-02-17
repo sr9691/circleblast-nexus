@@ -33,7 +33,7 @@ final class CBNexus_Portal_Router {
 			'dashboard' => [
 				'label'    => __('Dashboard', 'circleblast-nexus'),
 				'icon'     => 'dashicons-dashboard',
-				'callback' => [__CLASS__, 'render_dashboard_placeholder'],
+				'callback' => ['CBNexus_Portal_Dashboard', 'render'],
 			],
 			'directory' => [
 				'label'    => __('Directory', 'circleblast-nexus'),
@@ -44,6 +44,11 @@ final class CBNexus_Portal_Router {
 				'label'    => __('Meetings', 'circleblast-nexus'),
 				'icon'     => 'dashicons-calendar-alt',
 				'callback' => ['CBNexus_Portal_Meetings', 'render'],
+			],
+			'circleup' => [
+				'label'    => __('CircleUp', 'circleblast-nexus'),
+				'icon'     => 'dashicons-megaphone',
+				'callback' => ['CBNexus_Portal_CircleUp', 'render'],
 			],
 			'profile' => [
 				'label'    => __('My Profile', 'circleblast-nexus'),
