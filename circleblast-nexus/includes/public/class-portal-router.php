@@ -2,9 +2,9 @@
 /**
  * Portal Router
  *
- * ITER-0006: Shortcode-based routing for the member portal.
- * Handles access control, portal navigation, and redirects
- * non-members away from portal pages.
+ * ITER-0006 / UX Refresh: Shortcode-based routing for the member portal.
+ * Updated layout: horizontal pill navigation (no sidebar), plum & gold
+ * branded header, stacked content area.
  *
  * Usage: Add [cbnexus_portal] shortcode to a WordPress page.
  */
@@ -16,7 +16,7 @@ final class CBNexus_Portal_Router {
 	/**
 	 * Portal sections and their render callbacks.
 	 *
-	 * @var array<string, array{label: string, callback: callable}>
+	 * @var array<string, array{label: string, icon: string, callback: callable}>
 	 */
 	private static $sections = [];
 
@@ -31,33 +31,33 @@ final class CBNexus_Portal_Router {
 		// Register default sections.
 		self::$sections = [
 			'dashboard' => [
-				'label'    => __('Dashboard', 'circleblast-nexus'),
-				'icon'     => 'dashicons-dashboard',
+				'label'    => __('Home', 'circleblast-nexus'),
+				'icon'     => '🏠',
 				'callback' => ['CBNexus_Portal_Dashboard', 'render'],
 			],
 			'directory' => [
 				'label'    => __('Directory', 'circleblast-nexus'),
-				'icon'     => 'dashicons-groups',
+				'icon'     => '👥',
 				'callback' => ['CBNexus_Directory', 'render'],
 			],
 			'meetings' => [
 				'label'    => __('Meetings', 'circleblast-nexus'),
-				'icon'     => 'dashicons-calendar-alt',
+				'icon'     => '🤝',
 				'callback' => ['CBNexus_Portal_Meetings', 'render'],
 			],
 			'circleup' => [
 				'label'    => __('CircleUp', 'circleblast-nexus'),
-				'icon'     => 'dashicons-megaphone',
+				'icon'     => '📢',
 				'callback' => ['CBNexus_Portal_CircleUp', 'render'],
 			],
 			'club' => [
-				'label'    => __('Club Stats', 'circleblast-nexus'),
-				'icon'     => 'dashicons-chart-area',
+				'label'    => __('Club', 'circleblast-nexus'),
+				'icon'     => '📊',
 				'callback' => ['CBNexus_Portal_Club', 'render'],
 			],
 			'profile' => [
-				'label'    => __('My Profile', 'circleblast-nexus'),
-				'icon'     => 'dashicons-admin-users',
+				'label'    => __('Profile', 'circleblast-nexus'),
+				'icon'     => '👤',
 				'callback' => ['CBNexus_Portal_Profile', 'render'],
 			],
 		];
@@ -80,7 +80,7 @@ final class CBNexus_Portal_Router {
 			CBNEXUS_VERSION
 		);
 
-		// WordPress dashicons for nav icons.
+		// WordPress dashicons still used in some sub-components.
 		wp_enqueue_style('dashicons');
 	}
 
@@ -147,29 +147,30 @@ final class CBNexus_Portal_Router {
 	}
 
 	/**
-	 * Render the portal header with user greeting.
+	 * Render the portal header — branded with plum & gold dot.
 	 */
 	private static function render_header(array $profile): void {
-		$name = $profile['first_name'] ?: $profile['display_name'];
+		$initials = self::get_initials($profile);
 		?>
 		<header class="cbnexus-portal-header">
-			<div class="cbnexus-portal-header-left">
-				<h1 class="cbnexus-portal-title">CircleBlast</h1>
-				<span class="cbnexus-portal-greeting">
-					<?php printf(esc_html__('Welcome, %s', 'circleblast-nexus'), esc_html($name)); ?>
-				</span>
+			<div>
+				<div class="cbnexus-portal-brand">
+					<span class="cbnexus-portal-brand-dot"></span>
+					<span class="cbnexus-portal-brand-name"><?php esc_html_e('CircleBlast', 'circleblast-nexus'); ?></span>
+				</div>
+				<h1 class="cbnexus-portal-subtitle"><?php esc_html_e('Member Portal', 'circleblast-nexus'); ?></h1>
 			</div>
-			<div class="cbnexus-portal-header-right">
-				<a href="<?php echo esc_url(wp_logout_url(home_url())); ?>" class="cbnexus-btn cbnexus-btn-outline">
-					<?php esc_html_e('Log Out', 'circleblast-nexus'); ?>
-				</a>
+			<div style="display:flex;align-items:center;gap:10px;">
+				<div class="cbnexus-portal-avatar">
+					<span class="cbnexus-portal-avatar-initials"><?php echo esc_html($initials); ?></span>
+				</div>
 			</div>
 		</header>
 		<?php
 	}
 
 	/**
-	 * Render the portal navigation.
+	 * Render horizontal pill navigation.
 	 */
 	private static function render_nav(string $current): void {
 		$base_url = get_permalink();
@@ -179,7 +180,7 @@ final class CBNexus_Portal_Router {
 				<?php foreach (self::$sections as $slug => $section) : ?>
 					<li class="<?php echo $slug === $current ? 'cbnexus-nav-active' : ''; ?>">
 						<a href="<?php echo esc_url(add_query_arg('section', $slug, $base_url)); ?>">
-							<span class="dashicons <?php echo esc_attr($section['icon']); ?>"></span>
+							<span class="cbnexus-nav-icon"><?php echo esc_html($section['icon']); ?></span>
 							<span class="cbnexus-nav-label"><?php echo esc_html($section['label']); ?></span>
 						</a>
 					</li>
@@ -203,41 +204,13 @@ final class CBNexus_Portal_Router {
 	}
 
 	/**
-	 * Dashboard placeholder (replaced with live data in ITER-0015).
-	 */
-	public static function render_dashboard_placeholder(array $profile): void {
-		$name = $profile['first_name'] ?: $profile['display_name'];
-		?>
-		<div class="cbnexus-card">
-			<h2><?php printf(esc_html__('Welcome back, %s!', 'circleblast-nexus'), esc_html($name)); ?></h2>
-			<p><?php esc_html_e('Your personalized dashboard is coming soon. In the meantime, explore the portal using the navigation on the left.', 'circleblast-nexus'); ?></p>
-
-			<div class="cbnexus-quick-stats">
-				<div class="cbnexus-stat-card">
-					<span class="cbnexus-stat-value">—</span>
-					<span class="cbnexus-stat-label"><?php esc_html_e('1:1 Meetings', 'circleblast-nexus'); ?></span>
-				</div>
-				<div class="cbnexus-stat-card">
-					<span class="cbnexus-stat-value">—</span>
-					<span class="cbnexus-stat-label"><?php esc_html_e('Members Met', 'circleblast-nexus'); ?></span>
-				</div>
-				<div class="cbnexus-stat-card">
-					<span class="cbnexus-stat-value">—</span>
-					<span class="cbnexus-stat-label"><?php esc_html_e('CircleUp Attended', 'circleblast-nexus'); ?></span>
-				</div>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
 	 * Generic placeholder for sections not yet built.
 	 */
 	public static function render_section_placeholder(array $profile): void {
 		?>
 		<div class="cbnexus-card">
 			<h2><?php esc_html_e('Coming Soon', 'circleblast-nexus'); ?></h2>
-			<p><?php esc_html_e('This section is under development and will be available in a future update.', 'circleblast-nexus'); ?></p>
+			<p class="cbnexus-text-muted"><?php esc_html_e('This section is under development and will be available in a future update.', 'circleblast-nexus'); ?></p>
 		</div>
 		<?php
 	}
@@ -259,5 +232,18 @@ final class CBNexus_Portal_Router {
 		);
 
 		return $page_id ? get_permalink($page_id) : home_url();
+	}
+
+	/**
+	 * Get initials from a member profile.
+	 */
+	private static function get_initials(array $m): string {
+		$first = $m['first_name'] ?? '';
+		$last  = $m['last_name'] ?? '';
+		if ($first && $last) {
+			return strtoupper(mb_substr($first, 0, 1) . mb_substr($last, 0, 1));
+		}
+		$display = $m['display_name'] ?? '?';
+		return strtoupper(mb_substr($display, 0, 2));
 	}
 }

@@ -2,9 +2,10 @@
 /**
  * Portal Dashboard
  *
- * ITER-0015: Personal member dashboard with live engagement metrics.
- * Replaces the placeholder from ITER-0006 with real data drawn from
- * meetings, CircleUp, and member profile systems.
+ * ITER-0015 / UX Refresh: Personal member dashboard with live engagement
+ * metrics. Plum & gold themed, matching demo layout: greeting row,
+ * 5-stat grid, action-required card with gold highlight, two-column
+ * upcoming + action items, recent meeting history with note status pills.
  */
 
 defined('ABSPATH') || exit;
@@ -28,68 +29,87 @@ final class CBNexus_Portal_Dashboard {
 		?>
 		<div class="cbnexus-dashboard" id="cbnexus-dashboard">
 
-			<!-- Welcome + Quick Stats -->
-			<div class="cbnexus-card">
-				<h2><?php printf(esc_html__('Welcome back, %s!', 'circleblast-nexus'), esc_html($name)); ?></h2>
-				<div class="cbnexus-quick-stats">
-					<div class="cbnexus-stat-card">
-						<span class="cbnexus-stat-value"><?php echo esc_html($stats['meetings_completed']); ?></span>
-						<span class="cbnexus-stat-label"><?php esc_html_e('1:1 Meetings', 'circleblast-nexus'); ?></span>
-					</div>
-					<div class="cbnexus-stat-card">
-						<span class="cbnexus-stat-value"><?php echo esc_html($stats['unique_members']); ?><span style="font-size:14px;color:#718096;">/<?php echo esc_html($stats['total_members']); ?></span></span>
-						<span class="cbnexus-stat-label"><?php esc_html_e('Members Met', 'circleblast-nexus'); ?></span>
-					</div>
-					<div class="cbnexus-stat-card">
-						<span class="cbnexus-stat-value"><?php echo esc_html($stats['circleup_attended']); ?></span>
-						<span class="cbnexus-stat-label"><?php esc_html_e('CircleUp Attended', 'circleblast-nexus'); ?></span>
-					</div>
-					<div class="cbnexus-stat-card">
-						<span class="cbnexus-stat-value"><?php echo esc_html($stats['notes_rate']); ?>%</span>
-						<span class="cbnexus-stat-label"><?php esc_html_e('Notes Completion', 'circleblast-nexus'); ?></span>
-					</div>
-					<div class="cbnexus-stat-card">
-						<span class="cbnexus-stat-value"><?php echo esc_html($stats['contributions']); ?></span>
-						<span class="cbnexus-stat-label"><?php esc_html_e('Wins & Insights', 'circleblast-nexus'); ?></span>
-					</div>
+			<!-- Greeting -->
+			<div style="margin-bottom:20px;">
+				<h2 style="margin:0 0 2px;font-size:24px;font-weight:700;letter-spacing:-0.5px;">
+					<?php printf(esc_html__('Good afternoon, %s 👋', 'circleblast-nexus'), esc_html($name)); ?>
+				</h2>
+				<p class="cbnexus-text-muted" style="margin:0;font-size:14px;"><?php esc_html_e("Here's what's happening in your circle", 'circleblast-nexus'); ?></p>
+			</div>
+
+			<!-- Quick Stats -->
+			<div class="cbnexus-quick-stats">
+				<div class="cbnexus-stat-card">
+					<span class="cbnexus-stat-value"><?php echo esc_html($stats['meetings_completed']); ?></span>
+					<span class="cbnexus-stat-label"><?php esc_html_e('Meetings', 'circleblast-nexus'); ?></span>
+				</div>
+				<div class="cbnexus-stat-card">
+					<span class="cbnexus-stat-value"><?php echo esc_html($stats['unique_members']); ?><span style="font-size:14px;color:var(--cb-text-ter);">/ <?php echo esc_html($stats['total_members']); ?></span></span>
+					<span class="cbnexus-stat-label"><?php esc_html_e('Met', 'circleblast-nexus'); ?></span>
+				</div>
+				<div class="cbnexus-stat-card cbnexus-stat-card--accent">
+					<span class="cbnexus-stat-value"><?php echo esc_html($stats['circleup_attended']); ?></span>
+					<span class="cbnexus-stat-label"><?php esc_html_e('CircleUps', 'circleblast-nexus'); ?></span>
+				</div>
+				<div class="cbnexus-stat-card">
+					<span class="cbnexus-stat-value"><?php echo esc_html($stats['notes_rate']); ?>%</span>
+					<span class="cbnexus-stat-label"><?php esc_html_e('Notes', 'circleblast-nexus'); ?></span>
+				</div>
+				<div class="cbnexus-stat-card cbnexus-stat-card--gold">
+					<span class="cbnexus-stat-value"><?php echo esc_html($stats['contributions']); ?></span>
+					<span class="cbnexus-stat-label"><?php esc_html_e('Contributions', 'circleblast-nexus'); ?></span>
 				</div>
 			</div>
 
 			<?php if (!empty($pending) || !empty($needs_notes)) : ?>
-			<!-- Action Required -->
-			<div class="cbnexus-card cbnexus-card-highlight">
-				<h3><?php esc_html_e('Action Required', 'circleblast-nexus'); ?></h3>
-				<?php if (!empty($pending)) : ?>
+			<!-- Needs Your Attention -->
+			<div class="cbnexus-card cbnexus-card-highlight" style="padding:16px 20px;">
+				<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+					<span style="font-size:16px;">⚡</span>
+					<span style="font-size:15px;font-weight:600;"><?php esc_html_e('Needs your attention', 'circleblast-nexus'); ?></span>
+				</div>
+				<?php if (!empty($pending)) :
+					foreach ($pending as $m) :
+						$other = CBNexus_Member_Repository::get_profile(CBNexus_Meeting_Repository::get_other_member($m, $uid));
+						if (!$other) { continue; }
+				?>
 					<div class="cbnexus-dash-alert">
-						<span class="dashicons dashicons-warning" style="color:#ecc94b;"></span>
-						<?php printf(esc_html(_n('%d meeting request awaiting your response', '%d meeting requests awaiting your response', count($pending), 'circleblast-nexus')), count($pending)); ?>
-						<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-primary" style="margin-left:auto;"><?php esc_html_e('Respond', 'circleblast-nexus'); ?></a>
+						<span class="cbnexus-dash-alert-dot cbnexus-dash-alert-dot--gold"></span>
+						<span class="cbnexus-dash-alert-text"><?php printf(esc_html__('%s wants to connect 1:1', 'circleblast-nexus'), esc_html($other['display_name'])); ?></span>
+						<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm"><?php esc_html_e('Respond', 'circleblast-nexus'); ?></a>
 					</div>
-				<?php endif; ?>
-				<?php if (!empty($needs_notes)) : ?>
+				<?php endforeach; endif; ?>
+				<?php if (!empty($needs_notes)) :
+					foreach ($needs_notes as $m) :
+						$other = CBNexus_Member_Repository::get_profile(CBNexus_Meeting_Repository::get_other_member($m, $uid));
+						if (!$other) { continue; }
+				?>
 					<div class="cbnexus-dash-alert">
-						<span class="dashicons dashicons-edit" style="color:#9f7aea;"></span>
-						<?php printf(esc_html(_n('%d meeting needs your notes', '%d meetings need your notes', count($needs_notes), 'circleblast-nexus')), count($needs_notes)); ?>
-						<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline-dark" style="margin-left:auto;"><?php esc_html_e('Submit Notes', 'circleblast-nexus'); ?></a>
+						<span class="cbnexus-dash-alert-dot cbnexus-dash-alert-dot--accent"></span>
+						<span class="cbnexus-dash-alert-text"><?php printf(esc_html__('Meeting with %s needs notes', 'circleblast-nexus'), esc_html($other['display_name'])); ?></span>
+						<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm"><?php esc_html_e('Add Notes', 'circleblast-nexus'); ?></a>
 					</div>
-				<?php endif; ?>
+				<?php endforeach; endif; ?>
 			</div>
 			<?php endif; ?>
 
-			<!-- Two-column: Upcoming + Actions -->
+			<!-- Two-column: Coming Up + Action Items -->
 			<div class="cbnexus-dash-cols">
 				<div class="cbnexus-card">
-					<h3><?php esc_html_e('Upcoming Meetings', 'circleblast-nexus'); ?></h3>
+					<h3><?php esc_html_e('Coming Up', 'circleblast-nexus'); ?></h3>
 					<?php if (empty($upcoming)) : ?>
-						<p class="cbnexus-text-muted"><?php esc_html_e('No upcoming meetings.', 'circleblast-nexus'); ?> <a href="<?php echo esc_url(add_query_arg('section', 'directory', $portal_url)); ?>"><?php esc_html_e('Browse the directory', 'circleblast-nexus'); ?></a></p>
+						<p class="cbnexus-text-muted"><?php esc_html_e('No upcoming meetings.', 'circleblast-nexus'); ?> <a href="<?php echo esc_url(add_query_arg('section', 'directory', $portal_url)); ?>" class="cbnexus-link"><?php esc_html_e('Browse the directory', 'circleblast-nexus'); ?></a></p>
 					<?php else : foreach ($upcoming as $m) :
 						$other = CBNexus_Member_Repository::get_profile(CBNexus_Meeting_Repository::get_other_member($m, $uid));
 						if (!$other) { continue; }
+						$pill_class = $m->status === 'scheduled' ? 'cbnexus-pill--blue' : 'cbnexus-pill--green';
 					?>
-						<div class="cbnexus-dash-meeting-row">
-							<strong><?php echo esc_html($other['display_name']); ?></strong>
-							<?php if ($m->scheduled_at) : ?><span class="cbnexus-text-muted"><?php echo esc_html(date_i18n('M j, g:i A', strtotime($m->scheduled_at))); ?></span><?php endif; ?>
-							<span class="cbnexus-status-pill" style="background:<?php echo $m->status === 'scheduled' ? '#4299e1' : '#48bb78'; ?>"><?php echo esc_html(ucfirst($m->status)); ?></span>
+						<div class="cbnexus-row">
+							<strong style="flex:1;"><?php echo esc_html($other['display_name']); ?></strong>
+							<?php if ($m->scheduled_at) : ?>
+								<span class="cbnexus-text-muted"><?php echo esc_html(date_i18n('M j · g:i A', strtotime($m->scheduled_at))); ?></span>
+							<?php endif; ?>
+							<span class="cbnexus-pill <?php echo esc_attr($pill_class); ?>"><?php echo esc_html(ucfirst($m->status)); ?></span>
 						</div>
 					<?php endforeach; endif; ?>
 				</div>
@@ -100,20 +120,16 @@ final class CBNexus_Portal_Dashboard {
 						<p class="cbnexus-text-muted"><?php esc_html_e('No action items assigned to you.', 'circleblast-nexus'); ?></p>
 					<?php else : foreach (array_slice($actions, 0, 5) as $a) : ?>
 						<div class="cbnexus-dash-action-row">
-							<span><?php echo esc_html(wp_trim_words($a->content, 12)); ?></span>
-							<?php if ($a->due_date) : ?><span class="cbnexus-text-muted"><?php esc_html_e('Due:', 'circleblast-nexus'); ?> <?php echo esc_html($a->due_date); ?></span><?php endif; ?>
+							<div style="font-weight:500;"><?php echo esc_html(wp_trim_words($a->content, 12)); ?></div>
+							<?php if ($a->due_date) : ?><span class="cbnexus-text-muted"><?php printf(esc_html__('Due %s', 'circleblast-nexus'), esc_html($a->due_date)); ?></span><?php endif; ?>
 						</div>
-					<?php endforeach;
-						if (count($actions) > 5) : ?>
-							<a href="<?php echo esc_url(add_query_arg(['section' => 'circleup', 'circleup_view' => 'actions'], $portal_url)); ?>" class="cbnexus-text-muted"><?php printf(esc_html__('+ %d more', 'circleblast-nexus'), count($actions) - 5); ?></a>
-						<?php endif; ?>
-					<?php endif; ?>
+					<?php endforeach; endif; ?>
 				</div>
 			</div>
 
-			<!-- Recent Meeting History -->
+			<!-- Recent Meetings -->
 			<div class="cbnexus-card">
-				<h3><?php esc_html_e('Recent Meeting History', 'circleblast-nexus'); ?></h3>
+				<h3><?php esc_html_e('Recent Meetings', 'circleblast-nexus'); ?></h3>
 				<?php if (empty($recent_history)) : ?>
 					<p class="cbnexus-text-muted"><?php esc_html_e('No completed meetings yet.', 'circleblast-nexus'); ?></p>
 				<?php else : ?>
@@ -122,17 +138,19 @@ final class CBNexus_Portal_Dashboard {
 						if (!$other) { continue; }
 						$has_notes = CBNexus_Meeting_Repository::has_notes((int) $m->id, $uid);
 					?>
-						<div class="cbnexus-dash-meeting-row">
-							<strong><?php echo esc_html($other['display_name']); ?></strong>
-							<span class="cbnexus-text-muted"><?php echo esc_html(date_i18n('M j, Y', strtotime($m->completed_at ?: $m->created_at))); ?></span>
+						<div class="cbnexus-row">
+							<strong style="flex:1;"><?php echo esc_html($other['display_name']); ?></strong>
+							<span class="cbnexus-text-muted"><?php echo esc_html(date_i18n('M j', strtotime($m->completed_at ?: $m->created_at))); ?></span>
 							<?php if ($has_notes) : ?>
-								<span class="cbnexus-text-muted" style="color:#48bb78;">✓ <?php esc_html_e('Notes', 'circleblast-nexus'); ?></span>
+								<span class="cbnexus-pill cbnexus-pill--green-soft">✓ <?php esc_html_e('Notes', 'circleblast-nexus'); ?></span>
 							<?php else : ?>
-								<span class="cbnexus-text-muted" style="color:#ecc94b;"><?php esc_html_e('Notes pending', 'circleblast-nexus'); ?></span>
+								<span class="cbnexus-pill cbnexus-pill--gold-soft"><?php esc_html_e('Pending', 'circleblast-nexus'); ?></span>
 							<?php endif; ?>
 						</div>
 					<?php endforeach; ?>
-					<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-text-muted"><?php esc_html_e('View all meetings →', 'circleblast-nexus'); ?></a>
+					<div style="margin-top:8px;">
+						<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-link"><?php esc_html_e('View all meetings →', 'circleblast-nexus'); ?></a>
+					</div>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -144,14 +162,12 @@ final class CBNexus_Portal_Dashboard {
 	private static function compute_stats(int $uid): array {
 		global $wpdb;
 
-		// Meetings completed/closed.
 		$completed = (int) $wpdb->get_var($wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_meetings
 			 WHERE (member_a_id = %d OR member_b_id = %d) AND status IN ('completed', 'closed')",
 			$uid, $uid
 		));
 
-		// Unique members met.
 		$unique = (int) $wpdb->get_var($wpdb->prepare(
 			"SELECT COUNT(DISTINCT CASE WHEN member_a_id = %d THEN member_b_id ELSE member_a_id END)
 			 FROM {$wpdb->prefix}cb_meetings
@@ -161,16 +177,13 @@ final class CBNexus_Portal_Dashboard {
 
 		$total_members = count(CBNexus_Member_Repository::get_all_members('active'));
 
-		// Notes completion rate.
 		$notes_submitted = (int) $wpdb->get_var($wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_meeting_notes WHERE author_id = %d", $uid
 		));
 		$notes_rate = $completed > 0 ? min(100, round($notes_submitted / $completed * 100)) : 0;
 
-		// CircleUp attendance.
 		$circleup = CBNexus_CircleUp_Repository::get_attendance_count($uid);
 
-		// Wins/insights contributed (items where user is speaker).
 		$contributions = (int) $wpdb->get_var($wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_circleup_items
 			 WHERE speaker_id = %d AND item_type IN ('win', 'insight') AND status = 'approved'",

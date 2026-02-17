@@ -2,9 +2,10 @@
 /**
  * Portal Club Dashboard
  *
- * ITER-0016: Group-wide analytics and presentation mode for CircleUp
- * screen-sharing. Accessible from portal as "Club Stats" section.
- * Presentation mode uses fullscreen layout with large typography.
+ * ITER-0016 / UX Refresh: Group-wide analytics and presentation mode
+ * matching demo. Gold "Present" button, 6-stat grid with tinted cards,
+ * styled rank badges, topic cloud with plum/gold cycling, plum & gold
+ * gradient presentation mode with gold typography.
  */
 
 defined('ABSPATH') || exit;
@@ -33,47 +34,47 @@ final class CBNexus_Portal_Club {
 		$present_url = add_query_arg(['section' => 'club', 'present' => '1'], $portal_url);
 		?>
 		<div class="cbnexus-club-dash" id="cbnexus-club">
-			<div class="cbnexus-card">
-				<div style="display:flex;justify-content:space-between;align-items:center;">
-					<h2><?php esc_html_e('Club Dashboard', 'circleblast-nexus'); ?></h2>
-					<a href="<?php echo esc_url($present_url); ?>" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm" target="_blank"><?php esc_html_e('Presentation Mode', 'circleblast-nexus'); ?></a>
-				</div>
+			<div class="cbnexus-club-header">
+				<h2><?php esc_html_e('Club Overview', 'circleblast-nexus'); ?></h2>
+				<a href="<?php echo esc_url($present_url); ?>" class="cbnexus-btn cbnexus-btn-gold cbnexus-btn-sm" target="_blank">🖥 <?php esc_html_e('Present', 'circleblast-nexus'); ?></a>
+			</div>
 
-				<div class="cbnexus-quick-stats">
-					<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['total_members']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('Active Members', 'circleblast-nexus'); ?></span></div>
-					<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['new_members']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('New (90d)', 'circleblast-nexus'); ?></span></div>
-					<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['meetings_total']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('1:1 Meetings', 'circleblast-nexus'); ?></span></div>
-					<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['network_density']); ?>%</span><span class="cbnexus-stat-label"><?php esc_html_e('Network Density', 'circleblast-nexus'); ?></span></div>
-					<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['circleup_count']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('CircleUp Meetings', 'circleblast-nexus'); ?></span></div>
-					<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['wins_total']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('Wins Shared', 'circleblast-nexus'); ?></span></div>
-				</div>
+			<div class="cbnexus-quick-stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+				<div class="cbnexus-stat-card cbnexus-stat-card--accent"><span class="cbnexus-stat-value"><?php echo esc_html($stats['total_members']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('Members', 'circleblast-nexus'); ?></span></div>
+				<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['meetings_total']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('1:1 Meetings', 'circleblast-nexus'); ?></span></div>
+				<div class="cbnexus-stat-card cbnexus-stat-card--green"><span class="cbnexus-stat-value"><?php echo esc_html($stats['network_density']); ?>%</span><span class="cbnexus-stat-label"><?php esc_html_e('Connected', 'circleblast-nexus'); ?></span></div>
+				<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['new_members']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('New (90d)', 'circleblast-nexus'); ?></span></div>
+				<div class="cbnexus-stat-card"><span class="cbnexus-stat-value"><?php echo esc_html($stats['circleup_count']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('CircleUps', 'circleblast-nexus'); ?></span></div>
+				<div class="cbnexus-stat-card cbnexus-stat-card--gold"><span class="cbnexus-stat-value"><?php echo esc_html($stats['wins_total']); ?></span><span class="cbnexus-stat-label"><?php esc_html_e('Wins', 'circleblast-nexus'); ?></span></div>
 			</div>
 
 			<div class="cbnexus-dash-cols">
 				<!-- Top Connectors -->
 				<div class="cbnexus-card">
-					<h3><?php esc_html_e('Top Connectors', 'circleblast-nexus'); ?></h3>
+					<h3>🌟 <?php esc_html_e('Top Connectors', 'circleblast-nexus'); ?></h3>
 					<?php if (empty($top)) : ?><p class="cbnexus-text-muted"><?php esc_html_e('No meeting data yet.', 'circleblast-nexus'); ?></p>
 					<?php else : $rank = 0; foreach ($top as $t) : $rank++; ?>
-						<div class="cbnexus-dash-meeting-row">
-							<span class="cbnexus-club-rank"><?php echo esc_html($rank); ?></span>
-							<strong><?php echo esc_html($t->display_name); ?></strong>
-							<span class="cbnexus-text-muted" style="margin-left:auto;"><?php echo esc_html($t->meeting_count); ?> <?php esc_html_e('meetings', 'circleblast-nexus'); ?></span>
+						<div class="cbnexus-row">
+							<span class="cbnexus-club-rank <?php echo $rank <= 3 ? 'cbnexus-club-rank--top' : 'cbnexus-club-rank--other'; ?>"><?php echo esc_html($rank); ?></span>
+							<strong style="flex:1;"><?php echo esc_html($t->display_name); ?></strong>
+							<span class="cbnexus-text-muted"><?php echo esc_html($t->meeting_count); ?></span>
 						</div>
 					<?php endforeach; endif; ?>
 				</div>
 
 				<!-- Topic Cloud -->
 				<div class="cbnexus-card">
-					<h3><?php esc_html_e('Discussion Topics', 'circleblast-nexus'); ?></h3>
+					<h3>💬 <?php esc_html_e('Topics', 'circleblast-nexus'); ?></h3>
 					<?php if (empty($topics)) : ?><p class="cbnexus-text-muted"><?php esc_html_e('No topics yet.', 'circleblast-nexus'); ?></p>
 					<?php else : ?>
 						<div class="cbnexus-topic-cloud">
-							<?php foreach ($topics as $topic => $count) :
-								$size = min(24, max(13, 12 + $count * 2));
+							<?php $i = 0; foreach ($topics as $topic => $count) :
+								$mod = $i % 3;
+								$size = max(12, 20 - $i);
+								$fw = $i < 4 ? 600 : 400;
 							?>
-								<span class="cbnexus-topic-tag" style="font-size:<?php echo esc_attr($size); ?>px;"><?php echo esc_html($topic); ?></span>
-							<?php endforeach; ?>
+								<span class="cbnexus-topic-tag cbnexus-topic-tag--<?php echo $mod; ?>" style="font-size:<?php echo esc_attr($size); ?>px;font-weight:<?php echo $fw; ?>;"><?php echo esc_html($topic); ?></span>
+							<?php $i++; endforeach; ?>
 						</div>
 					<?php endif; ?>
 				</div>
@@ -82,7 +83,7 @@ final class CBNexus_Portal_Club {
 			<!-- Recent Wins -->
 			<?php if (!empty($wins)) : ?>
 			<div class="cbnexus-card">
-				<h3><?php esc_html_e('Recent Wins', 'circleblast-nexus'); ?></h3>
+				<h3>🏆 <?php esc_html_e('Recent Wins', 'circleblast-nexus'); ?></h3>
 				<div class="cbnexus-wins-grid">
 					<?php foreach ($wins as $w) : ?>
 						<div class="cbnexus-win-card">
@@ -105,28 +106,31 @@ final class CBNexus_Portal_Club {
 		$wins  = self::get_recent_wins(8);
 		$top   = self::get_top_connectors(5);
 		$qr_data = urlencode($portal_url);
+		$back_url = add_query_arg('section', 'club', $portal_url);
 		?>
 		<div class="cbnexus-presentation" id="cbnexus-presentation">
+			<a href="<?php echo esc_url($back_url); ?>" class="cbnexus-present-close">✕ <?php esc_html_e('Exit', 'circleblast-nexus'); ?></a>
+
 			<div class="cbnexus-present-header">
 				<h1><?php esc_html_e('CircleBlast', 'circleblast-nexus'); ?></h1>
-				<p class="cbnexus-present-subtitle"><?php echo esc_html(date_i18n('F Y')); ?> <?php esc_html_e('Club Report', 'circleblast-nexus'); ?></p>
+				<p class="cbnexus-present-subtitle"><?php echo esc_html(date_i18n('F Y')); ?> <?php esc_html_e('Report', 'circleblast-nexus'); ?></p>
 			</div>
 
 			<div class="cbnexus-present-stats">
 				<div class="cbnexus-present-stat"><span class="cbnexus-present-num"><?php echo esc_html($stats['total_members']); ?></span><span><?php esc_html_e('Members', 'circleblast-nexus'); ?></span></div>
-				<div class="cbnexus-present-stat"><span class="cbnexus-present-num"><?php echo esc_html($stats['meetings_total']); ?></span><span><?php esc_html_e('1:1 Meetings', 'circleblast-nexus'); ?></span></div>
+				<div class="cbnexus-present-stat"><span class="cbnexus-present-num"><?php echo esc_html($stats['meetings_total']); ?></span><span><?php esc_html_e('Meetings', 'circleblast-nexus'); ?></span></div>
 				<div class="cbnexus-present-stat"><span class="cbnexus-present-num"><?php echo esc_html($stats['network_density']); ?>%</span><span><?php esc_html_e('Connected', 'circleblast-nexus'); ?></span></div>
 				<div class="cbnexus-present-stat"><span class="cbnexus-present-num"><?php echo esc_html($stats['wins_total']); ?></span><span><?php esc_html_e('Wins', 'circleblast-nexus'); ?></span></div>
 			</div>
 
 			<?php if (!empty($wins)) : ?>
 			<div class="cbnexus-present-section">
-				<h2>🏆 <?php esc_html_e('Recent Wins', 'circleblast-nexus'); ?></h2>
+				<h2>🏆 <?php esc_html_e('Wins', 'circleblast-nexus'); ?></h2>
 				<div class="cbnexus-present-wins">
 					<?php foreach ($wins as $w) : ?>
 						<div class="cbnexus-present-win">
 							<?php echo esc_html(wp_trim_words($w->content, 20)); ?>
-							<?php if ($w->speaker_name) : ?> <em>— <?php echo esc_html($w->speaker_name); ?></em><?php endif; ?>
+							<?php if ($w->speaker_name) : ?><br/><em>— <?php echo esc_html($w->speaker_name); ?></em><?php endif; ?>
 						</div>
 					<?php endforeach; ?>
 				</div>
@@ -139,9 +143,9 @@ final class CBNexus_Portal_Club {
 				<div class="cbnexus-present-leaders">
 					<?php $rank = 0; foreach ($top as $t) : $rank++; ?>
 						<div class="cbnexus-present-leader">
-							<span class="cbnexus-present-rank"><?php echo $rank; ?></span>
+							<span class="cbnexus-present-rank <?php echo $rank <= 3 ? 'cbnexus-present-rank--top' : 'cbnexus-present-rank--other'; ?>"><?php echo $rank; ?></span>
 							<?php echo esc_html($t->display_name); ?>
-							<span class="cbnexus-text-muted">(<?php echo esc_html($t->meeting_count); ?>)</span>
+							<span class="cbnexus-present-leader-count">· <?php echo esc_html($t->meeting_count); ?></span>
 						</div>
 					<?php endforeach; ?>
 				</div>
@@ -149,10 +153,10 @@ final class CBNexus_Portal_Club {
 			<?php endif; ?>
 
 			<div class="cbnexus-present-footer">
-				<div class="cbnexus-present-qr" data-url="<?php echo esc_attr($portal_url); ?>">
-					<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=<?php echo esc_attr($qr_data); ?>" alt="QR Code" width="160" height="160" />
+				<div class="cbnexus-present-qr">
+					<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=<?php echo esc_attr($qr_data); ?>" alt="QR Code" width="120" height="120" />
 				</div>
-				<p><?php esc_html_e('Scan to open the member portal', 'circleblast-nexus'); ?></p>
+				<p><?php esc_html_e('Scan to open the portal', 'circleblast-nexus'); ?></p>
 			</div>
 		</div>
 		<?php
@@ -176,7 +180,6 @@ final class CBNexus_Portal_Club {
 			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_meetings WHERE status IN ('completed', 'closed')"
 		);
 
-		// Network density: unique pairs who met / total possible pairs.
 		$unique_pairs = (int) $wpdb->get_var(
 			"SELECT COUNT(DISTINCT CONCAT(LEAST(member_a_id, member_b_id), ':', GREATEST(member_a_id, member_b_id)))
 			 FROM {$wpdb->prefix}cb_meetings WHERE status IN ('completed', 'closed')"
