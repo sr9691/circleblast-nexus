@@ -81,6 +81,8 @@ CBNexus_Autoloader::register();
  */
 add_action('cbnexus_log_cleanup', ['CBNexus_Log_Retention', 'cleanup']);
 add_action('cbnexus_meeting_reminders', ['CBNexus_Meeting_Service', 'send_reminders']);
+add_action('cbnexus_suggestion_cycle', ['CBNexus_Suggestion_Generator', 'cron_run']);
+add_action('cbnexus_suggestion_reminders', ['CBNexus_Suggestion_Generator', 'send_follow_up_reminders']);
 
 /**
  * Initialize admin features when in admin context.
@@ -89,6 +91,7 @@ if (is_admin()) {
 	CBNexus_Admin_Logs::init();
 	CBNexus_Admin_Members::init();
 	CBNexus_Admin_Member_Form::init();
+	CBNexus_Admin_Matching::init();
 }
 
 /**
@@ -98,6 +101,7 @@ CBNexus_Portal_Router::init();
 CBNexus_Portal_Profile::init();
 CBNexus_Directory::init();
 CBNexus_Portal_Meetings::init();
+CBNexus_Suggestion_Generator::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -129,6 +133,14 @@ function cbnexus_activate(): void {
 	if (!wp_next_scheduled('cbnexus_meeting_reminders')) {
 		wp_schedule_event(time(), 'daily', 'cbnexus_meeting_reminders');
 	}
+
+	// ITER-0011: Schedule monthly suggestion cycle + weekly follow-up reminders.
+	if (!wp_next_scheduled('cbnexus_suggestion_cycle')) {
+		wp_schedule_event(time(), 'monthly', 'cbnexus_suggestion_cycle');
+	}
+	if (!wp_next_scheduled('cbnexus_suggestion_reminders')) {
+		wp_schedule_event(time(), 'weekly', 'cbnexus_suggestion_reminders');
+	}
 }
 
 register_activation_hook(__FILE__, 'cbnexus_activate');
@@ -141,6 +153,8 @@ function cbnexus_deactivate(): void {
 		CBNexus_Log_Retention::unschedule();
 	}
 	wp_clear_scheduled_hook('cbnexus_meeting_reminders');
+	wp_clear_scheduled_hook('cbnexus_suggestion_cycle');
+	wp_clear_scheduled_hook('cbnexus_suggestion_reminders');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');

@@ -1,5 +1,55 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0011 (Automated Suggestion Generation)
+
+### Goals
+
+- Monthly automated matching cycle with email-based suggestion delivery
+- One-click accept/decline from email via tokenized URLs
+- Follow-up reminders for non-responses
+- Admin trigger and cycle status dashboard
+
+### Deliverables
+
+- [x] includes/matching/class-suggestion-generator.php — Run cycle (create suggested meetings + send emails), cron callback, token-based accept/decline, follow-up reminders for unresponsive suggestions, admin trigger with confirmation, cycle stats
+- [x] templates/emails/suggestion_match.php — Monthly match email with member card, accept/decline buttons via tokenized URLs
+- [x] templates/emails/suggestion_reminder.php — Follow-up reminder for non-responses
+- [x] Admin matching page updated: "Run Suggestion Cycle" button, cycle status table (last run, acceptance rates)
+- [x] WP-Cron: monthly suggestion cycle + weekly follow-up reminders
+- [x] Token cleanup: auto-expire after 14 days
+
+### Risks / Notes
+
+- Monthly/weekly cron schedules may need the WP Cron Schedules filter for custom intervals
+- Tokens stored in wp_options; fine for small groups, consider dedicated table at scale
+- Greedy selection ensures each member appears at most once per cycle
+
+---
+
+## Completed Iteration: ITER-0010 (Matching Rules Engine)
+
+### Goals
+
+- Configurable weighted scoring algorithm for intelligent member matching
+- 10 rules covering meeting history, diversity, needs alignment, and more
+- Admin UI for rule configuration with dry-run preview
+
+### Deliverables
+
+- [x] Migration 008: cb_matching_rules table, seeded with 10 default rules
+- [x] includes/matching/class-matching-rules.php — 10 individual rule implementations (meeting_history, industry_diversity, expertise_complement, needs_alignment, new_member_priority, tenure_balance, meeting_frequency, response_rate, admin_boost, recency_penalty)
+- [x] includes/matching/class-matching-engine.php — Context builder (pair history, meeting counts, response rates), all-pairs scoring, greedy selection, dry-run mode
+- [x] includes/admin/class-admin-matching.php — Rule config table (enable/disable, adjust weights), dry-run preview with score breakdowns
+- [x] Updated autoloader, migration runner, main bootstrap
+
+### Risks / Notes
+
+- All-pairs scoring is O(n²); fine for groups under ~200 members
+- Rules return 0.0–1.0, multiplied by weight (can be negative for penalties)
+- Admin boost rule uses config_json for specific pair overrides
+
+---
+
 ## Completed Iteration: ITER-0009 (Manual 1:1 Requests & Meeting UI)
 
 ### Goals

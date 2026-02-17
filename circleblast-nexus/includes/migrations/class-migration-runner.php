@@ -83,6 +83,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_007_Create_Meeting_Responses',
 				'method' => 'up',
 			],
+			'008_create_matching_rules' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/008-create-matching-rules.php',
+				'class'  => 'CBNexus_Migration_008_Create_Matching_Rules',
+				'method' => 'up',
+			],
 		];
 	}
 

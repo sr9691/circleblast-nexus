@@ -50,6 +50,12 @@ final class CBNexus_Autoloader {
 		// Meetings (ITER-0008)
 		'CBNexus_Meeting_Repository' => 'includes/meetings/class-meeting-repository.php',
 		'CBNexus_Meeting_Service'    => 'includes/meetings/class-meeting-service.php',
+
+		// Matching (ITER-0010)
+		'CBNexus_Matching_Rules'       => 'includes/matching/class-matching-rules.php',
+		'CBNexus_Matching_Engine'      => 'includes/matching/class-matching-engine.php',
+		'CBNexus_Suggestion_Generator' => 'includes/matching/class-suggestion-generator.php',
+		'CBNexus_Admin_Matching'       => 'includes/admin/class-admin-matching.php',
 	];
 
 	/**
