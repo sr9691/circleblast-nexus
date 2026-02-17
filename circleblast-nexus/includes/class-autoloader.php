@@ -45,6 +45,11 @@ final class CBNexus_Autoloader {
 		'CBNexus_Portal_Router'     => 'includes/public/class-portal-router.php',
 		'CBNexus_Portal_Profile'    => 'includes/public/class-portal-profile.php',
 		'CBNexus_Directory'         => 'includes/public/class-directory.php',
+		'CBNexus_Portal_Meetings'   => 'includes/public/class-portal-meetings.php',
+
+		// Meetings (ITER-0008)
+		'CBNexus_Meeting_Repository' => 'includes/meetings/class-meeting-repository.php',
+		'CBNexus_Meeting_Service'    => 'includes/meetings/class-meeting-service.php',
 	];
 
 	/**

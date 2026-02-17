@@ -259,7 +259,7 @@ final class CBNexus_Directory {
 				</div>
 				<div class="cbnexus-profile-header-actions">
 					<?php if (!$is_self) : ?>
-						<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-request-meeting-btn" data-member-id="<?php echo esc_attr($member_id); ?>" disabled title="<?php esc_attr_e('Coming soon in a future update', 'circleblast-nexus'); ?>">
+						<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-request-meeting-btn" data-member-id="<?php echo esc_attr($member_id); ?>">
 							<?php esc_html_e('Request 1:1', 'circleblast-nexus'); ?>
 						</button>
 					<?php endif; ?>

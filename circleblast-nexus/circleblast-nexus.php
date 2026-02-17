@@ -80,6 +80,7 @@ CBNexus_Autoloader::register();
  * Register cron hooks.
  */
 add_action('cbnexus_log_cleanup', ['CBNexus_Log_Retention', 'cleanup']);
+add_action('cbnexus_meeting_reminders', ['CBNexus_Meeting_Service', 'send_reminders']);
 
 /**
  * Initialize admin features when in admin context.
@@ -96,6 +97,7 @@ if (is_admin()) {
 CBNexus_Portal_Router::init();
 CBNexus_Portal_Profile::init();
 CBNexus_Directory::init();
+CBNexus_Portal_Meetings::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -122,6 +124,11 @@ function cbnexus_activate(): void {
 	if (class_exists('CBNexus_Log_Retention')) {
 		CBNexus_Log_Retention::schedule();
 	}
+
+	// ITER-0009: Schedule daily meeting reminders.
+	if (!wp_next_scheduled('cbnexus_meeting_reminders')) {
+		wp_schedule_event(time(), 'daily', 'cbnexus_meeting_reminders');
+	}
 }
 
 register_activation_hook(__FILE__, 'cbnexus_activate');
@@ -133,6 +140,7 @@ function cbnexus_deactivate(): void {
 	if (class_exists('CBNexus_Log_Retention')) {
 		CBNexus_Log_Retention::unschedule();
 	}
+	wp_clear_scheduled_hook('cbnexus_meeting_reminders');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');

@@ -68,6 +68,21 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_004_Create_Email_Log',
 				'method' => 'up',
 			],
+			'005_create_meetings' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/005-create-meetings.php',
+				'class'  => 'CBNexus_Migration_005_Create_Meetings',
+				'method' => 'up',
+			],
+			'006_create_meeting_notes' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/006-create-meeting-notes.php',
+				'class'  => 'CBNexus_Migration_006_Create_Meeting_Notes',
+				'method' => 'up',
+			],
+			'007_create_meeting_responses' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/007-create-meeting-responses.php',
+				'class'  => 'CBNexus_Migration_007_Create_Meeting_Responses',
+				'method' => 'up',
+			],
 		];
 	}
 

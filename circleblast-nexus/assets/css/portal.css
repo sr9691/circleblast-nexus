@@ -701,3 +701,124 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ITER-0009: Meetings Styles
+   ══════════════════════════════════════════════════════════════ */
+
+.cbnexus-section-title {
+	margin: 0 0 16px;
+	font-size: 18px;
+	color: #1a365d;
+}
+
+.cbnexus-meeting-action-card,
+.cbnexus-meeting-notes-card {
+	padding: 16px;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	margin-bottom: 12px;
+	background: #fefefe;
+}
+
+.cbnexus-meeting-action-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+}
+
+.cbnexus-meeting-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cbnexus-meeting-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.cbnexus-meeting-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.cbnexus-meeting-row:last-child { border-bottom: none; }
+.cbnexus-meeting-row .cbnexus-meeting-info { flex: 1; }
+
+.cbnexus-status-pill {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+	white-space: nowrap;
+}
+
+.cbnexus-schedule-input {
+	padding: 6px 10px;
+	border: 1px solid #cbd5e0;
+	border-radius: 6px;
+	font-size: 13px;
+}
+
+/* Notes form inside card */
+.cbnexus-notes-form {
+	margin-top: 12px;
+}
+
+.cbnexus-notes-form .cbnexus-form-field {
+	margin-bottom: 12px;
+}
+
+.cbnexus-notes-form textarea {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid #cbd5e0;
+	border-radius: 6px;
+	font-size: 14px;
+	resize: vertical;
+}
+
+.cbnexus-notes-form textarea:focus {
+	outline: none;
+	border-color: #2563eb;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.cbnexus-rating-input {
+	display: flex;
+	gap: 12px;
+	margin-top: 4px;
+}
+
+.cbnexus-rating-input label {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 14px;
+	cursor: pointer;
+}
+
+@media (max-width: 768px) {
+	.cbnexus-meeting-action-card {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.cbnexus-meeting-row {
+		flex-wrap: wrap;
+	}
+
+	.cbnexus-meeting-actions {
+		width: 100%;
+		flex-wrap: wrap;
+	}
+}

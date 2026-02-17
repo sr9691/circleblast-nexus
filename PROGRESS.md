@@ -1,5 +1,51 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0009 (Manual 1:1 Requests & Meeting UI)
+
+### Goals
+
+- Members can request, respond to, and track 1:1 meetings
+- Post-meeting notes capture with structured form
+- Email notifications throughout the meeting lifecycle
+
+### Deliverables
+
+- [x] includes/public/class-portal-meetings.php — Portal meetings page with sections: Action Required, Submit Notes, Upcoming, Awaiting Response, History
+- [x] assets/js/meetings.js — AJAX handlers for request, accept, decline, schedule, complete, cancel, submit notes
+- [x] Wired "Request 1:1" button on directory profiles (was disabled placeholder)
+- [x] 6 email templates: request received/sent, accepted, declined, notes request, reminder
+- [x] Meeting reminder cron (daily, 24h before scheduled meetings)
+- [x] Portal router: meetings section now renders CBNexus_Portal_Meetings::render
+- [x] Meetings CSS added to portal.css
+- [x] Updated PROGRESS.md
+
+### Risks / Notes
+
+- Scheduling uses datetime-local input (browser native); timezone is user's local
+- Notes auto-close meeting when both participants have submitted
+- Reminder cron runs daily; meetings scheduled with <24h notice may miss reminder
+
+---
+
+## Completed Iteration: ITER-0008 (Meetings Data Model & Core Workflow)
+
+### Goals
+
+- Database foundation and state machine for the 1:1 meeting lifecycle
+- Validation rules: no self-meetings, no duplicate active meetings
+
+### Deliverables
+
+- [x] Migration 005: cb_meetings table (member_a_id, member_b_id, status, source, score, timestamps)
+- [x] Migration 006: cb_meeting_notes table (meeting_id, author_id, wins, insights, action_items, rating)
+- [x] Migration 007: cb_meeting_responses table (meeting_id, responder_id, response, message)
+- [x] includes/meetings/class-meeting-repository.php — Full SQL operations: CRUD, queries by member/status, notes upsert, responses, upcoming scheduled
+- [x] includes/meetings/class-meeting-service.php — State machine: suggested→pending→accepted→scheduled→completed→closed, plus declined/cancelled paths
+- [x] Updated autoloader, migration runner
+- [x] Updated PROGRESS.md
+
+---
+
 ## Completed Iteration: ITER-0007 (Member Directory)
 
 ### Goals
