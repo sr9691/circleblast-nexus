@@ -1,5 +1,30 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0006 (Portal Shell & Profile Edit)
+
+### Goals
+
+- Authenticated member-facing portal with profile self-management
+- Shortcode-based page routing with access control
+- Responsive CSS for mobile-friendly portal
+
+### Deliverables
+
+- [x] includes/public/class-portal-router.php — Shortcode [cbnexus_portal], section routing, access control, nav, dashboard placeholder
+- [x] includes/public/class-portal-profile.php — Member self-service profile edit with nonce verification
+- [x] assets/css/portal.css — Responsive portal layout, cards, forms, nav, buttons, mobile breakpoints
+- [x] Non-members redirected away; non-logged-in users sent to login
+- [x] Updated autoloader and main plugin bootstrap
+- [x] Updated PROGRESS.md
+
+### Risks / Notes
+
+- Portal requires a WordPress page containing [cbnexus_portal] shortcode
+- Dashboard, Directory, Meetings sections are placeholders until their iterations
+- Email field is disabled on profile form (admin-only change)
+
+---
+
 ## Completed Iteration: ITER-0005 (Admin Member Management UI)
 
 ### Goals
@@ -10,21 +35,12 @@
 
 ### Deliverables
 
-- [x] Migration 004: Create cb_email_log table (recipient, template_id, subject, status, sent_at)
-- [x] includes/admin/class-admin-members.php — Member list page with status filters, search, bulk status changes
+- [x] Migration 004: Create cb_email_log table
+- [x] includes/admin/class-admin-members.php — Member list with status filters, search, bulk actions
 - [x] includes/admin/class-admin-member-form.php — Add/edit form with all 17 fields in grouped sections
 - [x] includes/emails/class-email-service.php — Centralized sender with template support, HTML layout, db logging
 - [x] templates/emails/welcome_member.php — Branded welcome email with password reset link
-- [x] Welcome email triggered automatically on member creation
-- [x] Nonce verification + capability checks on all admin actions per SECURITY.md
-- [x] Updated autoloader, migration runner, main plugin bootstrap
-- [x] Updated PROGRESS.md
-
-### Risks / Notes
-
-- Email delivery depends on server SMTP / wp_mail configuration
-- Form data preserved on validation errors via transients (60s expiry)
-- Role changes remove all CB roles before assigning new one to prevent multi-role conflicts
+- [x] Nonce verification + capability checks on all admin actions
 
 ---
 

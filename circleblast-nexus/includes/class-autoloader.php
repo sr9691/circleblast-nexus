@@ -40,6 +40,10 @@ final class CBNexus_Autoloader {
 
 		// Emails (ITER-0005)
 		'CBNexus_Email_Service'     => 'includes/emails/class-email-service.php',
+
+		// Public Portal (ITER-0006)
+		'CBNexus_Portal_Router'     => 'includes/public/class-portal-router.php',
+		'CBNexus_Portal_Profile'    => 'includes/public/class-portal-profile.php',
 	];
 
 	/**

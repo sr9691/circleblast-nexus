@@ -2,19 +2,13 @@
 /**
  * Migration: 004 - Create email log table
  *
- * ITER-0005: Tracks all automated emails sent by the plugin
- * for debugging, analytics, and delivery verification.
+ * ITER-0005: Tracks all automated emails sent by the plugin.
  */
 
 defined('ABSPATH') || exit;
 
 final class CBNexus_Migration_004_Create_Email_Log {
 
-	/**
-	 * Apply migration.
-	 *
-	 * @return bool True on success.
-	 */
 	public static function up(): bool {
 		global $wpdb;
 
@@ -42,12 +36,7 @@ final class CBNexus_Migration_004_Create_Email_Log {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta($sql);
 
-		// Validate table was created.
-		$found = $wpdb->get_var($wpdb->prepare(
-			"SHOW TABLES LIKE %s",
-			$table
-		));
-
+		$found = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
 		return ($found === $table);
 	}
 }

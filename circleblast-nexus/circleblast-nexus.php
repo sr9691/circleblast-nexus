@@ -91,6 +91,12 @@ if (is_admin()) {
 }
 
 /**
+ * ITER-0006: Initialize public portal (shortcode, access control, profile form).
+ */
+CBNexus_Portal_Router::init();
+CBNexus_Portal_Profile::init();
+
+/**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
  */
 function cbnexus_activate(): void {
