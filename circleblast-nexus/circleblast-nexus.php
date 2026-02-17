@@ -95,6 +95,7 @@ if (is_admin()) {
  */
 CBNexus_Portal_Router::init();
 CBNexus_Portal_Profile::init();
+CBNexus_Directory::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).

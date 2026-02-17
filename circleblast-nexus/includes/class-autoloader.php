@@ -44,6 +44,7 @@ final class CBNexus_Autoloader {
 		// Public Portal (ITER-0006)
 		'CBNexus_Portal_Router'     => 'includes/public/class-portal-router.php',
 		'CBNexus_Portal_Profile'    => 'includes/public/class-portal-profile.php',
+		'CBNexus_Directory'         => 'includes/public/class-directory.php',
 	];
 
 	/**

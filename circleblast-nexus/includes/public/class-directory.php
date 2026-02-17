@@ -1,0 +1,365 @@
+<?php
+/**
+ * Member Directory
+ *
+ * ITER-0007: Searchable, filterable member directory with grid/list views
+ * and individual member profile pages. Integrated into the portal via
+ * the 'directory' section. AJAX filtering for responsive experience.
+ */
+
+defined('ABSPATH') || exit;
+
+final class CBNexus_Directory {
+
+	/**
+	 * Initialize directory hooks.
+	 */
+	public static function init(): void {
+		add_action('wp_ajax_cbnexus_directory_filter', [__CLASS__, 'ajax_filter']);
+		add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_scripts']);
+	}
+
+	/**
+	 * Enqueue directory JS on portal pages.
+	 */
+	public static function enqueue_scripts(): void {
+		global $post;
+		if (!is_a($post, 'WP_Post') || !has_shortcode($post->post_content, 'cbnexus_portal')) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'cbnexus-directory',
+			CBNEXUS_PLUGIN_URL . 'assets/js/directory.js',
+			[],
+			CBNEXUS_VERSION,
+			true
+		);
+
+		wp_localize_script('cbnexus-directory', 'cbnexusDir', [
+			'ajax_url' => admin_url('admin-ajax.php'),
+			'nonce'    => wp_create_nonce('cbnexus_directory'),
+		]);
+	}
+
+	/**
+	 * Render the directory section (called by portal router).
+	 *
+	 * @param array $profile Current user's profile.
+	 */
+	public static function render(array $profile): void {
+		// Check if viewing an individual member profile.
+		if (isset($_GET['member_id']) && absint($_GET['member_id']) > 0) {
+			self::render_member_profile(absint($_GET['member_id']), $profile);
+			return;
+		}
+
+		$industries = CBNexus_Member_Service::get_industries();
+		?>
+		<div class="cbnexus-directory" id="cbnexus-directory">
+			<!-- Controls Bar -->
+			<div class="cbnexus-dir-controls">
+				<div class="cbnexus-dir-search">
+					<input type="text" id="cbnexus-dir-search" placeholder="<?php esc_attr_e('Search by name, company, or keyword...', 'circleblast-nexus'); ?>" />
+				</div>
+				<div class="cbnexus-dir-filters">
+					<select id="cbnexus-dir-industry">
+						<option value=""><?php esc_html_e('All Industries', 'circleblast-nexus'); ?></option>
+						<?php foreach ($industries as $ind) : ?>
+							<option value="<?php echo esc_attr($ind); ?>"><?php echo esc_html($ind); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<select id="cbnexus-dir-status">
+						<option value="active"><?php esc_html_e('Active Members', 'circleblast-nexus'); ?></option>
+						<option value=""><?php esc_html_e('All Statuses', 'circleblast-nexus'); ?></option>
+						<option value="alumni"><?php esc_html_e('Alumni', 'circleblast-nexus'); ?></option>
+					</select>
+				</div>
+				<div class="cbnexus-dir-view-toggle">
+					<button type="button" class="cbnexus-view-btn active" data-view="grid" title="<?php esc_attr_e('Grid View', 'circleblast-nexus'); ?>">
+						<span class="dashicons dashicons-grid-view"></span>
+					</button>
+					<button type="button" class="cbnexus-view-btn" data-view="list" title="<?php esc_attr_e('List View', 'circleblast-nexus'); ?>">
+						<span class="dashicons dashicons-list-view"></span>
+					</button>
+				</div>
+			</div>
+
+			<!-- Results Count -->
+			<div class="cbnexus-dir-meta">
+				<span id="cbnexus-dir-count"></span>
+			</div>
+
+			<!-- Loading State -->
+			<div class="cbnexus-dir-loading" id="cbnexus-dir-loading" style="display:none;">
+				<p><?php esc_html_e('Loading members...', 'circleblast-nexus'); ?></p>
+			</div>
+
+			<!-- Results Container -->
+			<div class="cbnexus-dir-results cbnexus-dir-grid" id="cbnexus-dir-results">
+				<?php
+				// Initial render: active members.
+				$members = CBNexus_Member_Repository::get_all_members('active');
+				echo self::render_cards($members);
+				?>
+			</div>
+			<script>document.getElementById('cbnexus-dir-count').textContent = '<?php echo esc_js(sprintf(_n('%d member', '%d members', count($members), 'circleblast-nexus'), count($members))); ?>';</script>
+		</div>
+		<?php
+	}
+
+	/**
+	 * AJAX handler for directory filtering.
+	 */
+	public static function ajax_filter(): void {
+		check_ajax_referer('cbnexus_directory', 'nonce');
+
+		if (!is_user_logged_in() || !CBNexus_Member_Repository::is_member(get_current_user_id())) {
+			wp_send_json_error('Access denied.', 403);
+		}
+
+		$search   = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
+		$industry = isset($_POST['industry']) ? sanitize_text_field(wp_unslash($_POST['industry'])) : '';
+		$status   = isset($_POST['status']) ? sanitize_text_field(wp_unslash($_POST['status'])) : 'active';
+
+		// Get members.
+		if ($search !== '') {
+			$members = CBNexus_Member_Repository::search($search, $status);
+		} else {
+			$members = CBNexus_Member_Repository::get_all_members($status);
+		}
+
+		// Filter by industry if set.
+		if ($industry !== '') {
+			$members = array_filter($members, function ($m) use ($industry) {
+				return ($m['cb_industry'] ?? '') === $industry;
+			});
+			$members = array_values($members);
+		}
+
+		$html  = self::render_cards($members);
+		$count = count($members);
+
+		wp_send_json_success([
+			'html'  => $html,
+			'count' => $count,
+			'label' => sprintf(_n('%d member', '%d members', $count, 'circleblast-nexus'), $count),
+		]);
+	}
+
+	/**
+	 * Render member cards HTML.
+	 *
+	 * @param array $members Array of member profiles.
+	 * @return string HTML.
+	 */
+	private static function render_cards(array $members): string {
+		if (empty($members)) {
+			return '<div class="cbnexus-dir-empty"><p>' . esc_html__('No members found matching your criteria.', 'circleblast-nexus') . '</p></div>';
+		}
+
+		$portal_url = CBNexus_Portal_Router::get_portal_url();
+		$html = '';
+
+		foreach ($members as $m) {
+			$profile_url = add_query_arg(['section' => 'directory', 'member_id' => $m['user_id']], $portal_url);
+			$initials    = self::get_initials($m);
+			$photo       = !empty($m['cb_photo_url']) ? $m['cb_photo_url'] : '';
+			$expertise   = is_array($m['cb_expertise']) ? $m['cb_expertise'] : [];
+			$status      = $m['cb_member_status'] ?? 'active';
+
+			$html .= '<div class="cbnexus-member-card" data-industry="' . esc_attr($m['cb_industry'] ?? '') . '">';
+
+			// Avatar
+			$html .= '<div class="cbnexus-member-avatar">';
+			if ($photo) {
+				$html .= '<img src="' . esc_url($photo) . '" alt="' . esc_attr($m['display_name']) . '" />';
+			} else {
+				$html .= '<span class="cbnexus-member-initials">' . esc_html($initials) . '</span>';
+			}
+			$html .= '</div>';
+
+			// Info
+			$html .= '<div class="cbnexus-member-info">';
+			$html .= '<h3 class="cbnexus-member-name"><a href="' . esc_url($profile_url) . '">' . esc_html($m['display_name']) . '</a></h3>';
+			$html .= '<p class="cbnexus-member-title">' . esc_html($m['cb_title'] ?? '') . '</p>';
+			$html .= '<p class="cbnexus-member-company">' . esc_html($m['cb_company'] ?? '') . '</p>';
+
+			if (!empty($m['cb_industry'])) {
+				$html .= '<span class="cbnexus-member-industry">' . esc_html($m['cb_industry']) . '</span>';
+			}
+
+			// Tags (show first 3)
+			if (!empty($expertise)) {
+				$html .= '<div class="cbnexus-member-tags">';
+				$show = array_slice($expertise, 0, 3);
+				foreach ($show as $tag) {
+					$html .= '<span class="cbnexus-tag">' . esc_html($tag) . '</span>';
+				}
+				if (count($expertise) > 3) {
+					$html .= '<span class="cbnexus-tag cbnexus-tag-more">+' . (count($expertise) - 3) . '</span>';
+				}
+				$html .= '</div>';
+			}
+
+			$html .= '</div>'; // .cbnexus-member-info
+
+			// Actions
+			$html .= '<div class="cbnexus-member-actions">';
+			$html .= '<a href="' . esc_url($profile_url) . '" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline-dark">' . esc_html__('View Profile', 'circleblast-nexus') . '</a>';
+			$html .= '</div>';
+
+			$html .= '</div>'; // .cbnexus-member-card
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Render an individual member's profile page.
+	 */
+	private static function render_member_profile(int $member_id, array $viewer_profile): void {
+		$member = CBNexus_Member_Repository::get_profile($member_id);
+
+		if (!$member) {
+			echo '<div class="cbnexus-card"><p>' . esc_html__('Member not found.', 'circleblast-nexus') . '</p></div>';
+			return;
+		}
+
+		$portal_url  = CBNexus_Portal_Router::get_portal_url();
+		$back_url    = add_query_arg('section', 'directory', $portal_url);
+		$photo       = !empty($member['cb_photo_url']) ? $member['cb_photo_url'] : '';
+		$initials    = self::get_initials($member);
+		$expertise   = is_array($member['cb_expertise']) ? $member['cb_expertise'] : [];
+		$looking_for = is_array($member['cb_looking_for']) ? $member['cb_looking_for'] : [];
+		$can_help    = is_array($member['cb_can_help_with']) ? $member['cb_can_help_with'] : [];
+		$is_self     = ($member_id === ($viewer_profile['user_id'] ?? 0));
+		?>
+		<div class="cbnexus-profile-page">
+			<a href="<?php echo esc_url($back_url); ?>" class="cbnexus-back-link">
+				&larr; <?php esc_html_e('Back to Directory', 'circleblast-nexus'); ?>
+			</a>
+
+			<!-- Profile Header -->
+			<div class="cbnexus-profile-header">
+				<div class="cbnexus-profile-avatar-lg">
+					<?php if ($photo) : ?>
+						<img src="<?php echo esc_url($photo); ?>" alt="<?php echo esc_attr($member['display_name']); ?>" />
+					<?php else : ?>
+						<span class="cbnexus-member-initials-lg"><?php echo esc_html($initials); ?></span>
+					<?php endif; ?>
+				</div>
+				<div class="cbnexus-profile-header-info">
+					<h2><?php echo esc_html($member['display_name']); ?></h2>
+					<p class="cbnexus-profile-jobtitle"><?php echo esc_html($member['cb_title'] ?? ''); ?> <?php if (!empty($member['cb_company'])) : ?>at <strong><?php echo esc_html($member['cb_company']); ?></strong><?php endif; ?></p>
+					<?php if (!empty($member['cb_industry'])) : ?>
+						<span class="cbnexus-member-industry"><?php echo esc_html($member['cb_industry']); ?></span>
+					<?php endif; ?>
+					<p class="cbnexus-profile-since"><?php printf(esc_html__('Member since %s', 'circleblast-nexus'), esc_html($member['cb_join_date'] ?? '—')); ?></p>
+				</div>
+				<div class="cbnexus-profile-header-actions">
+					<?php if (!$is_self) : ?>
+						<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-request-meeting-btn" data-member-id="<?php echo esc_attr($member_id); ?>" disabled title="<?php esc_attr_e('Coming soon in a future update', 'circleblast-nexus'); ?>">
+							<?php esc_html_e('Request 1:1', 'circleblast-nexus'); ?>
+						</button>
+					<?php endif; ?>
+					<?php if (!empty($member['user_email'])) : ?>
+						<a href="mailto:<?php echo esc_attr($member['user_email']); ?>" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline-dark"><?php esc_html_e('Email', 'circleblast-nexus'); ?></a>
+					<?php endif; ?>
+					<?php if (!empty($member['cb_linkedin'])) : ?>
+						<a href="<?php echo esc_url($member['cb_linkedin']); ?>" target="_blank" rel="noopener" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline-dark"><?php esc_html_e('LinkedIn', 'circleblast-nexus'); ?></a>
+					<?php endif; ?>
+				</div>
+			</div>
+
+			<!-- Bio -->
+			<?php if (!empty($member['cb_bio'])) : ?>
+				<div class="cbnexus-card">
+					<h3><?php esc_html_e('About', 'circleblast-nexus'); ?></h3>
+					<p><?php echo nl2br(esc_html($member['cb_bio'])); ?></p>
+				</div>
+			<?php endif; ?>
+
+			<!-- Networking Info -->
+			<div class="cbnexus-profile-columns">
+				<?php if (!empty($expertise)) : ?>
+					<div class="cbnexus-card">
+						<h3><?php esc_html_e('Expertise', 'circleblast-nexus'); ?></h3>
+						<div class="cbnexus-tag-list">
+							<?php foreach ($expertise as $tag) : ?>
+								<span class="cbnexus-tag"><?php echo esc_html($tag); ?></span>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				<?php endif; ?>
+
+				<?php if (!empty($looking_for)) : ?>
+					<div class="cbnexus-card">
+						<h3><?php esc_html_e('Looking For', 'circleblast-nexus'); ?></h3>
+						<div class="cbnexus-tag-list">
+							<?php foreach ($looking_for as $tag) : ?>
+								<span class="cbnexus-tag cbnexus-tag-looking"><?php echo esc_html($tag); ?></span>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				<?php endif; ?>
+
+				<?php if (!empty($can_help)) : ?>
+					<div class="cbnexus-card">
+						<h3><?php esc_html_e('Can Help With', 'circleblast-nexus'); ?></h3>
+						<div class="cbnexus-tag-list">
+							<?php foreach ($can_help as $tag) : ?>
+								<span class="cbnexus-tag cbnexus-tag-help"><?php echo esc_html($tag); ?></span>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				<?php endif; ?>
+			</div>
+
+			<!-- Contact Info -->
+			<div class="cbnexus-card">
+				<h3><?php esc_html_e('Contact', 'circleblast-nexus'); ?></h3>
+				<div class="cbnexus-contact-list">
+					<?php if (!empty($member['user_email'])) : ?>
+						<div class="cbnexus-contact-item">
+							<span class="dashicons dashicons-email"></span>
+							<a href="mailto:<?php echo esc_attr($member['user_email']); ?>"><?php echo esc_html($member['user_email']); ?></a>
+						</div>
+					<?php endif; ?>
+					<?php if (!empty($member['cb_phone'])) : ?>
+						<div class="cbnexus-contact-item">
+							<span class="dashicons dashicons-phone"></span>
+							<a href="tel:<?php echo esc_attr($member['cb_phone']); ?>"><?php echo esc_html($member['cb_phone']); ?></a>
+						</div>
+					<?php endif; ?>
+					<?php if (!empty($member['cb_linkedin'])) : ?>
+						<div class="cbnexus-contact-item">
+							<span class="dashicons dashicons-linkedin"></span>
+							<a href="<?php echo esc_url($member['cb_linkedin']); ?>" target="_blank" rel="noopener"><?php esc_html_e('LinkedIn Profile', 'circleblast-nexus'); ?></a>
+						</div>
+					<?php endif; ?>
+					<?php if (!empty($member['cb_website'])) : ?>
+						<div class="cbnexus-contact-item">
+							<span class="dashicons dashicons-admin-site-alt3"></span>
+							<a href="<?php echo esc_url($member['cb_website']); ?>" target="_blank" rel="noopener"><?php echo esc_html($member['cb_website']); ?></a>
+						</div>
+					<?php endif; ?>
+				</div>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Get initials from a member profile.
+	 */
+	private static function get_initials(array $m): string {
+		$first = $m['first_name'] ?? '';
+		$last  = $m['last_name'] ?? '';
+		if ($first && $last) {
+			return strtoupper(mb_substr($first, 0, 1) . mb_substr($last, 0, 1));
+		}
+		$display = $m['display_name'] ?? '?';
+		return strtoupper(mb_substr($display, 0, 2));
+	}
+}

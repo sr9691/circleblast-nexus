@@ -1,5 +1,31 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0007 (Member Directory)
+
+### Goals
+
+- Searchable, filterable member directory with grid/list views
+- Individual member profile pages with contact and networking info
+- AJAX-powered filtering for responsive experience
+
+### Deliverables
+
+- [x] includes/public/class-directory.php — Directory rendering, AJAX filter handler, member cards, individual profile pages
+- [x] assets/js/directory.js — AJAX search (350ms debounce), industry/status filters, grid/list view toggle
+- [x] assets/css/portal.css — Directory grid/list layouts, member cards, avatars, tags, profile page, contact list, responsive
+- [x] Portal router wired: directory section now renders CBNexus_Directory::render
+- [x] "Request 1:1" button on profiles (disabled placeholder, wired in ITER-0009)
+- [x] Updated autoloader, main plugin bootstrap
+- [x] Updated PROGRESS.md
+
+### Risks / Notes
+
+- Industry filter is client-side post-fetch; scales fine for groups under ~200 members
+- "Request 1:1" button is disabled with tooltip — will be enabled in ITER-0009
+- Profile photos use URL-based approach (no file upload yet)
+
+---
+
 ## Completed Iteration: ITER-0006 (Portal Shell & Profile Edit)
 
 ### Goals

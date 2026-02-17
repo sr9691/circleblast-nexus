@@ -38,7 +38,7 @@ final class CBNexus_Portal_Router {
 			'directory' => [
 				'label'    => __('Directory', 'circleblast-nexus'),
 				'icon'     => 'dashicons-groups',
-				'callback' => [__CLASS__, 'render_section_placeholder'],
+				'callback' => ['CBNexus_Directory', 'render'],
 			],
 			'meetings' => [
 				'label'    => __('Meetings', 'circleblast-nexus'),
