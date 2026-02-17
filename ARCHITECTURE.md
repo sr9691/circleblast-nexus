@@ -8,35 +8,29 @@ circleblast-nexus/
 
 ├── circleblast-nexus.php
 
-├── modules/
+├── includes/
 
-│ ├── Members/
+│ ├── class-autoloader.php
 
-│ ├── Meetings/
+│ ├── admin/
 
-│ ├── Matching/
+│ ├── logging/
 
-│ ├── CircleUp/
+│ ├── migrations/
 
-│ ├── Analytics/
+│ ├── members/
 
-├── core/
+│ ├── meetings/
 
-│ ├── Services/
+│ ├── matching/
 
-│ ├── Repositories/
+│ ├── circleup/
 
-│ ├── Security/
+│ ├── emails/
 
-│ ├── Logging/
-
-├── admin/
-
-├── public/
+│ ├── public/
 
 ├── templates/
-
-├── migrations/
 
 ---
 
@@ -47,12 +41,14 @@ UI → Controllers/Handlers → Services → Repositories → Database
 - UI never queries the database directly  
 - Services contain business logic  
 - Repositories encapsulate all SQL  
-- Modules register themselves via a single entry class  
+- All classes use the CBNexus_ prefix  
+- Autoloader (class-map) handles class loading  
   ---
 
   ## Naming & Conventions
 
-- PHP namespace: `CircleBlast\Nexus`  
+- Class prefix: `CBNexus_`  
+- File naming: `class-{name}.php` (WordPress standard)  
 - Prefix everything: `cb_` (tables, options, cron, hooks)  
 - No global state unless explicitly intentional  
   ---
@@ -62,4 +58,3 @@ UI → Controllers/Handlers → Services → Repositories → Database
 - All heavy work via WP-Cron or async handlers  
 - Cron jobs must be idempotent  
 - Each run logged with correlation ID  
-  

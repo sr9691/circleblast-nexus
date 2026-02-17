@@ -64,7 +64,7 @@ final class CBNexus_Log_Retention {
 			if (class_exists('CBNexus_Logger')) {
 				CBNexus_Logger::warning('Log cleanup failed.', [
 					'exception_class' => get_class($e),
-				], 'circleblast-nexus');
+				]);
 			}
 		}
 	}

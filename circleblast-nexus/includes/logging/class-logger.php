@@ -164,7 +164,6 @@ final class CBNexus_Logger {
 				'context_json'   => $context_json,
 				'source'         => $source ? substr($source, 0, 191) : null,
 				'request_id'     => $request_id ? substr($request_id, 0, 64) : null,
-				'user_id'        => $user_id,
 			];
 
 			$formats = [
@@ -174,8 +173,13 @@ final class CBNexus_Logger {
 				'%s', // context_json
 				'%s', // source
 				'%s', // request_id
-				'%d', // user_id
 			];
+
+			// Only include user_id when we have a real value (avoids null → 0 cast with %d).
+			if ($user_id !== null) {
+				$payload['user_id'] = $user_id;
+				$formats[] = '%d';
+			}
 
 			$ok = $wpdb->insert($table, $payload, $formats);
 
