@@ -86,6 +86,8 @@ add_action('cbnexus_log_cleanup', ['CBNexus_Log_Retention', 'cleanup']);
  */
 if (is_admin()) {
 	CBNexus_Admin_Logs::init();
+	CBNexus_Admin_Members::init();
+	CBNexus_Admin_Member_Form::init();
 }
 
 /**

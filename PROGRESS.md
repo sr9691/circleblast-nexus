@@ -1,5 +1,33 @@
 # CircleBlast Nexus – Progress Tracker
 
+## Completed Iteration: ITER-0005 (Admin Member Management UI)
+
+### Goals
+
+- Admin interface for creating and managing members
+- Centralized email service with template support
+- Welcome email on member creation
+
+### Deliverables
+
+- [x] Migration 004: Create cb_email_log table (recipient, template_id, subject, status, sent_at)
+- [x] includes/admin/class-admin-members.php — Member list page with status filters, search, bulk status changes
+- [x] includes/admin/class-admin-member-form.php — Add/edit form with all 17 fields in grouped sections
+- [x] includes/emails/class-email-service.php — Centralized sender with template support, HTML layout, db logging
+- [x] templates/emails/welcome_member.php — Branded welcome email with password reset link
+- [x] Welcome email triggered automatically on member creation
+- [x] Nonce verification + capability checks on all admin actions per SECURITY.md
+- [x] Updated autoloader, migration runner, main plugin bootstrap
+- [x] Updated PROGRESS.md
+
+### Risks / Notes
+
+- Email delivery depends on server SMTP / wp_mail configuration
+- Form data preserved on validation errors via transients (60s expiry)
+- Role changes remove all CB roles before assigning new one to prevent multi-role conflicts
+
+---
+
 ## Completed Iteration: ITER-0004 (Member Data Model & Roles)
 
 ### Goals

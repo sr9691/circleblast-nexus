@@ -31,10 +31,15 @@ final class CBNexus_Autoloader {
 
 		// Admin
 		'CBNexus_Admin_Logs'        => 'includes/admin/class-admin-logs.php',
+		'CBNexus_Admin_Members'     => 'includes/admin/class-admin-members.php',
+		'CBNexus_Admin_Member_Form' => 'includes/admin/class-admin-member-form.php',
 
 		// Members (ITER-0004)
 		'CBNexus_Member_Repository' => 'includes/members/class-member-repository.php',
 		'CBNexus_Member_Service'    => 'includes/members/class-member-service.php',
+
+		// Emails (ITER-0005)
+		'CBNexus_Email_Service'     => 'includes/emails/class-email-service.php',
 	];
 
 	/**

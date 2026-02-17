@@ -63,6 +63,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_003_Register_Member_Meta',
 				'method' => 'up',
 			],
+			'004_create_email_log' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/004-create-email-log.php',
+				'class'  => 'CBNexus_Migration_004_Create_Email_Log',
+				'method' => 'up',
+			],
 		];
 	}
 
