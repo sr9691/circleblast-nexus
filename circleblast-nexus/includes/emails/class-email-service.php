@@ -178,16 +178,31 @@ final class CBNexus_Email_Service {
 		if ($found !== $table) {
 			return;
 		}
-		$wpdb->insert($table, [
-			'recipient_id'    => $options['recipient_id'] ?? null,
+
+		$recipient_id = isset($options['recipient_id']) ? (int) $options['recipient_id'] : null;
+		$related_id   = isset($options['related_id']) ? (int) $options['related_id'] : null;
+
+		$data = [
+			'recipient_id'    => $recipient_id,
 			'recipient_email' => substr($to_email, 0, 200),
 			'template_id'     => substr($template_id, 0, 50),
 			'subject'         => substr($subject, 0, 255),
 			'status'          => substr($status, 0, 20),
-			'related_id'      => $options['related_id'] ?? null,
+			'related_id'      => $related_id,
 			'related_type'    => isset($options['related_type']) ? substr($options['related_type'], 0, 50) : null,
 			'error_message'   => $error,
 			'sent_at_gmt'     => gmdate('Y-m-d H:i:s'),
-		], ['%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s']);
+		];
+
+		// Build format array dynamically — %d for non-null ints, omit for nulls
+		// so wpdb produces SQL NULL instead of casting null to 0.
+		$format = [
+			$recipient_id !== null ? '%d' : '%s', // recipient_id — null passed as %s produces NULL
+			'%s', '%s', '%s', '%s',
+			$related_id !== null ? '%d' : '%s', // related_id
+			'%s', '%s', '%s',
+		];
+
+		$wpdb->insert($table, $data, $format);
 	}
 }

@@ -24,20 +24,20 @@ final class CBNexus_Portal_Events {
 		if (!CBNexus_Member_Repository::is_member($uid)) { return; }
 
 		$result = CBNexus_Event_Service::submit($uid, [
-			'title'            => $_POST['title'] ?? '',
-			'description'      => $_POST['description'] ?? '',
-			'event_date'       => $_POST['event_date'] ?? '',
-			'event_time'       => $_POST['event_time'] ?? '',
-			'end_date'         => $_POST['end_date'] ?? '',
-			'end_time'         => $_POST['end_time'] ?? '',
-			'location'         => $_POST['location'] ?? '',
-			'location_url'     => $_POST['location_url'] ?? '',
-			'audience'         => $_POST['audience'] ?? 'all',
-			'category'         => $_POST['category'] ?? '',
-			'registration_url' => $_POST['registration_url'] ?? '',
-			'reminder_notes'   => $_POST['reminder_notes'] ?? '',
-			'cost'             => $_POST['cost'] ?? '',
-			'max_attendees'    => $_POST['max_attendees'] ?? '',
+			'title'            => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
+			'description'      => sanitize_textarea_field(wp_unslash($_POST['description'] ?? '')),
+			'event_date'       => sanitize_text_field(wp_unslash($_POST['event_date'] ?? '')),
+			'event_time'       => sanitize_text_field(wp_unslash($_POST['event_time'] ?? '')),
+			'end_date'         => sanitize_text_field(wp_unslash($_POST['end_date'] ?? '')),
+			'end_time'         => sanitize_text_field(wp_unslash($_POST['end_time'] ?? '')),
+			'location'         => sanitize_text_field(wp_unslash($_POST['location'] ?? '')),
+			'location_url'     => esc_url_raw(wp_unslash($_POST['location_url'] ?? '')),
+			'audience'         => sanitize_key(wp_unslash($_POST['audience'] ?? 'all')),
+			'category'         => sanitize_text_field(wp_unslash($_POST['category'] ?? '')),
+			'registration_url' => esc_url_raw(wp_unslash($_POST['registration_url'] ?? '')),
+			'reminder_notes'   => sanitize_textarea_field(wp_unslash($_POST['reminder_notes'] ?? '')),
+			'cost'             => sanitize_text_field(wp_unslash($_POST['cost'] ?? '')),
+			'max_attendees'    => sanitize_text_field(wp_unslash($_POST['max_attendees'] ?? '')),
 		]);
 
 		$portal_url = CBNexus_Portal_Router::get_portal_url();

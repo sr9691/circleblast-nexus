@@ -87,8 +87,9 @@ final class CBNexus_Event_Repository {
 		}
 
 		if (!empty($args['audience'])) {
-			$where[]  = 'e.audience IN (%s, "all")';
+			$where[]  = '(e.audience = %s OR e.audience = %s)';
 			$params[] = $args['audience'];
+			$params[] = 'all';
 		}
 
 		if (!empty($args['category'])) {

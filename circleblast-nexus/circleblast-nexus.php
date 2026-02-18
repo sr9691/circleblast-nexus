@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CircleBlast Nexus
  * Description: CircleBlast Nexus WordPress plugin (CircleBlast project).
- * Version: 0.2.0
+ * Version: 1.0.0
  * Author: CircleBlast
  * Text Domain: circleblast-nexus
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('CBNEXUS_VERSION')) {
-	define('CBNEXUS_VERSION', '0.2.0');
+	define('CBNEXUS_VERSION', '1.0.0');
 }
 if (!defined('CBNEXUS_PLUGIN_FILE')) {
 	define('CBNEXUS_PLUGIN_FILE', __FILE__);
@@ -77,6 +77,21 @@ require_once CBNEXUS_PLUGIN_DIR . 'includes/class-autoloader.php';
 CBNexus_Autoloader::register();
 
 /**
+ * CRITICAL: Register custom 'monthly' cron schedule.
+ * WordPress does not include a 'monthly' schedule by default —
+ * without this filter, wp_schedule_event() with 'monthly' silently fails.
+ */
+add_filter('cron_schedules', function (array $schedules): array {
+	if (!isset($schedules['monthly'])) {
+		$schedules['monthly'] = [
+			'interval' => 30 * DAY_IN_SECONDS,
+			'display'  => __('Once Monthly', 'circleblast-nexus'),
+		];
+	}
+	return $schedules;
+});
+
+/**
  * Register cron hooks.
  */
 add_action('cbnexus_log_cleanup', ['CBNexus_Log_Retention', 'cleanup']);
@@ -87,6 +102,7 @@ add_action('cbnexus_ai_extraction', ['CBNexus_AI_Extractor', 'process_pending'])
 add_action('cbnexus_analytics_snapshot', ['CBNexus_Portal_Club', 'take_snapshot']);
 add_action('cbnexus_monthly_report', ['CBNexus_Admin_Analytics', 'send_monthly_report']);
 add_action('cbnexus_event_reminders', ['CBNexus_Event_Service', 'send_reminders']);
+add_action('cbnexus_token_cleanup', ['CBNexus_Token_Service', 'cleanup']);
 
 /**
  * Initialize admin features when in admin context.
@@ -99,6 +115,9 @@ if (is_admin()) {
 	CBNexus_Admin_Archivist::init();
 	CBNexus_Admin_Analytics::init();
 	CBNexus_Admin_Recruitment::init();
+	CBNexus_Admin_Events::init();
+	CBNexus_Admin_Email_Templates::init();
+	CBNexus_Admin_Recruitment_Categories::init();
 }
 
 /**
@@ -113,9 +132,8 @@ CBNexus_Fireflies_Webhook::init();
 CBNexus_Portal_CircleUp::init();
 CBNexus_Portal_Club::init();
 CBNexus_Portal_Events::init();
-CBNexus_Admin_Events::init();
-CBNexus_Admin_Email_Templates::init();
-CBNexus_Admin_Recruitment_Categories::init();
+CBNexus_Token_Router::init();
+CBNexus_Members_API::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -175,6 +193,11 @@ function cbnexus_activate(): void {
 	if (!wp_next_scheduled('cbnexus_event_reminders')) {
 		wp_schedule_event(time(), 'daily', 'cbnexus_event_reminders');
 	}
+
+	// Token cleanup: daily removal of expired tokens.
+	if (!wp_next_scheduled('cbnexus_token_cleanup')) {
+		wp_schedule_event(time(), 'daily', 'cbnexus_token_cleanup');
+	}
 }
 
 register_activation_hook(__FILE__, 'cbnexus_activate');
@@ -193,6 +216,7 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_analytics_snapshot');
 	wp_clear_scheduled_hook('cbnexus_monthly_report');
 	wp_clear_scheduled_hook('cbnexus_event_reminders');
+	wp_clear_scheduled_hook('cbnexus_token_cleanup');
 	wp_clear_scheduled_hook('cbnexus_recruitment_blast');
 }
 

@@ -85,6 +85,13 @@ final class CBNexus_Autoloader {
 
 		// Recruitment Categories
 		'CBNexus_Admin_Recruitment_Categories' => 'includes/admin/class-admin-recruitment-categories.php',
+
+		// Tokens (universal email action system)
+		'CBNexus_Token_Service' => 'includes/tokens/class-token-service.php',
+		'CBNexus_Token_Router'  => 'includes/tokens/class-token-router.php',
+
+		// REST API
+		'CBNexus_Members_API' => 'includes/api/class-members-api.php',
 	];
 
 	/**

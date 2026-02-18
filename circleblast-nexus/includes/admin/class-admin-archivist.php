@@ -60,8 +60,8 @@ final class CBNexus_Admin_Archivist {
 		if (!current_user_can('cbnexus_manage_members')) { wp_die('Permission denied.'); }
 
 		$id = CBNexus_CircleUp_Repository::create_meeting([
-			'meeting_date'    => sanitize_text_field($_POST['meeting_date'] ?? gmdate('Y-m-d')),
-			'title'           => sanitize_text_field($_POST['title'] ?? ''),
+			'meeting_date'    => sanitize_text_field(wp_unslash($_POST['meeting_date'] ?? gmdate('Y-m-d'))),
+			'title'           => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
 			'full_transcript' => sanitize_textarea_field(wp_unslash($_POST['full_transcript'] ?? '')),
 			'status'          => 'draft',
 		]);
@@ -77,25 +77,29 @@ final class CBNexus_Admin_Archivist {
 		$id = absint($_POST['meeting_id'] ?? 0);
 
 		CBNexus_CircleUp_Repository::update_meeting($id, [
-			'title'           => sanitize_text_field($_POST['title'] ?? ''),
-			'meeting_date'    => sanitize_text_field($_POST['meeting_date'] ?? ''),
+			'title'           => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
+			'meeting_date'    => sanitize_text_field(wp_unslash($_POST['meeting_date'] ?? '')),
 			'curated_summary' => wp_kses_post(wp_unslash($_POST['curated_summary'] ?? '')),
 		]);
 
 		// Update item statuses (approve/reject).
-		if (!empty($_POST['item_status']) && is_array($_POST['item_status'])) {
-			foreach ($_POST['item_status'] as $item_id => $status) {
-				CBNexus_CircleUp_Repository::update_item(absint($item_id), [
-					'status' => sanitize_key($status),
-				]);
-			}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- values sanitized below.
+		$item_statuses = isset($_POST['item_status']) && is_array($_POST['item_status'])
+			? array_map('sanitize_key', wp_unslash($_POST['item_status']))
+			: [];
+		foreach ($item_statuses as $item_id => $status) {
+			CBNexus_CircleUp_Repository::update_item(absint($item_id), [
+				'status' => $status,
+			]);
 		}
 
 		// Update attendees.
-		if (!empty($_POST['attendees']) && is_array($_POST['attendees'])) {
-			foreach ($_POST['attendees'] as $member_id) {
-				CBNexus_CircleUp_Repository::add_attendee($id, absint($member_id));
-			}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- values sanitized below.
+		$attendees = isset($_POST['attendees']) && is_array($_POST['attendees'])
+			? array_map('absint', wp_unslash($_POST['attendees']))
+			: [];
+		foreach ($attendees as $member_id) {
+			CBNexus_CircleUp_Repository::add_attendee($id, $member_id);
 		}
 
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-circleup&edit=' . $id . '&cbnexus_notice=saved'));
