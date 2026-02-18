@@ -1,0 +1,165 @@
+/* ═══════════════════════════════════════════════════════════════
+   EVENTS CALENDAR
+   ═══════════════════════════════════════════════════════════════ */
+
+.cbnexus-events-header {
+	display: flex; justify-content: space-between; align-items: center;
+	margin-bottom: 16px;
+}
+.cbnexus-events-header h2 { margin: 0; font-size: 20px; letter-spacing: -0.3px; }
+
+.cbnexus-cal-controls {
+	display: flex; justify-content: space-between; align-items: center;
+	margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+}
+.cbnexus-cal-nav {
+	display: flex; align-items: center; gap: 10px;
+}
+.cbnexus-cal-label {
+	font-weight: 700; font-size: 16px; min-width: 140px; text-align: center;
+}
+.cbnexus-cal-views {
+	display: flex; gap: 4px;
+}
+.cbnexus-cal-view-btn {
+	padding: 6px 14px; border-radius: 24px; font-size: 13px; font-weight: 600;
+	text-decoration: none; color: var(--cb-text-sec, #666); border: 2px solid transparent;
+	background: var(--cb-bg, #f3eef6); transition: all .15s;
+}
+.cbnexus-cal-view-btn.active,
+.cbnexus-cal-view-btn:hover {
+	background: #fff; border-color: var(--cb-accent, #5b2d6e); color: var(--cb-accent, #5b2d6e);
+}
+
+/* Month grid */
+.cbnexus-cal-grid {
+	background: #fff; border-radius: 16px; overflow: hidden;
+	box-shadow: 0 1px 3px rgba(42,31,51,.06);
+}
+.cbnexus-cal-header-row {
+	display: grid; grid-template-columns: repeat(7, 1fr);
+	background: var(--cb-accent, #5b2d6e); color: #fff;
+}
+.cbnexus-cal-dow {
+	padding: 8px; text-align: center; font-size: 12px; font-weight: 600; text-transform: uppercase;
+}
+.cbnexus-cal-body {
+	display: grid; grid-template-columns: repeat(7, 1fr);
+}
+.cbnexus-cal-cell {
+	min-height: 80px; padding: 6px; border-right: 1px solid #f0ecf2; border-bottom: 1px solid #f0ecf2;
+	position: relative;
+}
+.cbnexus-cal-cell:nth-child(7n) { border-right: none; }
+.cbnexus-cal-empty { background: #fafafa; }
+.cbnexus-cal-day-num {
+	font-size: 13px; font-weight: 600; color: var(--cb-text-sec, #666);
+}
+.cbnexus-cal-today .cbnexus-cal-day-num {
+	background: var(--cb-accent, #5b2d6e); color: #fff; border-radius: 50%;
+	width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+}
+.cbnexus-cal-event-dot {
+	display: block; font-size: 11px; padding: 2px 4px; margin-top: 2px;
+	background: var(--cb-accent, #5b2d6e)14; color: var(--cb-accent, #5b2d6e);
+	border-radius: 4px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cbnexus-cal-event-dot:hover { background: var(--cb-accent, #5b2d6e)28; }
+.cbnexus-cal-more { font-size: 10px; color: var(--cb-text-sec, #999); margin-top: 2px; display: block; }
+
+/* Event cards */
+.cbnexus-event-card {
+	display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px;
+	background: #fff; border-radius: 16px; margin-bottom: 8px;
+	box-shadow: 0 1px 3px rgba(42,31,51,.06); transition: box-shadow .15s;
+}
+.cbnexus-event-card:hover { box-shadow: 0 2px 8px rgba(42,31,51,.12); }
+.cbnexus-event-date-badge {
+	background: var(--cb-accent, #5b2d6e)14; border-radius: 12px; padding: 8px 12px;
+	text-align: center; min-width: 50px;
+}
+.cbnexus-event-month {
+	display: block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+	color: var(--cb-accent, #5b2d6e); letter-spacing: 0.5px;
+}
+.cbnexus-event-day {
+	display: block; font-size: 22px; font-weight: 700; color: var(--cb-accent, #5b2d6e);
+	line-height: 1.1;
+}
+.cbnexus-event-info h3 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+
+/* Pills */
+.cbnexus-pill--accent-soft {
+	background: var(--cb-accent, #5b2d6e)14; color: var(--cb-accent, #5b2d6e);
+}
+.cbnexus-pill--gold-soft {
+	background: var(--cb-gold, #c49a3c)14; color: var(--cb-gold, #c49a3c);
+}
+.cbnexus-pill--green-soft {
+	background: #05966914; color: #059669;
+}
+
+/* RSVP buttons */
+.cbnexus-rsvp-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════════════
+   QUICK CONTACT (Directory)
+   ═══════════════════════════════════════════════════════════════ */
+
+.cbnexus-quick-contact {
+	display: flex; gap: 4px;
+}
+.cbnexus-contact-btn {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 32px; height: 32px; border-radius: 8px;
+	background: var(--cb-bg, #f3eef6); text-decoration: none; font-size: 16px;
+	transition: background .15s, transform .1s;
+}
+.cbnexus-contact-btn:hover {
+	background: var(--cb-accent, #5b2d6e)20; transform: scale(1.1);
+}
+.cbnexus-member-actions {
+	display: flex; justify-content: space-between; align-items: center;
+	margin-top: auto; padding-top: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM STYLES (event submit, profile)
+   ═══════════════════════════════════════════════════════════════ */
+
+.cbnexus-form-row {
+	display: flex; gap: 12px; flex-wrap: wrap;
+}
+.cbnexus-form-row .cbnexus-form-field { flex: 1; min-width: 140px; }
+.cbnexus-form-field { margin-bottom: 14px; }
+.cbnexus-form-field label {
+	display: block; font-size: 12px; font-weight: 600; text-transform: uppercase;
+	letter-spacing: 0.5px; color: var(--cb-text-sec, #666); margin-bottom: 4px;
+}
+.cbnexus-form-field input,
+.cbnexus-form-field select,
+.cbnexus-form-field textarea {
+	width: 100%; padding: 10px; border: 1px solid #e0d6e8; border-radius: 10px;
+	font-family: "DM Sans", sans-serif; font-size: 14px;
+	transition: border-color .15s;
+}
+.cbnexus-form-field input:focus,
+.cbnexus-form-field select:focus,
+.cbnexus-form-field textarea:focus {
+	border-color: var(--cb-accent, #5b2d6e); outline: none;
+	box-shadow: 0 0 0 3px var(--cb-accent, #5b2d6e)14;
+}
+
+.cbnexus-back-link {
+	display: inline-block; margin-bottom: 12px; font-size: 13px; font-weight: 600;
+	color: var(--cb-accent, #5b2d6e); text-decoration: none;
+}
+.cbnexus-back-link:hover { text-decoration: underline; }
+
+/* Responsive */
+@media (max-width: 600px) {
+	.cbnexus-cal-body { font-size: 12px; }
+	.cbnexus-cal-cell { min-height: 50px; padding: 3px; }
+	.cbnexus-form-row { flex-direction: column; }
+	.cbnexus-events-header { flex-direction: column; gap: 8px; }
+}

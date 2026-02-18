@@ -74,12 +74,17 @@ final class CBNexus_Autoloader {
 		'CBNexus_Admin_Analytics'   => 'includes/admin/class-admin-analytics.php',
 		'CBNexus_Admin_Recruitment' => 'includes/admin/class-admin-recruitment.php',
 
-		// Token System
-		'CBNexus_Token_Service' => 'includes/tokens/class-token-service.php',
-		'CBNexus_Token_Router'  => 'includes/tokens/class-token-router.php',
+		// Events
+		'CBNexus_Event_Repository'           => 'includes/events/class-event-repository.php',
+		'CBNexus_Event_Service'              => 'includes/events/class-event-service.php',
+		'CBNexus_Portal_Events'              => 'includes/public/class-portal-events.php',
+		'CBNexus_Admin_Events'               => 'includes/admin/class-admin-events.php',
 
-		// Members API
-		'CBNexus_Members_API' => 'includes/api/class-members-api.php',
+		// Email Template Manager
+		'CBNexus_Admin_Email_Templates'      => 'includes/admin/class-admin-email-templates.php',
+
+		// Recruitment Categories
+		'CBNexus_Admin_Recruitment_Categories' => 'includes/admin/class-admin-recruitment-categories.php',
 	];
 
 	/**

@@ -86,6 +86,7 @@ add_action('cbnexus_suggestion_reminders', ['CBNexus_Suggestion_Generator', 'sen
 add_action('cbnexus_ai_extraction', ['CBNexus_AI_Extractor', 'process_pending']);
 add_action('cbnexus_analytics_snapshot', ['CBNexus_Portal_Club', 'take_snapshot']);
 add_action('cbnexus_monthly_report', ['CBNexus_Admin_Analytics', 'send_monthly_report']);
+add_action('cbnexus_event_reminders', ['CBNexus_Event_Service', 'send_reminders']);
 
 /**
  * Initialize admin features when in admin context.
@@ -111,11 +112,10 @@ CBNexus_Suggestion_Generator::init();
 CBNexus_Fireflies_Webhook::init();
 CBNexus_Portal_CircleUp::init();
 CBNexus_Portal_Club::init();
-CBNexus_Token_Router::init();
-CBNexus_Members_API::init();
-
-// Token cleanup cron.
-add_action('cbnexus_token_cleanup', ['CBNexus_Token_Service', 'cleanup']);
+CBNexus_Portal_Events::init();
+CBNexus_Admin_Events::init();
+CBNexus_Admin_Email_Templates::init();
+CBNexus_Admin_Recruitment_Categories::init();
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -171,9 +171,9 @@ function cbnexus_activate(): void {
 		wp_schedule_event(time(), 'monthly', 'cbnexus_monthly_report');
 	}
 
-	// Token cleanup: daily cleanup of expired tokens.
-	if (!wp_next_scheduled('cbnexus_token_cleanup')) {
-		wp_schedule_event(time(), 'daily', 'cbnexus_token_cleanup');
+	// Event reminders: daily check for tomorrow's events.
+	if (!wp_next_scheduled('cbnexus_event_reminders')) {
+		wp_schedule_event(time(), 'daily', 'cbnexus_event_reminders');
 	}
 }
 
@@ -192,7 +192,8 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_ai_extraction');
 	wp_clear_scheduled_hook('cbnexus_analytics_snapshot');
 	wp_clear_scheduled_hook('cbnexus_monthly_report');
-	wp_clear_scheduled_hook('cbnexus_token_cleanup');
+	wp_clear_scheduled_hook('cbnexus_event_reminders');
+	wp_clear_scheduled_hook('cbnexus_recruitment_blast');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');

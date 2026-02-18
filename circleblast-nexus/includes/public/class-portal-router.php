@@ -50,6 +50,11 @@ final class CBNexus_Portal_Router {
 				'icon'     => '📢',
 				'callback' => ['CBNexus_Portal_CircleUp', 'render'],
 			],
+			'events' => [
+				'label'    => __('Events', 'circleblast-nexus'),
+				'icon'     => '📅',
+				'callback' => ['CBNexus_Portal_Events', 'render'],
+			],
 			'club' => [
 				'label'    => __('Club', 'circleblast-nexus'),
 				'icon'     => '📊',
@@ -82,6 +87,25 @@ final class CBNexus_Portal_Router {
 
 		// WordPress dashicons still used in some sub-components.
 		wp_enqueue_style('dashicons');
+
+		// Events calendar styles.
+		wp_enqueue_style(
+			'cbnexus-portal-events',
+			CBNEXUS_PLUGIN_URL . 'assets/css/portal-events.css',
+			['cbnexus-portal'],
+			CBNEXUS_VERSION
+		);
+
+		// Events JS (RSVP).
+		wp_enqueue_script(
+			'cbnexus-events',
+			CBNEXUS_PLUGIN_URL . 'assets/js/events.js',
+			[],
+			CBNEXUS_VERSION,
+			true
+		);
+		wp_localize_script('cbnexus-events', 'cbnexus_ajax_url', admin_url('admin-ajax.php'));
+		wp_add_inline_script('cbnexus-events', 'window.cbnexus_events_nonce = "' . wp_create_nonce('cbnexus_events') . '";', 'before');
 	}
 
 	/**

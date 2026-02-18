@@ -168,8 +168,19 @@ final class CBNexus_Directory {
 			$html .= '</div>';
 			$html .= '</a>';
 
-			// Request 1:1 button
+			// Quick Contact bar + Request 1:1
 			$html .= '<div class="cbnexus-member-actions">';
+			$html .= '<div class="cbnexus-quick-contact">';
+			if (!empty($m['user_email'])) {
+				$html .= '<a href="mailto:' . esc_attr($m['user_email']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['user_email']) . '">✉️</a>';
+			}
+			if (!empty($m['cb_phone'])) {
+				$html .= '<a href="tel:' . esc_attr($m['cb_phone']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['cb_phone']) . '">📱</a>';
+			}
+			if (!empty($m['cb_linkedin'])) {
+				$html .= '<a href="' . esc_url($m['cb_linkedin']) . '" target="_blank" rel="noopener" class="cbnexus-contact-btn" title="LinkedIn">💼</a>';
+			}
+			$html .= '</div>';
 			$html .= '<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm cbnexus-request-meeting-btn" data-member-id="' . esc_attr($m['user_id']) . '" style="border-radius:10px;">' . esc_html__('Request 1:1', 'circleblast-nexus') . '</button>';
 			$html .= '</div>';
 

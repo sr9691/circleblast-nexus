@@ -113,9 +113,19 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_013_Create_Candidates',
 				'method' => 'up',
 			],
-			'014_create_tokens' => [
-				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/014-create-tokens.php',
-				'class'  => 'CBNexus_Migration_014_Create_Tokens',
+			'015_create_events' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/015-create-events.php',
+				'class'  => 'CBNexus_Migration_015_Create_Events',
+				'method' => 'up',
+			],
+			'016_create_event_rsvps' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/016-create-event-rsvps.php',
+				'class'  => 'CBNexus_Migration_016_Create_Event_RSVPs',
+				'method' => 'up',
+			],
+			'017_create_recruitment_categories' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/017-create-recruitment-categories.php',
+				'class'  => 'CBNexus_Migration_017_Create_Recruitment_Categories',
 				'method' => 'up',
 			],
 		];

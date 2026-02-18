@@ -27,10 +27,11 @@ final class CBNexus_Email_Service {
 			return false;
 		}
 
-		// Pre-process special HTML blocks before placeholder replacement.
-		$vars = self::process_html_blocks($vars);
-
 		$subject   = self::replace_placeholders($options['subject'] ?? $template['subject'], $vars);
+
+		// Pre-process special HTML block variables.
+		self::process_html_blocks($vars);
+
 		$body      = self::replace_placeholders($template['body'], $vars);
 		$html_body = self::wrap_html($body, $subject);
 
@@ -87,6 +88,14 @@ final class CBNexus_Email_Service {
 	}
 
 	private static function load_template(string $template_id): ?array {
+		// Check DB override from Admin Email Templates.
+		if (class_exists('CBNexus_Admin_Email_Templates')) {
+			$override = get_option('cbnexus_email_tpl_' . $template_id);
+			if ($override && !empty($override['subject']) && !empty($override['body'])) {
+				return $override;
+			}
+		}
+
 		$file = CBNEXUS_PLUGIN_DIR . 'templates/emails/' . $template_id . '.php';
 		if (!file_exists($file)) {
 			return null;
@@ -106,18 +115,41 @@ final class CBNexus_Email_Service {
 	}
 
 	/**
-	 * Pre-process special HTML block variables.
-	 * These contain pre-rendered HTML and should not be escaped.
+	 * Pre-process variables that contain pre-rendered HTML blocks.
 	 */
-	private static function process_html_blocks(array $vars): array {
-		// Handle forward_note_block: render personal note if present.
-		if (isset($vars['forward_note']) && !empty($vars['forward_note'])) {
-			$vars['forward_note_block'] = '<div style="background:#f8fafc;border-left:3px solid #5b2d6e;padding:12px 16px;margin:16px 0;font-style:italic;font-size:14px;color:#4a5568;">' . esc_html($vars['forward_note']) . '</div>';
+	private static function process_html_blocks(array &$vars): void {
+		// Reminder notes block for event emails.
+		if (!empty($vars['reminder_notes'])) {
+			$vars['reminder_notes_block'] = '<div style="background:#fff7ed;border-left:3px solid #c49a3c;padding:12px 16px;margin:16px 0;font-size:14px;">'
+				. '<strong>📝 Notes:</strong> ' . esc_html($vars['reminder_notes']) . '</div>';
 		} else {
-			$vars['forward_note_block'] = '';
+			$vars['reminder_notes_block'] = '';
 		}
 
-		return $vars;
+		// Registration block.
+		if (!empty($vars['registration_url'])) {
+			$vars['registration_block'] = '<table role="presentation" cellspacing="0" cellpadding="0" style="margin:16px 0;">'
+				. '<tr><td style="background-color:#5b2d6e;border-radius:6px;">'
+				. '<a href="' . esc_url($vars['registration_url']) . '" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Register →</a>'
+				. '</td></tr></table>';
+		} else {
+			$vars['registration_block'] = '';
+		}
+
+		// Forward note block.
+		if (!empty($vars['forward_note'])) {
+			$vars['forward_note_block'] = '<div style="background:#f8fafc;border-left:3px solid #5b2d6e;padding:12px 16px;margin:16px 0;font-style:italic;font-size:14px;color:#4a5568;">'
+				. esc_html($vars['forward_note']) . '</div>';
+		} else {
+			$vars['forward_note_block'] = $vars['forward_note_block'] ?? '';
+		}
+	}
+
+	/**
+	 * Public wrapper for test emails from Admin Email Templates.
+	 */
+	public static function test_wrap(string $body, string $subject): string {
+		return self::wrap_html($body, $subject);
 	}
 
 	private static function wrap_html(string $body, string $subject): string {
