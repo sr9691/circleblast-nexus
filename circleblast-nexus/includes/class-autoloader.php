@@ -73,6 +73,13 @@ final class CBNexus_Autoloader {
 		// Admin Analytics & Recruitment (ITER-0017)
 		'CBNexus_Admin_Analytics'   => 'includes/admin/class-admin-analytics.php',
 		'CBNexus_Admin_Recruitment' => 'includes/admin/class-admin-recruitment.php',
+
+		// Token System
+		'CBNexus_Token_Service' => 'includes/tokens/class-token-service.php',
+		'CBNexus_Token_Router'  => 'includes/tokens/class-token-router.php',
+
+		// Members API
+		'CBNexus_Members_API' => 'includes/api/class-members-api.php',
 	];
 
 	/**

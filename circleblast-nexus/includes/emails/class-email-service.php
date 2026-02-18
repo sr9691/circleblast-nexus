@@ -27,6 +27,9 @@ final class CBNexus_Email_Service {
 			return false;
 		}
 
+		// Pre-process special HTML blocks before placeholder replacement.
+		$vars = self::process_html_blocks($vars);
+
 		$subject   = self::replace_placeholders($options['subject'] ?? $template['subject'], $vars);
 		$body      = self::replace_placeholders($template['body'], $vars);
 		$html_body = self::wrap_html($body, $subject);
@@ -100,6 +103,21 @@ final class CBNexus_Email_Service {
 			$text = str_replace('{{' . $key . '}}', (string) $value, $text);
 		}
 		return $text;
+	}
+
+	/**
+	 * Pre-process special HTML block variables.
+	 * These contain pre-rendered HTML and should not be escaped.
+	 */
+	private static function process_html_blocks(array $vars): array {
+		// Handle forward_note_block: render personal note if present.
+		if (isset($vars['forward_note']) && !empty($vars['forward_note'])) {
+			$vars['forward_note_block'] = '<div style="background:#f8fafc;border-left:3px solid #5b2d6e;padding:12px 16px;margin:16px 0;font-style:italic;font-size:14px;color:#4a5568;">' . esc_html($vars['forward_note']) . '</div>';
+		} else {
+			$vars['forward_note_block'] = '';
+		}
+
+		return $vars;
 	}
 
 	private static function wrap_html(string $body, string $subject): string {

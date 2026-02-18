@@ -111,6 +111,11 @@ CBNexus_Suggestion_Generator::init();
 CBNexus_Fireflies_Webhook::init();
 CBNexus_Portal_CircleUp::init();
 CBNexus_Portal_Club::init();
+CBNexus_Token_Router::init();
+CBNexus_Members_API::init();
+
+// Token cleanup cron.
+add_action('cbnexus_token_cleanup', ['CBNexus_Token_Service', 'cleanup']);
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
@@ -165,6 +170,11 @@ function cbnexus_activate(): void {
 	if (!wp_next_scheduled('cbnexus_monthly_report')) {
 		wp_schedule_event(time(), 'monthly', 'cbnexus_monthly_report');
 	}
+
+	// Token cleanup: daily cleanup of expired tokens.
+	if (!wp_next_scheduled('cbnexus_token_cleanup')) {
+		wp_schedule_event(time(), 'daily', 'cbnexus_token_cleanup');
+	}
 }
 
 register_activation_hook(__FILE__, 'cbnexus_activate');
@@ -182,6 +192,7 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_ai_extraction');
 	wp_clear_scheduled_hook('cbnexus_analytics_snapshot');
 	wp_clear_scheduled_hook('cbnexus_monthly_report');
+	wp_clear_scheduled_hook('cbnexus_token_cleanup');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');

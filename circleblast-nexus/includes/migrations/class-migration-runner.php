@@ -113,6 +113,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_013_Create_Candidates',
 				'method' => 'up',
 			],
+			'014_create_tokens' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/014-create-tokens.php',
+				'class'  => 'CBNexus_Migration_014_Create_Tokens',
+				'method' => 'up',
+			],
 		];
 	}
 

@@ -2,9 +2,9 @@
 /**
  * Suggestion Generator
  *
- * ITER-0011: Automated monthly matching cycle. Runs the matching engine,
- * creates suggested meeting records, and sends email notifications with
- * one-click accept/decline links using tokenized URLs.
+ * ITER-0011 + Token Update: Automated monthly matching cycle.
+ * Now uses the universal CBNexus_Token_Service for accept/decline links.
+ * Old token handler kept for backward compat with previously sent emails.
  */
 
 defined('ABSPATH') || exit;
@@ -13,18 +13,14 @@ final class CBNexus_Suggestion_Generator {
 
 	private static $token_option = 'cbnexus_suggestion_tokens';
 
-	/**
-	 * Initialize hooks.
-	 */
 	public static function init(): void {
 		add_action('admin_init', [__CLASS__, 'handle_admin_trigger']);
-		add_action('init', [__CLASS__, 'handle_token_response']);
+		// Legacy handler for old-style tokens already in sent emails.
+		add_action('init', [__CLASS__, 'handle_legacy_token_response']);
 	}
 
 	/**
-	 * Run a suggestion cycle — called by WP-Cron or admin trigger.
-	 *
-	 * @return array{generated: int, emailed: int}
+	 * Run a suggestion cycle.
 	 */
 	public static function run_cycle(): array {
 		$suggestions = CBNexus_Matching_Engine::generate_suggestions(0);
@@ -32,30 +28,27 @@ final class CBNexus_Suggestion_Generator {
 		$emailed     = 0;
 
 		foreach ($suggestions as $s) {
-			// Create meeting with status=suggested.
 			$meeting_id = CBNexus_Meeting_Repository::create([
-				'member_a_id' => $s['member_a_id'],
-				'member_b_id' => $s['member_b_id'],
-				'status'      => 'suggested',
-				'source'      => 'auto',
-				'score'       => $s['score'],
+				'member_a_id'  => $s['member_a_id'],
+				'member_b_id'  => $s['member_b_id'],
+				'status'       => 'suggested',
+				'source'       => 'auto',
+				'score'        => $s['score'],
 				'suggested_at' => gmdate('Y-m-d H:i:s'),
 			]);
 
 			if (!$meeting_id) { continue; }
 			$generated++;
 
-			// Send suggestion emails to both members.
 			if (self::send_suggestion_emails($meeting_id, $s['member_a_id'], $s['member_b_id'])) {
 				$emailed += 2;
 			}
 		}
 
-		// Log the cycle.
 		update_option('cbnexus_last_suggestion_cycle', [
-			'timestamp'  => gmdate('Y-m-d H:i:s'),
-			'generated'  => $generated,
-			'emailed'    => $emailed,
+			'timestamp'   => gmdate('Y-m-d H:i:s'),
+			'generated'   => $generated,
+			'emailed'     => $emailed,
 			'total_pairs' => count($suggestions),
 		]);
 
@@ -68,21 +61,16 @@ final class CBNexus_Suggestion_Generator {
 		return ['generated' => $generated, 'emailed' => $emailed];
 	}
 
-	/**
-	 * WP-Cron callback.
-	 */
 	public static function cron_run(): void {
 		self::run_cycle();
 	}
 
 	/**
-	 * Send follow-up reminders for unresponded suggestions.
-	 * Called by WP-Cron weekly.
+	 * Send follow-up reminders — now with token links.
 	 */
 	public static function send_follow_up_reminders(): void {
 		global $wpdb;
 
-		// Get suggestions older than 3 days with no response.
 		$cutoff = gmdate('Y-m-d H:i:s', strtotime('-3 days'));
 		$meetings = $wpdb->get_results($wpdb->prepare(
 			"SELECT m.* FROM {$wpdb->prefix}cb_meetings m
@@ -93,8 +81,6 @@ final class CBNexus_Suggestion_Generator {
 			$cutoff
 		));
 
-		$portal_url = add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url());
-
 		foreach ($meetings ?: [] as $m) {
 			foreach ([(int) $m->member_a_id, (int) $m->member_b_id] as $uid) {
 				$profile = CBNexus_Member_Repository::get_profile($uid);
@@ -103,10 +89,15 @@ final class CBNexus_Suggestion_Generator {
 				);
 				if (!$profile || !$other) { continue; }
 
+				$accept_token  = CBNexus_Token_Service::generate($uid, 'accept_meeting', ['meeting_id' => (int) $m->id]);
+				$decline_token = CBNexus_Token_Service::generate($uid, 'decline_meeting', ['meeting_id' => (int) $m->id]);
+
 				CBNexus_Email_Service::send('suggestion_reminder', $profile['user_email'], [
-					'first_name'  => $profile['first_name'],
-					'other_name'  => $other['display_name'],
-					'meetings_url' => $portal_url,
+					'first_name'   => $profile['first_name'],
+					'other_name'   => $other['display_name'],
+					'accept_url'   => CBNexus_Token_Service::url($accept_token),
+					'decline_url'  => CBNexus_Token_Service::url($decline_token),
+					'meetings_url' => add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url()),
 				], ['recipient_id' => $uid, 'related_id' => (int) $m->id, 'related_type' => 'suggestion_reminder']);
 			}
 		}
@@ -125,47 +116,21 @@ final class CBNexus_Suggestion_Generator {
 		exit;
 	}
 
-	// ─── Token-Based Accept/Decline ────────────────────────────────────
+	// ─── Legacy Token Handler (backward compat) ────────────────────────
 
-	/**
-	 * Generate a secure token for email accept/decline links.
-	 */
-	public static function generate_token(int $meeting_id, int $user_id, string $action): string {
-		$token = wp_generate_password(32, false);
-		$tokens = get_option(self::$token_option, []);
-
-		$tokens[$token] = [
-			'meeting_id' => $meeting_id,
-			'user_id'    => $user_id,
-			'action'     => $action,
-			'created'    => time(),
-		];
-
-		// Clean expired tokens (older than 14 days).
-		$cutoff = time() - (14 * 86400);
-		$tokens = array_filter($tokens, fn($t) => $t['created'] > $cutoff);
-
-		update_option(self::$token_option, $tokens);
-
-		return $token;
-	}
-
-	/**
-	 * Handle token-based responses from email links.
-	 */
-	public static function handle_token_response(): void {
+	public static function handle_legacy_token_response(): void {
 		if (!isset($_GET['cbnexus_response_token'])) { return; }
 
 		$token  = sanitize_text_field(wp_unslash($_GET['cbnexus_response_token']));
 		$tokens = get_option(self::$token_option, []);
 
 		if (!isset($tokens[$token])) {
-			wp_die(__('This link has expired or is invalid.', 'circleblast-nexus'), __('Invalid Link', 'circleblast-nexus'));
+			// Not a legacy token — the new Token Router will handle it.
+			return;
 		}
 
 		$data = $tokens[$token];
 
-		// Remove the used token.
 		unset($tokens[$token]);
 		update_option(self::$token_option, $tokens);
 
@@ -174,7 +139,6 @@ final class CBNexus_Suggestion_Generator {
 			wp_die(__('Meeting not found.', 'circleblast-nexus'));
 		}
 
-		// For suggested meetings, first transition to pending, then accept/decline.
 		if ($meeting->status === 'suggested') {
 			CBNexus_Meeting_Repository::update($data['meeting_id'], ['status' => 'pending']);
 		}
@@ -185,13 +149,12 @@ final class CBNexus_Suggestion_Generator {
 			CBNexus_Meeting_Service::decline($data['meeting_id'], $data['user_id']);
 		}
 
-		// Redirect to portal meetings page.
 		$portal_url = add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url());
 		wp_safe_redirect($portal_url);
 		exit;
 	}
 
-	// ─── Emails ────────────────────────────────────────────────────────
+	// ─── Emails (now using universal tokens) ───────────────────────────
 
 	private static function send_suggestion_emails(int $meeting_id, int $member_a, int $member_b): bool {
 		$success = true;
@@ -201,20 +164,17 @@ final class CBNexus_Suggestion_Generator {
 			$other   = CBNexus_Member_Repository::get_profile($pair[1]);
 			if (!$profile || !$other) { $success = false; continue; }
 
-			$accept_token  = self::generate_token($meeting_id, $pair[0], 'accept');
-			$decline_token = self::generate_token($meeting_id, $pair[0], 'decline');
-
-			$accept_url  = add_query_arg('cbnexus_response_token', $accept_token, home_url());
-			$decline_url = add_query_arg('cbnexus_response_token', $decline_token, home_url());
+			$accept_token  = CBNexus_Token_Service::generate($pair[0], 'accept_meeting', ['meeting_id' => $meeting_id]);
+			$decline_token = CBNexus_Token_Service::generate($pair[0], 'decline_meeting', ['meeting_id' => $meeting_id]);
 
 			$sent = CBNexus_Email_Service::send('suggestion_match', $profile['user_email'], [
-				'first_name'    => $profile['first_name'],
-				'other_name'    => $other['display_name'],
-				'other_title'   => ($other['cb_title'] ?? '') . ' at ' . ($other['cb_company'] ?? ''),
-				'other_bio'     => mb_substr($other['cb_bio'] ?? '', 0, 150),
-				'accept_url'    => $accept_url,
-				'decline_url'   => $decline_url,
-				'meetings_url'  => add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url()),
+				'first_name'   => $profile['first_name'],
+				'other_name'   => $other['display_name'],
+				'other_title'  => ($other['cb_title'] ?? '') . ' at ' . ($other['cb_company'] ?? ''),
+				'other_bio'    => mb_substr($other['cb_bio'] ?? '', 0, 150),
+				'accept_url'   => CBNexus_Token_Service::url($accept_token),
+				'decline_url'  => CBNexus_Token_Service::url($decline_token),
+				'meetings_url' => add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url()),
 			], ['recipient_id' => $pair[0], 'related_id' => $meeting_id, 'related_type' => 'suggestion']);
 
 			if (!$sent) { $success = false; }
@@ -223,16 +183,10 @@ final class CBNexus_Suggestion_Generator {
 		return $success;
 	}
 
-	/**
-	 * Get the last suggestion cycle status for admin display.
-	 */
 	public static function get_last_cycle(): ?array {
 		return get_option('cbnexus_last_suggestion_cycle', null) ?: null;
 	}
 
-	/**
-	 * Get current cycle stats (suggested meetings acceptance rates).
-	 */
 	public static function get_cycle_stats(): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'cb_meetings';

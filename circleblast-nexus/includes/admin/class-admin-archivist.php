@@ -333,27 +333,55 @@ final class CBNexus_Admin_Archivist {
 		$meeting = CBNexus_CircleUp_Repository::get_meeting($meeting_id);
 		if (!$meeting) { return; }
 
-		$items = CBNexus_CircleUp_Repository::get_items($meeting_id);
+		$items    = CBNexus_CircleUp_Repository::get_items($meeting_id);
 		$approved = array_filter($items, fn($i) => $i->status === 'approved');
 
-		$wins    = array_filter($approved, fn($i) => $i->item_type === 'win');
+		$wins     = array_filter($approved, fn($i) => $i->item_type === 'win');
 		$insights = array_filter($approved, fn($i) => $i->item_type === 'insight');
-		$actions = array_filter($approved, fn($i) => $i->item_type === 'action');
+		$actions  = array_filter($approved, fn($i) => $i->item_type === 'action');
+
+		$summary_text = $meeting->curated_summary ?: $meeting->ai_summary ?: '';
+		if ($summary_text) {
+			$summary_text = '<p style="font-size:15px;color:#333;line-height:1.6;">' . nl2br(esc_html(wp_trim_words($summary_text, 80))) . '</p>';
+		}
 
 		$members = CBNexus_Member_Repository::get_all_members('active');
-		$portal_url = CBNexus_Portal_Router::get_portal_url();
 
 		foreach ($members as $m) {
+			$uid = (int) $m['user_id'];
+
+			// Generate per-member token links (multi-use, 30-day).
+			$view_token    = CBNexus_Token_Service::generate($uid, 'view_circleup', ['meeting_id' => $meeting_id], 30, true);
+			$forward_token = CBNexus_Token_Service::generate($uid, 'forward_circleup', ['meeting_id' => $meeting_id], 30, true);
+			$share_token   = CBNexus_Token_Service::generate($uid, 'quick_share', [], 30, true);
+
+			// Build action items block for items assigned to this member.
+			$my_actions = array_filter($actions, fn($i) => (int) ($i->assigned_to ?? 0) === $uid);
+			$action_items_block = '';
+			if (!empty($my_actions)) {
+				$action_items_block = '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px;margin:16px 0;">';
+				$action_items_block .= '<p style="margin:0 0 8px;font-weight:600;font-size:14px;">✅ Your Action Items</p>';
+				foreach ($my_actions as $ai) {
+					$update_token = CBNexus_Token_Service::generate($uid, 'update_action', ['item_id' => (int) $ai->id], 30, true);
+					$action_items_block .= '<p style="margin:4px 0;font-size:14px;">&bull; ' . esc_html($ai->content);
+					$action_items_block .= ' <a href="' . esc_url(CBNexus_Token_Service::url($update_token)) . '" style="color:#5b2d6e;font-weight:600;font-size:13px;">Update status →</a></p>';
+				}
+				$action_items_block .= '</div>';
+			}
+
 			CBNexus_Email_Service::send('circleup_summary', $m['user_email'], [
-				'first_name'   => $m['first_name'],
-				'meeting_title' => $meeting->title,
-				'meeting_date'  => $meeting->meeting_date,
-				'summary'       => $meeting->curated_summary ?: $meeting->ai_summary ?: '',
-				'wins_count'    => count($wins),
-				'insights_count' => count($insights),
-				'actions_count' => count($actions),
-				'portal_url'    => $portal_url,
-			], ['recipient_id' => (int) $m['user_id'], 'related_id' => $meeting_id, 'related_type' => 'circleup_summary']);
+				'first_name'         => $m['first_name'],
+				'title'              => $meeting->title,
+				'meeting_date'       => date_i18n('F j, Y', strtotime($meeting->meeting_date)),
+				'summary_text'       => $summary_text,
+				'wins_count'         => count($wins),
+				'insights_count'     => count($insights),
+				'actions_count'      => count($actions),
+				'view_url'           => CBNexus_Token_Service::url($view_token),
+				'forward_url'        => CBNexus_Token_Service::url($forward_token),
+				'quick_share_url'    => CBNexus_Token_Service::url($share_token),
+				'action_items_block' => $action_items_block,
+			], ['recipient_id' => $uid, 'related_id' => $meeting_id, 'related_type' => 'circleup_summary']);
 		}
 	}
 }
