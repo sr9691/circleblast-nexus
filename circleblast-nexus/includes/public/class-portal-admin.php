@@ -556,7 +556,7 @@ final class CBNexus_Portal_Admin {
 		self::render_notice($notice);
 
 		// List meetings.
-		$meetings = CBNexus_CircleUp_Repository::get_all_meetings();
+		$meetings = CBNexus_CircleUp_Repository::get_meetings();
 		?>
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
@@ -577,7 +577,7 @@ final class CBNexus_Portal_Admin {
 					<?php if (empty($meetings)) : ?>
 						<tr><td colspan="5" class="cbnexus-admin-empty">No CircleUp meetings yet.</td></tr>
 					<?php else : foreach ($meetings as $m) :
-						$items = CBNexus_CircleUp_Repository::get_items_by_meeting($m->id);
+						$items = CBNexus_CircleUp_Repository::get_items($m->id);
 						$item_count = count($items);
 					?>
 						<tr>
@@ -635,7 +635,7 @@ final class CBNexus_Portal_Admin {
 			return;
 		}
 
-		$items    = CBNexus_CircleUp_Repository::get_items_by_meeting($id);
+		$items    = CBNexus_CircleUp_Repository::get_items($id);
 		$members  = CBNexus_Member_Repository::get_all_members('active');
 		$attendees = CBNexus_CircleUp_Repository::get_attendees($id);
 		$attendee_ids = array_column($attendees, 'member_id');
@@ -738,7 +738,14 @@ final class CBNexus_Portal_Admin {
 
 		// Sync attendees.
 		$attendee_ids = array_map('absint', (array) ($_POST['attendees'] ?? []));
-		CBNexus_CircleUp_Repository::sync_attendees($id, $attendee_ids);
+		// Sync attendees: clear existing, re-add checked ones.
+		global $wpdb;
+		$wpdb->delete($wpdb->prefix . 'cb_circleup_attendees', ['circleup_meeting_id' => $id], ['%d']);
+		foreach ($attendee_ids as $aid) {
+			if ($aid > 0) {
+				CBNexus_CircleUp_Repository::add_attendee($id, $aid, 'present');
+			}
+		}
 
 		wp_safe_redirect(self::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'circleup_saved']));
 		exit;
@@ -768,7 +775,7 @@ final class CBNexus_Portal_Admin {
 
 		// Send summary email.
 		$meeting = CBNexus_CircleUp_Repository::get_meeting($id);
-		$items   = CBNexus_CircleUp_Repository::get_items_by_meeting($id);
+		$items   = CBNexus_CircleUp_Repository::get_items($id);
 		$wins    = count(array_filter($items, fn($i) => $i->item_type === 'win' && $i->status === 'approved'));
 		$insights = count(array_filter($items, fn($i) => $i->item_type === 'insight' && $i->status === 'approved'));
 		$actions = count(array_filter($items, fn($i) => $i->item_type === 'action' && $i->status === 'approved'));
@@ -799,7 +806,7 @@ final class CBNexus_Portal_Admin {
 		$notice = sanitize_key($_GET['pa_notice'] ?? '');
 		self::render_notice($notice);
 
-		$events = CBNexus_Event_Repository::get_all();
+		$events = CBNexus_Event_Repository::query();
 		?>
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
@@ -820,14 +827,15 @@ final class CBNexus_Portal_Admin {
 					<?php if (empty($events)) : ?>
 						<tr><td colspan="6" class="cbnexus-admin-empty">No events yet.</td></tr>
 					<?php else : foreach ($events as $e) :
-						$rsvps = CBNexus_Event_Repository::get_rsvp_count($e->id);
+						$rsvps = CBNexus_Event_Repository::get_rsvp_counts($e->id);
+						$rsvp_total = ($rsvps['going'] ?? 0) + ($rsvps['maybe'] ?? 0);
 					?>
 						<tr>
 							<td><?php echo esc_html(date_i18n('M j, Y', strtotime($e->event_date))); ?></td>
 							<td><strong><?php echo esc_html($e->title); ?></strong></td>
 							<td class="cbnexus-admin-meta"><?php echo esc_html($e->location ?: '—'); ?></td>
 							<td><?php self::status_pill($e->status); ?></td>
-							<td><?php echo esc_html($rsvps); ?></td>
+							<td><?php echo esc_html($rsvp_total); ?></td>
 							<td class="cbnexus-admin-actions-cell">
 								<?php if ($e->status === 'pending') : ?>
 									<a href="<?php echo esc_url(wp_nonce_url(self::admin_url('events', ['cbnexus_portal_event_action' => 'approve', 'event_id' => $e->id]), 'cbnexus_portal_event_' . $e->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-green">Approve</a>
