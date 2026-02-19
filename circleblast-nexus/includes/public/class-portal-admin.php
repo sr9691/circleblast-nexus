@@ -734,14 +734,200 @@ final class CBNexus_Portal_Admin {
 		if (!current_user_can('cbnexus_manage_members')) { return; }
 
 		global $wpdb;
-		$wpdb->update($wpdb->prefix . 'cb_candidates', [
-			'stage'      => sanitize_key($_POST['stage'] ?? 'referral'),
-			'notes'      => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
+		$table = $wpdb->prefix . 'cb_candidates';
+		$id    = absint($_POST['candidate_id'] ?? 0);
+		$new_stage = sanitize_key($_POST['stage'] ?? 'referral');
+		$notes = sanitize_textarea_field(wp_unslash($_POST['notes'] ?? ''));
+
+		// Get the candidate's current state before updating.
+		$candidate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+		if (!$candidate) { return; }
+
+		$old_stage = $candidate->stage;
+
+		// Update the stage.
+		$wpdb->update($table, [
+			'stage'      => $new_stage,
+			'notes'      => $notes,
 			'updated_at' => gmdate('Y-m-d H:i:s'),
-		], ['id' => absint($_POST['candidate_id'] ?? 0)], ['%s', '%s', '%s'], ['%d']);
+		], ['id' => $id], ['%s', '%s', '%s'], ['%d']);
+
+		// If stage actually changed, trigger automations.
+		if ($old_stage !== $new_stage) {
+			self::run_recruitment_automations($candidate, $old_stage, $new_stage);
+		}
 
 		wp_safe_redirect(self::admin_url('recruitment', ['pa_notice' => 'candidate_updated']));
 		exit;
+	}
+
+	/**
+	 * Recruitment pipeline automations triggered on stage transitions.
+	 * Public wrapper so WP-admin recruitment handler can also trigger these.
+	 */
+	public static function trigger_recruitment_automation(object $candidate, string $old_stage, string $new_stage): void {
+		self::run_recruitment_automations($candidate, $old_stage, $new_stage);
+	}
+
+	/**
+	 * Recruitment pipeline automations triggered on stage transitions.
+	 *
+	 * - Any stage change → notify referrer
+	 * - Moved to "invited" → email the candidate with invitation
+	 * - Moved to "accepted" → auto-create member account, send welcome email, notify referrer with congrats
+	 */
+	private static function run_recruitment_automations(object $candidate, string $old_stage, string $new_stage): void {
+		$referrer = $candidate->referrer_id ? get_userdata($candidate->referrer_id) : null;
+		$stage_labels = self::$recruit_stages;
+		$candidate_first = explode(' ', trim($candidate->name))[0] ?? $candidate->name;
+		$company_line = $candidate->company ? ' (' . $candidate->company . ')' : '';
+
+		// ── Stage-specific detail block for referrer emails ──
+		$stage_details = [
+			'contacted' => 'We\'ve reached out to them to start the conversation.',
+			'invited'   => 'An invitation to visit one of our meetings has been sent.',
+			'visited'   => 'They attended a meeting — we\'re now evaluating fit.',
+			'decision'  => 'The group is making a decision on their membership.',
+			'accepted'  => 'They\'ve been accepted! Their member account is being created.',
+			'declined'  => 'After careful consideration, we\'ve decided not to proceed at this time.',
+		];
+		$detail_text = $stage_details[$new_stage] ?? '';
+		$detail_block = $detail_text
+			? '<div style="background:#f0f9ff;border-left:3px solid #2563eb;padding:12px 16px;margin:16px 0;font-size:14px;color:#1e40af;">' . esc_html($detail_text) . '</div>'
+			: '';
+
+		// ── 1. "Accepted" → auto-create member account ──
+		if ($new_stage === 'accepted') {
+			$created_user_id = self::convert_candidate_to_member($candidate);
+
+			// Notify referrer with the special accepted template.
+			if ($referrer && $created_user_id) {
+				CBNexus_Email_Service::send('recruit_accepted', $referrer->user_email, [
+					'referrer_name'   => $referrer->display_name,
+					'candidate_name'  => $candidate->name,
+					'portal_url'      => CBNexus_Portal_Router::get_portal_url(),
+				], [
+					'recipient_id' => $referrer->ID,
+					'related_type' => 'recruitment_accepted',
+				]);
+			}
+
+			// Log it.
+			if (class_exists('CBNexus_Logger')) {
+				CBNexus_Logger::info('Candidate accepted and converted to member.', [
+					'candidate_id' => $candidate->id,
+					'candidate'    => $candidate->name,
+					'new_user_id'  => $created_user_id,
+				]);
+			}
+
+			return; // Accepted has its own referrer email; skip the generic one.
+		}
+
+		// ── 2. "Invited" → email the candidate ──
+		if ($new_stage === 'invited' && !empty($candidate->email)) {
+			$invitation_notes = $candidate->notes ?: '';
+			$notes_block = $invitation_notes
+				? '<div style="background:#fff7ed;border-left:3px solid #c49a3c;padding:12px 16px;margin:16px 0;font-size:14px;">'
+					. '<strong>📝 A note from your host:</strong> ' . esc_html($invitation_notes) . '</div>'
+				: '';
+
+			CBNexus_Email_Service::send('recruit_invitation', $candidate->email, [
+				'candidate_first_name' => $candidate_first,
+				'candidate_name'       => $candidate->name,
+				'referrer_name'        => $referrer ? $referrer->display_name : 'a CircleBlast member',
+				'invitation_notes_block' => $notes_block,
+			], [
+				'related_type' => 'recruitment_invitation',
+				'related_id'   => $candidate->id,
+			]);
+		}
+
+		// ── 3. Notify referrer on any stage change ──
+		if ($referrer) {
+			CBNexus_Email_Service::send('recruit_stage_referrer', $referrer->user_email, [
+				'referrer_name'        => $referrer->display_name,
+				'candidate_name'       => $candidate->name,
+				'candidate_company_line' => $company_line,
+				'stage_label'          => $stage_labels[$new_stage] ?? $new_stage,
+				'stage_detail_block'   => $detail_block,
+			], [
+				'recipient_id' => $referrer->ID,
+				'related_type' => 'recruitment_stage_change',
+				'related_id'   => $candidate->id,
+			]);
+		}
+	}
+
+	/**
+	 * Convert an accepted candidate into a full CircleBlast member.
+	 * Creates WP user, assigns profile data, sends welcome email.
+	 *
+	 * @return int|null New user ID, or null on failure.
+	 */
+	private static function convert_candidate_to_member(object $candidate): ?int {
+		// If no email, we can't create an account.
+		if (empty($candidate->email)) {
+			if (class_exists('CBNexus_Logger')) {
+				CBNexus_Logger::warning('Cannot auto-create member for accepted candidate — no email.', [
+					'candidate_id' => $candidate->id,
+					'candidate'    => $candidate->name,
+				]);
+			}
+			return null;
+		}
+
+		// Don't create a duplicate if email already exists as a user.
+		if (email_exists($candidate->email)) {
+			if (class_exists('CBNexus_Logger')) {
+				CBNexus_Logger::info('Accepted candidate already has a WP account; skipping auto-create.', [
+					'candidate_id' => $candidate->id,
+					'email'        => $candidate->email,
+				]);
+			}
+			return null;
+		}
+
+		// Split name into first/last.
+		$name_parts = explode(' ', trim($candidate->name), 2);
+		$first_name = $name_parts[0] ?? '';
+		$last_name  = $name_parts[1] ?? '';
+
+		$user_data = [
+			'user_email'   => $candidate->email,
+			'first_name'   => $first_name,
+			'last_name'    => $last_name,
+			'display_name' => trim($candidate->name),
+		];
+
+		$profile_data = [
+			'cb_company'     => $candidate->company ?: '',
+			'cb_industry'    => $candidate->industry ?: '',
+			'cb_referred_by' => $candidate->referrer_id ? get_userdata($candidate->referrer_id)->display_name ?? '' : '',
+			'cb_ambassador_id' => $candidate->referrer_id ?: '',
+		];
+
+		$result = CBNexus_Member_Service::create_member($user_data, $profile_data, 'cb_member');
+
+		if (!$result['success']) {
+			if (class_exists('CBNexus_Logger')) {
+				CBNexus_Logger::error('Failed to auto-create member from accepted candidate.', [
+					'candidate_id' => $candidate->id,
+					'errors'       => $result['errors'] ?? [],
+				]);
+			}
+			return null;
+		}
+
+		$user_id = $result['user_id'];
+
+		// Send the welcome email.
+		$profile = CBNexus_Member_Repository::get_profile($user_id);
+		if ($profile) {
+			CBNexus_Email_Service::send_welcome($user_id, $profile);
+		}
+
+		return $user_id;
 	}
 
 	// =====================================================================
@@ -1497,6 +1683,9 @@ final class CBNexus_Portal_Admin {
 		'circleup_summary'         => ['name' => 'CircleUp Recap',            'group' => 'CircleUp'],
 		'event_reminder'           => ['name' => 'Event Reminder',            'group' => 'Events'],
 		'monthly_admin_report'     => ['name' => 'Monthly Admin Report',      'group' => 'Admin'],
+		'recruit_stage_referrer'   => ['name' => 'Referrer Stage Update',    'group' => 'Recruitment'],
+		'recruit_invitation'       => ['name' => 'Candidate Invitation',     'group' => 'Recruitment'],
+		'recruit_accepted'         => ['name' => 'Candidate Accepted',       'group' => 'Recruitment'],
 	];
 
 	private static function render_emails(): void {

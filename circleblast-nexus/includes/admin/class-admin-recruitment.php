@@ -70,13 +70,29 @@ final class CBNexus_Admin_Recruitment {
 		if (!current_user_can('cbnexus_manage_members')) { wp_die('Permission denied.'); }
 
 		global $wpdb;
-		$id = absint($_POST['candidate_id'] ?? 0);
+		$table = $wpdb->prefix . 'cb_candidates';
+		$id    = absint($_POST['candidate_id'] ?? 0);
+		$new_stage = sanitize_key($_POST['stage'] ?? 'referral');
 
-		$wpdb->update($wpdb->prefix . 'cb_candidates', [
-			'stage'      => sanitize_key($_POST['stage'] ?? 'referral'),
+		// Get current state before updating.
+		$candidate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+		if (!$candidate) {
+			wp_safe_redirect(admin_url('admin.php?page=cbnexus-recruitment&cbnexus_notice=error'));
+			exit;
+		}
+
+		$old_stage = $candidate->stage;
+
+		$wpdb->update($table, [
+			'stage'      => $new_stage,
 			'notes'      => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
 			'updated_at' => gmdate('Y-m-d H:i:s'),
 		], ['id' => $id], ['%s', '%s', '%s'], ['%d']);
+
+		// Trigger automations on stage change (delegate to Portal Admin which has the logic).
+		if ($old_stage !== $new_stage && class_exists('CBNexus_Portal_Admin')) {
+			CBNexus_Portal_Admin::trigger_recruitment_automation($candidate, $old_stage, $new_stage);
+		}
 
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-recruitment&cbnexus_notice=updated'));
 		exit;
