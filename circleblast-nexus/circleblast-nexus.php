@@ -133,7 +133,6 @@ CBNexus_Portal_CircleUp::init();
 CBNexus_Portal_Club::init();
 CBNexus_Portal_Events::init();
 CBNexus_Portal_Admin::init();
-CBNexus_Portal_Super_Admin::init();
 CBNexus_Token_Router::init();
 CBNexus_Members_API::init();
 

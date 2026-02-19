@@ -178,38 +178,35 @@ final class CBNexus_Portal_Router {
 
 	/**
 	 * Add role-gated sections for the current user.
-	 * Admin pill visible to cb_admin + cb_super_admin.
-	 * Super Admin pill visible only to cb_super_admin.
+	 * Single "Manage" section for cb_admin + cb_super_admin.
+	 * Super admins see additional tabs within the same section.
 	 */
 	private static function build_role_sections(int $user_id): void {
 		$user = get_userdata($user_id);
 		if (!$user) { return; }
 
-		$is_admin       = in_array('cb_admin', $user->roles, true) || in_array('cb_super_admin', $user->roles, true);
-		$is_super_admin = in_array('cb_super_admin', $user->roles, true);
+		$is_admin = in_array('cb_admin', $user->roles, true) || in_array('cb_super_admin', $user->roles, true);
 
 		if ($is_admin) {
-			self::$sections['admin'] = [
-				'label'    => __('Admin', 'circleblast-nexus'),
+			self::$sections['manage'] = [
+				'label'    => __('Manage', 'circleblast-nexus'),
 				'icon'     => '🛡️',
 				'callback' => ['CBNexus_Portal_Admin', 'render'],
-			];
-		}
-
-		if ($is_super_admin) {
-			self::$sections['superadmin'] = [
-				'label'    => __('Super Admin', 'circleblast-nexus'),
-				'icon'     => '⚡',
-				'callback' => ['CBNexus_Portal_Super_Admin', 'render'],
 			];
 		}
 	}
 
 	/**
 	 * Render the portal header — branded with plum & gold dot.
+	 * Admin-role links rendered next to avatar.
 	 */
 	private static function render_header(array $profile): void {
 		$initials = self::get_initials($profile);
+		$base_url = get_permalink();
+		$current  = isset($_GET['section']) ? sanitize_key($_GET['section']) : '';
+
+		$user  = wp_get_current_user();
+		$is_admin = in_array('cb_admin', $user->roles, true) || in_array('cb_super_admin', $user->roles, true);
 		?>
 		<header class="cbnexus-portal-header">
 			<div>
@@ -219,7 +216,12 @@ final class CBNexus_Portal_Router {
 				</div>
 				<h1 class="cbnexus-portal-subtitle"><?php esc_html_e('Member Portal', 'circleblast-nexus'); ?></h1>
 			</div>
-			<div style="display:flex;align-items:center;gap:10px;">
+			<div class="cbnexus-portal-header-right">
+				<?php if ($is_admin) : ?>
+					<a href="<?php echo esc_url(add_query_arg('section', 'manage', $base_url)); ?>" class="cbnexus-header-link <?php echo $current === 'manage' ? 'active' : ''; ?>">
+						<span class="cbnexus-header-link-icon">🛡️</span> Manage
+					</a>
+				<?php endif; ?>
 				<div class="cbnexus-portal-avatar">
 					<span class="cbnexus-portal-avatar-initials"><?php echo esc_html($initials); ?></span>
 				</div>
@@ -236,7 +238,10 @@ final class CBNexus_Portal_Router {
 		?>
 		<nav class="cbnexus-portal-nav">
 			<ul>
-				<?php foreach (self::$sections as $slug => $section) : ?>
+				<?php foreach (self::$sections as $slug => $section) :
+					// Manage section renders in the header, not the nav bar.
+					if ($slug === 'manage') { continue; }
+				?>
 					<li class="<?php echo $slug === $current ? 'cbnexus-nav-active' : ''; ?>">
 						<a href="<?php echo esc_url(add_query_arg('section', $slug, $base_url)); ?>">
 							<span class="cbnexus-nav-icon"><?php echo esc_html($section['icon']); ?></span>

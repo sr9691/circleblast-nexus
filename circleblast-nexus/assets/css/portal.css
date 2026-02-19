@@ -102,6 +102,47 @@
 	color: var(--cb-text-sec);
 }
 
+.cbnexus-portal-header-right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-shrink: 0;
+	flex-wrap: nowrap;
+}
+
+.cbnexus-header-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 6px 14px;
+	border-radius: var(--cb-radius-pill);
+	border: 1.5px solid var(--cb-border);
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	font-size: 12px;
+	font-weight: 600;
+	text-decoration: none;
+	transition: all .2s;
+	white-space: nowrap;
+}
+
+.cbnexus-header-link:hover {
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+}
+
+.cbnexus-header-link.active {
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	font-weight: 700;
+}
+
+.cbnexus-header-link-icon {
+	font-size: 13px;
+}
+
 .cbnexus-portal-avatar {
 	width: 40px;
 	height: 40px;
@@ -1350,6 +1391,9 @@
 	}
 
 	.cbnexus-portal-subtitle { font-size: 16px; }
+	.cbnexus-portal-header-right { gap: 6px; }
+	.cbnexus-header-link { padding: 5px 10px; font-size: 11px; }
+	.cbnexus-header-link-icon { display: none; }
 	.cbnexus-portal-avatar { width: 36px; height: 36px; }
 	.cbnexus-portal-avatar-initials { font-size: 13px; }
 

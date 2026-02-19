@@ -1,12 +1,12 @@
 <?php
 /**
- * Portal Admin
+ * Portal Admin (Manage)
  *
- * In-portal admin dashboard visible to cb_admin and cb_super_admin roles.
- * Surfaces member management, recruitment pipeline, matching config,
- * archivist tools, and event admin — all styled within the branded portal.
+ * Unified in-portal admin dashboard visible to cb_admin and cb_super_admin.
+ * Admin tabs: Members, Recruitment, Matching, Archivist, Events.
+ * Super-admin tabs (additional): Analytics, Emails, Logs, Settings.
  *
- * Sub-navigation uses ?section=admin&admin_tab=<tab> pattern.
+ * Sub-navigation uses ?section=manage&admin_tab=<tab> pattern.
  */
 
 defined('ABSPATH') || exit;
@@ -14,11 +14,17 @@ defined('ABSPATH') || exit;
 final class CBNexus_Portal_Admin {
 
 	private static $tabs = [
+		// Admin tabs (cb_admin + cb_super_admin).
 		'members'     => ['label' => 'Members',     'icon' => '👥', 'cap' => 'cbnexus_manage_members'],
 		'recruitment' => ['label' => 'Recruitment',  'icon' => '🎯', 'cap' => 'cbnexus_manage_members'],
 		'matching'    => ['label' => 'Matching',     'icon' => '🔗', 'cap' => 'cbnexus_manage_matching_rules'],
 		'archivist'   => ['label' => 'Archivist',    'icon' => '📝', 'cap' => 'cbnexus_manage_circleup'],
 		'events'      => ['label' => 'Events',       'icon' => '📅', 'cap' => 'cbnexus_manage_members'],
+		// Super-admin tabs (cb_super_admin only).
+		'analytics'   => ['label' => 'Analytics',    'icon' => '📊', 'cap' => 'cbnexus_export_data'],
+		'emails'      => ['label' => 'Emails',       'icon' => '✉️',  'cap' => 'cbnexus_manage_plugin_settings'],
+		'logs'        => ['label' => 'Logs',         'icon' => '📋', 'cap' => 'cbnexus_view_logs'],
+		'settings'    => ['label' => 'Settings',     'icon' => '⚙️',  'cap' => 'cbnexus_manage_plugin_settings'],
 	];
 
 	private static $recruit_stages = [
@@ -80,6 +86,18 @@ final class CBNexus_Portal_Admin {
 		if (isset($_POST['cbnexus_portal_save_event'])) {
 			self::handle_save_event();
 		}
+		// Super-admin: CSV export.
+		if (isset($_GET['cbnexus_portal_export']) && $_GET['cbnexus_portal_export'] === 'members') {
+			self::handle_export();
+		}
+		// Super-admin: email template save.
+		if (isset($_POST['cbnexus_portal_save_email_tpl'])) {
+			self::handle_save_email_template();
+		}
+		// Super-admin: email template reset.
+		if (isset($_GET['cbnexus_portal_reset_tpl'])) {
+			self::handle_reset_email_template();
+		}
 	}
 
 	// ─── Render Entry Point ─────────────────────────────────────────────
@@ -104,13 +122,17 @@ final class CBNexus_Portal_Admin {
 			case 'matching':    self::render_matching(); break;
 			case 'archivist':   self::render_archivist(); break;
 			case 'events':      self::render_events(); break;
+			case 'analytics':   self::render_analytics(); break;
+			case 'emails':      self::render_emails(); break;
+			case 'logs':        self::render_logs(); break;
+			case 'settings':    self::render_settings(); break;
 		}
 		echo '</div>';
 	}
 
 	private static function render_tab_nav(string $current): void {
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
-		$base_url   = add_query_arg('section', 'admin', $portal_url);
+		$base_url   = add_query_arg('section', 'manage', $portal_url);
 		?>
 		<div class="cbnexus-admin-tabs">
 			<?php foreach (self::$tabs as $slug => $tab) :
@@ -131,7 +153,7 @@ final class CBNexus_Portal_Admin {
 
 	private static function admin_url(string $tab = 'members', array $extra = []): string {
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
-		$args = array_merge(['section' => 'admin', 'admin_tab' => $tab], $extra);
+		$args = array_merge(['section' => 'manage', 'admin_tab' => $tab], $extra);
 		return add_query_arg($args, $portal_url);
 	}
 
@@ -909,11 +931,390 @@ final class CBNexus_Portal_Admin {
 			'extraction_done'    => 'AI extraction complete.',
 			'published'          => 'Meeting published and summary emailed to all members.',
 			'event_updated'      => 'Event updated.',
+			'template_saved'     => 'Email template saved.',
+			'template_reset'     => 'Template reset to default.',
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';
 		if (!$msg) { return; }
 		$type = ($notice === 'error') ? 'error' : 'success';
 		echo '<div class="cbnexus-portal-notice cbnexus-notice-' . esc_attr($type) . '">' . esc_html($msg) . '</div>';
+	}
+
+	// =====================================================================
+	//  ANALYTICS TAB (super-admin)
+	// =====================================================================
+
+	private static function render_analytics(): void {
+		if (!current_user_can('cbnexus_export_data')) {
+			echo '<div class="cbnexus-card"><p>Permission denied.</p></div>';
+			return;
+		}
+
+		$member_data = CBNexus_Admin_Analytics::compute_member_engagement();
+		$overview    = self::compute_overview();
+		$export_url  = wp_nonce_url(self::admin_url('analytics', ['cbnexus_portal_export' => 'members']), 'cbnexus_portal_export', '_panonce');
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2>Club Analytics</h2>
+				<a href="<?php echo esc_url($export_url); ?>" class="cbnexus-btn">Export CSV</a>
+			</div>
+
+			<div class="cbnexus-admin-stats-row">
+				<?php foreach ($overview as $label => $val) : ?>
+					<div class="cbnexus-admin-stat">
+						<div class="cbnexus-admin-stat-value"><?php echo esc_html($val); ?></div>
+						<div class="cbnexus-admin-stat-label"><?php echo esc_html($label); ?></div>
+					</div>
+				<?php endforeach; ?>
+			</div>
+		</div>
+
+		<div class="cbnexus-card">
+			<h3>Member Engagement</h3>
+			<div class="cbnexus-admin-table-wrap">
+				<table class="cbnexus-admin-table">
+					<thead><tr>
+						<th>Member</th>
+						<th>Meetings</th>
+						<th>Unique</th>
+						<th>CircleUp</th>
+						<th>Notes %</th>
+						<th>Accept %</th>
+						<th>Score</th>
+						<th>Risk</th>
+					</tr></thead>
+					<tbody>
+					<?php foreach ($member_data as $m) :
+						$risk_classes = ['high' => 'red', 'medium' => 'gold', 'low' => 'green'];
+						$rc = $risk_classes[$m['risk']] ?? 'muted';
+					?>
+						<tr>
+							<td>
+								<strong><?php echo esc_html($m['name']); ?></strong>
+								<div class="cbnexus-admin-meta"><?php echo esc_html($m['company']); ?></div>
+							</td>
+							<td><?php echo esc_html($m['meetings']); ?></td>
+							<td><?php echo esc_html($m['unique_met']); ?></td>
+							<td><?php echo esc_html($m['circleup']); ?></td>
+							<td><?php echo esc_html($m['notes_pct']); ?>%</td>
+							<td><?php echo esc_html($m['accept_pct']); ?>%</td>
+							<td><strong><?php echo esc_html($m['score']); ?></strong>/100</td>
+							<td><span class="cbnexus-status-pill cbnexus-status-<?php echo esc_attr($rc); ?>"><?php echo esc_html(ucfirst($m['risk'])); ?></span></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<?php
+	}
+
+	private static function compute_overview(): array {
+		global $wpdb;
+		$members = CBNexus_Member_Repository::get_all_members('active');
+		$meetings = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}cb_meetings WHERE status IN ('completed','closed')");
+		$suggestions = CBNexus_Suggestion_Generator::get_cycle_stats();
+		$accept_rate = $suggestions['total'] > 0 ? round($suggestions['accepted'] / $suggestions['total'] * 100) . '%' : '—';
+		$member_data = CBNexus_Admin_Analytics::compute_member_engagement();
+		$high_risk = count(array_filter($member_data, fn($m) => $m['risk'] === 'high'));
+
+		return [
+			'Active Members'     => count($members),
+			'Completed Meetings' => $meetings,
+			'Acceptance Rate'    => $accept_rate,
+			'High Risk'          => $high_risk,
+		];
+	}
+
+	private static function handle_export(): void {
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_export')) { return; }
+		if (!current_user_can('cbnexus_export_data')) { return; }
+
+		$data = CBNexus_Admin_Analytics::compute_member_engagement();
+
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=circleblast-analytics-' . gmdate('Y-m-d') . '.csv');
+
+		$out = fopen('php://output', 'w');
+		fputcsv($out, ['Name', 'Company', 'Meetings', 'Unique Met', 'CircleUp', 'Notes %', 'Accept %', 'Engagement', 'Risk']);
+		foreach ($data as $row) {
+			fputcsv($out, [$row['name'], $row['company'], $row['meetings'], $row['unique_met'], $row['circleup'], $row['notes_pct'], $row['accept_pct'], $row['score'], $row['risk']]);
+		}
+		fclose($out);
+		exit;
+	}
+
+	// =====================================================================
+	//  EMAILS TAB (super-admin)
+	// =====================================================================
+
+	private static $email_templates = [
+		'welcome_member'           => ['name' => 'Welcome New Member',        'group' => 'Members'],
+		'meeting_request_received' => ['name' => 'Meeting Request Received',  'group' => '1:1 Meetings'],
+		'meeting_request_sent'     => ['name' => 'Meeting Request Sent',      'group' => '1:1 Meetings'],
+		'meeting_accepted'         => ['name' => 'Meeting Accepted',          'group' => '1:1 Meetings'],
+		'meeting_declined'         => ['name' => 'Meeting Declined',          'group' => '1:1 Meetings'],
+		'meeting_reminder'         => ['name' => 'Meeting Reminder',          'group' => '1:1 Meetings'],
+		'meeting_notes_request'    => ['name' => 'Notes Request',             'group' => '1:1 Meetings'],
+		'suggestion_match'         => ['name' => 'Monthly Match',             'group' => 'Matching'],
+		'suggestion_reminder'      => ['name' => 'Match Reminder',            'group' => 'Matching'],
+		'circleup_summary'         => ['name' => 'CircleUp Recap',            'group' => 'CircleUp'],
+		'event_reminder'           => ['name' => 'Event Reminder',            'group' => 'Events'],
+		'monthly_admin_report'     => ['name' => 'Monthly Admin Report',      'group' => 'Admin'],
+	];
+
+	private static function render_emails(): void {
+		if (!current_user_can('cbnexus_manage_plugin_settings')) {
+			echo '<div class="cbnexus-card"><p>Permission denied.</p></div>';
+			return;
+		}
+
+		$notice = sanitize_key($_GET['pa_notice'] ?? '');
+		self::render_notice($notice);
+
+		if (isset($_GET['tpl'])) {
+			self::render_email_editor(sanitize_key($_GET['tpl']));
+			return;
+		}
+
+		$grouped = [];
+		foreach (self::$email_templates as $id => $meta) {
+			$grouped[$meta['group']][$id] = $meta;
+		}
+		?>
+		<div class="cbnexus-card">
+			<h2>Email Templates</h2>
+			<p class="cbnexus-text-muted">Customize the emails CircleBlast sends. Edits override the default templates.</p>
+
+			<?php foreach ($grouped as $group => $templates) : ?>
+				<h3 style="margin:20px 0 8px;"><?php echo esc_html($group); ?></h3>
+				<div class="cbnexus-admin-table-wrap">
+					<table class="cbnexus-admin-table">
+						<thead><tr>
+							<th>Template</th>
+							<th style="width:100px;">Customized?</th>
+							<th style="width:80px;">Actions</th>
+						</tr></thead>
+						<tbody>
+						<?php foreach ($templates as $id => $meta) :
+							$has_override = (bool) get_option('cbnexus_email_tpl_' . $id);
+						?>
+							<tr>
+								<td><?php echo esc_html($meta['name']); ?></td>
+								<td><?php echo $has_override ? '<span class="cbnexus-status-pill cbnexus-status-green">Yes</span>' : '<span class="cbnexus-admin-meta">Default</span>'; ?></td>
+								<td><a href="<?php echo esc_url(self::admin_url('emails', ['tpl' => $id])); ?>" class="cbnexus-link">Edit</a></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			<?php endforeach; ?>
+		</div>
+		<?php
+	}
+
+	private static function render_email_editor(string $tpl_id): void {
+		if (!isset(self::$email_templates[$tpl_id])) {
+			echo '<div class="cbnexus-card"><p>Template not found.</p></div>';
+			return;
+		}
+
+		$meta     = self::$email_templates[$tpl_id];
+		$override = get_option('cbnexus_email_tpl_' . $tpl_id);
+		$file     = CBNEXUS_PLUGIN_DIR . 'templates/emails/' . $tpl_id . '.php';
+		$default  = file_exists($file) ? include $file : ['subject' => '', 'body' => ''];
+
+		$subject = $override['subject'] ?? $default['subject'] ?? '';
+		$body    = $override['body'] ?? $default['body'] ?? '';
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2>Edit: <?php echo esc_html($meta['name']); ?></h2>
+				<a href="<?php echo esc_url(self::admin_url('emails')); ?>" class="cbnexus-btn">← Back</a>
+			</div>
+
+			<form method="post" action="">
+				<?php wp_nonce_field('cbnexus_portal_save_email_tpl'); ?>
+				<input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl_id); ?>" />
+
+				<div class="cbnexus-admin-form-stack">
+					<div>
+						<label>Subject Line</label>
+						<input type="text" name="subject" value="<?php echo esc_attr($subject); ?>" />
+					</div>
+					<div>
+						<label>Body (HTML)</label>
+						<textarea name="body" rows="12" style="font-family:monospace;font-size:13px;"><?php echo esc_textarea($body); ?></textarea>
+					</div>
+					<p class="cbnexus-admin-meta">Use <code>{{variable}}</code> placeholders. Available: first_name, last_name, display_name, email, site_url, portal_url, login_url.</p>
+				</div>
+
+				<div class="cbnexus-admin-button-row">
+					<button type="submit" name="cbnexus_portal_save_email_tpl" value="1" class="cbnexus-btn cbnexus-btn-accent">Save Template</button>
+					<?php if ($override) : ?>
+						<a href="<?php echo esc_url(wp_nonce_url(self::admin_url('emails', ['cbnexus_portal_reset_tpl' => $tpl_id]), 'cbnexus_portal_reset_' . $tpl_id, '_panonce')); ?>" class="cbnexus-btn" onclick="return confirm('Reset to default template?');">Reset to Default</a>
+					<?php endif; ?>
+				</div>
+			</form>
+		</div>
+		<?php
+	}
+
+	private static function handle_save_email_template(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_save_email_tpl')) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		$tpl_id = sanitize_key($_POST['tpl_id'] ?? '');
+		if (!isset(self::$email_templates[$tpl_id])) { return; }
+
+		update_option('cbnexus_email_tpl_' . $tpl_id, [
+			'subject' => sanitize_text_field(wp_unslash($_POST['subject'] ?? '')),
+			'body'    => wp_unslash($_POST['body'] ?? ''),
+		]);
+
+		wp_safe_redirect(self::admin_url('emails', ['tpl' => $tpl_id, 'pa_notice' => 'template_saved']));
+		exit;
+	}
+
+	private static function handle_reset_email_template(): void {
+		$tpl_id = sanitize_key($_GET['cbnexus_portal_reset_tpl']);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_reset_' . $tpl_id)) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		delete_option('cbnexus_email_tpl_' . $tpl_id);
+
+		wp_safe_redirect(self::admin_url('emails', ['pa_notice' => 'template_reset']));
+		exit;
+	}
+
+	// =====================================================================
+	//  LOGS TAB (super-admin)
+	// =====================================================================
+
+	private static function render_logs(): void {
+		if (!current_user_can('cbnexus_view_logs')) {
+			echo '<div class="cbnexus-card"><p>Permission denied.</p></div>';
+			return;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'cbnexus_log';
+		$found = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+		if ($found !== $table) {
+			echo '<div class="cbnexus-card"><p>Log table not found.</p></div>';
+			return;
+		}
+
+		$level = sanitize_key($_GET['log_level'] ?? '');
+		$where = $level ? $wpdb->prepare(" WHERE level = %s", $level) : '';
+		$logs  = $wpdb->get_results("SELECT * FROM {$table}{$where} ORDER BY created_at_gmt DESC LIMIT 100");
+		?>
+		<div class="cbnexus-card">
+			<h2>Plugin Logs</h2>
+
+			<div class="cbnexus-admin-filters">
+				<a href="<?php echo esc_url(self::admin_url('logs')); ?>" class="<?php echo $level === '' ? 'active' : ''; ?>">All</a>
+				<?php foreach (['error', 'warning', 'info', 'debug'] as $lv) : ?>
+					<a href="<?php echo esc_url(self::admin_url('logs', ['log_level' => $lv])); ?>" class="<?php echo $level === $lv ? 'active' : ''; ?>"><?php echo esc_html(ucfirst($lv)); ?></a>
+				<?php endforeach; ?>
+			</div>
+
+			<div class="cbnexus-admin-table-wrap">
+				<table class="cbnexus-admin-table cbnexus-admin-table-sm">
+					<thead><tr>
+						<th style="width:140px;">Time</th>
+						<th style="width:70px;">Level</th>
+						<th>Message</th>
+					</tr></thead>
+					<tbody>
+					<?php if (empty($logs)) : ?>
+						<tr><td colspan="3" class="cbnexus-admin-empty">No log entries found.</td></tr>
+					<?php else : foreach ($logs as $log) :
+						$level_colors = ['error' => 'red', 'warning' => 'gold', 'info' => 'blue', 'debug' => 'muted'];
+						$lc = $level_colors[$log->level] ?? 'muted';
+					?>
+						<tr>
+							<td class="cbnexus-admin-meta"><?php echo esc_html($log->created_at_gmt); ?></td>
+							<td><span class="cbnexus-status-pill cbnexus-status-<?php echo esc_attr($lc); ?>"><?php echo esc_html(strtoupper($log->level)); ?></span></td>
+							<td style="font-size:13px;"><?php echo esc_html($log->message); ?></td>
+						</tr>
+					<?php endforeach; endif; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<?php
+	}
+
+	// =====================================================================
+	//  SETTINGS TAB (super-admin)
+	// =====================================================================
+
+	private static function render_settings(): void {
+		if (!current_user_can('cbnexus_manage_plugin_settings')) {
+			echo '<div class="cbnexus-card"><p>Permission denied.</p></div>';
+			return;
+		}
+		?>
+		<div class="cbnexus-card">
+			<h2>System Settings</h2>
+
+			<div class="cbnexus-admin-form-stack">
+				<div>
+					<h3>Plugin Info</h3>
+					<table class="cbnexus-admin-kv-table">
+						<tr><td>Version</td><td><strong><?php echo esc_html(CBNEXUS_VERSION); ?></strong></td></tr>
+						<tr><td>PHP</td><td><?php echo esc_html(PHP_VERSION); ?></td></tr>
+						<tr><td>WordPress</td><td><?php echo esc_html(get_bloginfo('version')); ?></td></tr>
+						<tr><td>Database Prefix</td><td><code><?php global $wpdb; echo esc_html($wpdb->prefix); ?></code></td></tr>
+					</table>
+				</div>
+
+				<div>
+					<h3>Cron Jobs</h3>
+					<table class="cbnexus-admin-kv-table">
+						<?php
+						$crons = [
+							'cbnexus_log_cleanup'          => 'Log Cleanup',
+							'cbnexus_meeting_reminders'    => 'Meeting Reminders',
+							'cbnexus_suggestion_cycle'     => 'Suggestion Cycle',
+							'cbnexus_suggestion_reminders' => 'Suggestion Reminders',
+							'cbnexus_ai_extraction'        => 'AI Extraction',
+							'cbnexus_analytics_snapshot'   => 'Analytics Snapshot',
+							'cbnexus_monthly_report'       => 'Monthly Report',
+							'cbnexus_event_reminders'      => 'Event Reminders',
+							'cbnexus_token_cleanup'        => 'Token Cleanup',
+						];
+						foreach ($crons as $hook => $label) :
+							$next = wp_next_scheduled($hook);
+							$next_str = $next ? date_i18n('M j, g:i a', $next) : 'Not scheduled';
+						?>
+							<tr>
+								<td><?php echo esc_html($label); ?></td>
+								<td class="cbnexus-admin-meta"><?php echo esc_html($next_str); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</table>
+				</div>
+
+				<div>
+					<h3>API Keys</h3>
+					<table class="cbnexus-admin-kv-table">
+						<tr>
+							<td>Claude API Key</td>
+							<td><?php echo defined('CBNEXUS_CLAUDE_API_KEY') ? '<span class="cbnexus-status-pill cbnexus-status-green">Configured</span>' : '<span class="cbnexus-status-pill cbnexus-status-gold">Not set</span>'; ?></td>
+						</tr>
+						<tr>
+							<td>Fireflies Secret</td>
+							<td><?php echo defined('CBNEXUS_FIREFLIES_SECRET') ? '<span class="cbnexus-status-pill cbnexus-status-green">Configured</span>' : '<span class="cbnexus-status-pill cbnexus-status-gold">Not set (dev mode)</span>'; ?></td>
+						</tr>
+					</table>
+					<p class="cbnexus-admin-meta" style="margin-top:8px;">API keys are configured in wp-config.php per security policy. They cannot be changed from this interface.</p>
+				</div>
+			</div>
+		</div>
+		<?php
 	}
 }
