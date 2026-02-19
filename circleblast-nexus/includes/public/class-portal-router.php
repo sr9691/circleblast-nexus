@@ -28,7 +28,7 @@ final class CBNexus_Portal_Router {
 		add_action('template_redirect', [__CLASS__, 'access_control']);
 		add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
 
-		// Register default sections.
+		// Register default sections (visible to all members).
 		self::$sections = [
 			'dashboard' => [
 				'label'    => __('Home', 'circleblast-nexus'),
@@ -66,6 +66,8 @@ final class CBNexus_Portal_Router {
 				'callback' => ['CBNexus_Portal_Profile', 'render'],
 			],
 		];
+
+		// Role-gated sections: added dynamically on render (see build_sections).
 	}
 
 	/**
@@ -147,6 +149,10 @@ final class CBNexus_Portal_Router {
 		}
 
 		$current_section = isset($_GET['section']) ? sanitize_key($_GET['section']) : 'dashboard';
+
+		// Build role-gated sections for this user.
+		self::build_role_sections($user_id);
+
 		if (!isset(self::$sections[$current_section])) {
 			$current_section = 'dashboard';
 		}
@@ -168,6 +174,35 @@ final class CBNexus_Portal_Router {
 		</div>
 		<?php
 		return ob_get_clean();
+	}
+
+	/**
+	 * Add role-gated sections for the current user.
+	 * Admin pill visible to cb_admin + cb_super_admin.
+	 * Super Admin pill visible only to cb_super_admin.
+	 */
+	private static function build_role_sections(int $user_id): void {
+		$user = get_userdata($user_id);
+		if (!$user) { return; }
+
+		$is_admin       = in_array('cb_admin', $user->roles, true) || in_array('cb_super_admin', $user->roles, true);
+		$is_super_admin = in_array('cb_super_admin', $user->roles, true);
+
+		if ($is_admin) {
+			self::$sections['admin'] = [
+				'label'    => __('Admin', 'circleblast-nexus'),
+				'icon'     => '🛡️',
+				'callback' => ['CBNexus_Portal_Admin', 'render'],
+			];
+		}
+
+		if ($is_super_admin) {
+			self::$sections['superadmin'] = [
+				'label'    => __('Super Admin', 'circleblast-nexus'),
+				'icon'     => '⚡',
+				'callback' => ['CBNexus_Portal_Super_Admin', 'render'],
+			];
+		}
 	}
 
 	/**
