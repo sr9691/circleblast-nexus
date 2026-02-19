@@ -87,6 +87,38 @@ final class CBNexus_Email_Service {
 		]);
 	}
 
+	/**
+	 * Send a reactivation email to a member whose status changed to active.
+	 */
+	public static function send_reactivation(int $user_id, array $profile): bool {
+		$to = $profile['user_email'] ?? '';
+		if (empty($to)) {
+			return false;
+		}
+
+		$reset_key = get_password_reset_key(get_userdata($user_id));
+		$login_url = '';
+		if (!is_wp_error($reset_key)) {
+			$login_url = network_site_url("wp-login.php?action=rp&key={$reset_key}&login=" . rawurlencode($profile['user_email']), 'login');
+		}
+
+		$vars = [
+			'first_name'   => $profile['first_name'] ?? '',
+			'last_name'    => $profile['last_name'] ?? '',
+			'display_name' => $profile['display_name'] ?? '',
+			'email'        => $to,
+			'company'      => $profile['cb_company'] ?? '',
+			'login_url'    => $login_url,
+			'site_url'     => home_url(),
+			'site_name'    => get_bloginfo('name'),
+		];
+
+		return self::send('reactivation_member', $to, $vars, [
+			'recipient_id' => $user_id,
+			'related_type' => 'member_reactivation',
+		]);
+	}
+
 	private static function load_template(string $template_id): ?array {
 		// Check DB override from Admin Email Templates.
 		if (class_exists('CBNexus_Admin_Email_Templates')) {

@@ -579,6 +579,24 @@ final class CBNexus_Portal_Admin {
 		if (!isset($map[$action])) { return; }
 
 		$result = CBNexus_Member_Service::transition_status($uid, $map[$action]);
+
+		// On activation, send the reactivation email with password reset link.
+		if ($result['success'] && $action === 'activate') {
+			$user = get_userdata($uid);
+			if ($user) {
+				$profile = array_merge(
+					CBNexus_Member_Repository::get_profile($uid),
+					[
+						'user_email'   => $user->user_email,
+						'first_name'   => $user->first_name,
+						'last_name'    => $user->last_name,
+						'display_name' => $user->display_name,
+					]
+				);
+				CBNexus_Email_Service::send_reactivation($uid, $profile);
+			}
+		}
+
 		$notice = $result['success'] ? 'status_updated' : 'error';
 		wp_safe_redirect(self::admin_url('members', ['pa_notice' => $notice]));
 		exit;
