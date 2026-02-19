@@ -828,11 +828,19 @@ final class CBNexus_Portal_Admin {
 		$notice = sanitize_key($_GET['pa_notice'] ?? '');
 		self::render_notice($notice);
 
+		// If editing or creating, show the form instead of the list.
+		$edit_id = absint($_GET['edit_event'] ?? 0);
+		if ($edit_id || isset($_GET['new_event'])) {
+			self::render_event_form($edit_id);
+			return;
+		}
+
 		$events = CBNexus_Event_Repository::query();
 		?>
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
 				<h2>Events</h2>
+				<a href="<?php echo esc_url(self::admin_url('events', ['new_event' => '1'])); ?>" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm">+ Add Event</a>
 			</div>
 
 			<div class="cbnexus-admin-table-wrap">
@@ -859,6 +867,7 @@ final class CBNexus_Portal_Admin {
 							<td><?php self::status_pill($e->status); ?></td>
 							<td><?php echo esc_html($rsvp_total); ?></td>
 							<td class="cbnexus-admin-actions-cell">
+								<a href="<?php echo esc_url(self::admin_url('events', ['edit_event' => $e->id])); ?>" class="cbnexus-link">Edit</a>
 								<?php if ($e->status === 'pending') : ?>
 									<a href="<?php echo esc_url(wp_nonce_url(self::admin_url('events', ['cbnexus_portal_event_action' => 'approve', 'event_id' => $e->id]), 'cbnexus_portal_event_' . $e->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-green">Approve</a>
 								<?php endif; ?>
@@ -871,6 +880,93 @@ final class CBNexus_Portal_Admin {
 					</tbody>
 				</table>
 			</div>
+		</div>
+		<?php
+	}
+
+	private static function render_event_form(int $id): void {
+		$event = $id ? CBNexus_Event_Repository::get($id) : null;
+		$categories = defined('CBNexus_Event_Service::CATEGORIES') || method_exists('CBNexus_Event_Service', 'get_categories')
+			? CBNexus_Event_Service::CATEGORIES
+			: [];
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2><?php echo $event ? 'Edit Event' : 'Add New Event'; ?></h2>
+				<a href="<?php echo esc_url(self::admin_url('events')); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm">← Back</a>
+			</div>
+
+			<form method="post" style="max-width:600px;">
+				<?php wp_nonce_field('cbnexus_portal_save_event', '_panonce'); ?>
+				<?php if ($id) : ?><input type="hidden" name="event_id" value="<?php echo esc_attr($id); ?>" /><?php endif; ?>
+
+				<div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Title *</label>
+						<input type="text" name="title" value="<?php echo esc_attr($event->title ?? ''); ?>" class="cbnexus-input" style="width:100%;" required />
+					</div>
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Date *</label>
+							<input type="date" name="event_date" value="<?php echo esc_attr($event->event_date ?? ''); ?>" class="cbnexus-input" required />
+						</div>
+						<div>
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Start Time</label>
+							<input type="time" name="event_time" value="<?php echo esc_attr($event->event_time ?? ''); ?>" class="cbnexus-input" />
+						</div>
+						<div>
+							<label style="display:block;font-weight:600;margin-bottom:4px;">End Time</label>
+							<input type="time" name="end_time" value="<?php echo esc_attr($event->end_time ?? ''); ?>" class="cbnexus-input" />
+						</div>
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Description</label>
+						<textarea name="description" rows="3" class="cbnexus-input" style="width:100%;"><?php echo esc_textarea($event->description ?? ''); ?></textarea>
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Location</label>
+						<input type="text" name="location" value="<?php echo esc_attr($event->location ?? ''); ?>" class="cbnexus-input" style="width:100%;" />
+					</div>
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Category</label>
+							<select name="category" class="cbnexus-input">
+								<option value="">—</option>
+								<?php foreach ($categories as $k => $v) : ?>
+									<option value="<?php echo esc_attr($k); ?>" <?php selected($event->category ?? '', $k); ?>><?php echo esc_html($v); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Audience</label>
+							<select name="audience" class="cbnexus-input">
+								<option value="all" <?php selected($event->audience ?? '', 'all'); ?>>Everyone</option>
+								<option value="members" <?php selected($event->audience ?? '', 'members'); ?>>Members Only</option>
+								<option value="public" <?php selected($event->audience ?? '', 'public'); ?>>Public</option>
+							</select>
+						</div>
+					</div>
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Registration URL</label>
+							<input type="url" name="registration_url" value="<?php echo esc_attr($event->registration_url ?? ''); ?>" class="cbnexus-input" style="width:100%;" />
+						</div>
+						<div style="width:150px;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Cost</label>
+							<input type="text" name="cost" value="<?php echo esc_attr($event->cost ?? ''); ?>" class="cbnexus-input" placeholder="Free, $25" />
+						</div>
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Reminder Notes</label>
+						<textarea name="reminder_notes" rows="2" class="cbnexus-input" style="width:100%;" placeholder="Notes to include in the reminder email"><?php echo esc_textarea($event->reminder_notes ?? ''); ?></textarea>
+					</div>
+				</div>
+
+				<div style="margin-top:16px;display:flex;gap:8px;">
+					<button type="submit" name="cbnexus_portal_save_event" value="1" class="cbnexus-btn cbnexus-btn-primary"><?php echo $event ? 'Update Event' : 'Create Event'; ?></button>
+					<a href="<?php echo esc_url(self::admin_url('events')); ?>" class="cbnexus-btn cbnexus-btn-outline">Cancel</a>
+				</div>
+			</form>
 		</div>
 		<?php
 	}
@@ -892,7 +988,34 @@ final class CBNexus_Portal_Admin {
 	}
 
 	private static function handle_save_event(): void {
-		// Stub for future inline event creation from portal admin.
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce'] ?? ''), 'cbnexus_portal_save_event')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		$id = absint($_POST['event_id'] ?? 0);
+		$data = [
+			'title'            => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
+			'description'      => sanitize_textarea_field(wp_unslash($_POST['description'] ?? '')),
+			'event_date'       => sanitize_text_field($_POST['event_date'] ?? ''),
+			'event_time'       => sanitize_text_field($_POST['event_time'] ?? ''),
+			'end_time'         => sanitize_text_field($_POST['end_time'] ?? ''),
+			'location'         => sanitize_text_field(wp_unslash($_POST['location'] ?? '')),
+			'audience'         => sanitize_key($_POST['audience'] ?? 'all'),
+			'category'         => sanitize_key($_POST['category'] ?? ''),
+			'registration_url' => esc_url_raw($_POST['registration_url'] ?? ''),
+			'reminder_notes'   => sanitize_textarea_field(wp_unslash($_POST['reminder_notes'] ?? '')),
+			'cost'             => sanitize_text_field(wp_unslash($_POST['cost'] ?? '')),
+		];
+
+		if ($id) {
+			CBNexus_Event_Repository::update($id, $data);
+		} else {
+			$data['organizer_id'] = get_current_user_id();
+			$data['status'] = 'approved';
+			CBNexus_Event_Repository::create($data);
+		}
+
+		wp_safe_redirect(self::admin_url('events', ['pa_notice' => 'event_updated']));
+		exit;
 	}
 
 	// ─── Shared UI Helpers ──────────────────────────────────────────────

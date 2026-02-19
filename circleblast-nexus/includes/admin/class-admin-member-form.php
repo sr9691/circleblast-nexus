@@ -110,8 +110,8 @@ final class CBNexus_Admin_Member_Form {
 			if (!current_user_can('cbnexus_create_members')) { wp_die(__('Permission denied.', 'circleblast-nexus')); }
 		}
 
-		$errors    = get_transient('cbnexus_form_errors'); delete_transient('cbnexus_form_errors');
-		$form_data = get_transient('cbnexus_form_data');   delete_transient('cbnexus_form_data');
+		$errors    = get_transient('cbnexus_form_errors') ?: null; delete_transient('cbnexus_form_errors');
+		$form_data = get_transient('cbnexus_form_data') ?: null; delete_transient('cbnexus_form_data');
 		$industries = CBNexus_Member_Service::get_industries();
 		$title = $editing ? __('Edit Member', 'circleblast-nexus') : __('Add New Member', 'circleblast-nexus');
 		?>
