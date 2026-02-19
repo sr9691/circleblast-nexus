@@ -947,14 +947,25 @@ final class CBNexus_Portal_Admin {
 		$stage_details = [
 			'contacted' => 'We\'ve reached out to them to start the conversation.',
 			'invited'   => 'An invitation to visit one of our meetings has been sent.',
-			'visited'   => 'They attended a meeting — we\'re now evaluating fit.',
+			'visited'   => 'They attended a meeting — nice work getting them there! We\'ve sent them a quick survey about their interest in joining. In the meantime, please reach out to them personally to get their feedback on:'
+				. '<ul style="margin:10px 0 0 20px;padding:0;color:#1e40af;font-size:14px;line-height:1.8;">'
+				. '<li><strong>Overall impression</strong> — How did they feel about the group dynamic and format?</li>'
+				. '<li><strong>Connections made</strong> — Did they meet anyone they\'d like to stay in touch with?</li>'
+				. '<li><strong>Suggestions</strong> — Anything we could do better for visitors?</li>'
+				. '<li><strong>Fit</strong> — Do they see themselves contributing to and benefiting from the group?</li>'
+				. '</ul>',
 			'decision'  => 'The group is making a decision on their membership.',
 			'accepted'  => 'They\'ve been accepted! Their member account is being created.',
 			'declined'  => 'After careful consideration, we\'ve decided not to proceed at this time.',
 		];
 		$detail_text = $stage_details[$new_stage] ?? '';
+		// Stages with pre-formatted HTML content (like visited) pass through as-is.
+		$html_stages = ['visited'];
+		$detail_inner = in_array($new_stage, $html_stages, true)
+			? $detail_text
+			: esc_html($detail_text);
 		$detail_block = $detail_text
-			? '<div style="background:#f0f9ff;border-left:3px solid #2563eb;padding:12px 16px;margin:16px 0;font-size:14px;color:#1e40af;">' . esc_html($detail_text) . '</div>'
+			? '<div style="background:#f0f9ff;border-left:3px solid #2563eb;padding:12px 16px;margin:16px 0;font-size:14px;color:#1e40af;">' . $detail_inner . '</div>'
 			: '';
 
 		// ── 1. "Accepted" → auto-create member account ──
@@ -1005,17 +1016,31 @@ final class CBNexus_Portal_Admin {
 		}
 
 		// ── 3. "Visited" → NPS-style feedback survey email (once only) ──
-		if ($new_stage === 'visited' && !empty($candidate->email)) {
+		if ($new_stage === 'visited') {
 			$opt_key = 'cbnexus_recruit_visited_sent_' . $candidate->id;
-			if (!get_option($opt_key)) {
-				// Generate tokenized feedback URLs (single-use per question).
+
+			if (empty($candidate->email)) {
+				if (class_exists('CBNexus_Logger')) {
+					CBNexus_Logger::warning('Cannot send visit feedback survey — candidate has no email.', [
+						'candidate_id' => $candidate->id,
+						'candidate'    => $candidate->name,
+					]);
+				}
+			} elseif (get_option($opt_key)) {
+				if (class_exists('CBNexus_Logger')) {
+					CBNexus_Logger::info('Visit feedback survey already sent; skipping.', [
+						'candidate_id' => $candidate->id,
+					]);
+				}
+			} else {
+				// Generate tokenized feedback URLs.
 				$feedback_urls = self::generate_visit_feedback_urls((int) $candidate->id);
 
 				$followup = $referrer
 					? $referrer->display_name
 					: 'A member of the CircleBlast Council';
 
-				CBNexus_Email_Service::send('recruit_visited_thankyou', $candidate->email, [
+				$sent = CBNexus_Email_Service::send('recruit_visited_thankyou', $candidate->email, [
 					'candidate_first_name' => $candidate_first,
 					'candidate_name'       => $candidate->name,
 					'followup_name'        => $followup,
@@ -1028,12 +1053,15 @@ final class CBNexus_Portal_Admin {
 					'related_id'   => $candidate->id,
 				]);
 
-				update_option($opt_key, gmdate('Y-m-d H:i:s'), false);
+				if ($sent) {
+					update_option($opt_key, gmdate('Y-m-d H:i:s'), false);
+				}
 
 				if (class_exists('CBNexus_Logger')) {
-					CBNexus_Logger::info('Visited feedback survey sent to candidate.', [
+					CBNexus_Logger::info('Visit feedback survey ' . ($sent ? 'sent' : 'FAILED') . '.', [
 						'candidate_id' => $candidate->id,
 						'email'        => $candidate->email,
+						'sent'         => $sent,
 					]);
 				}
 			}
@@ -1974,7 +2002,8 @@ final class CBNexus_Portal_Admin {
 		'recruit_stage_referrer'   => ['name' => 'Referrer Stage Update',    'group' => 'Recruitment'],
 		'recruit_invitation'       => ['name' => 'Candidate Invitation',     'group' => 'Recruitment'],
 		'recruit_accepted'         => ['name' => 'Candidate Accepted',       'group' => 'Recruitment'],
-		'recruit_visited_thankyou' => ['name' => 'Visit Thank You',          'group' => 'Recruitment'],
+		'recruit_visited_thankyou'  => ['name' => 'Visit Thank You',          'group' => 'Recruitment'],
+		'recruit_feedback_referrer' => ['name' => 'Feedback Received (Referrer)', 'group' => 'Recruitment'],
 	];
 
 	private static function render_emails(): void {
