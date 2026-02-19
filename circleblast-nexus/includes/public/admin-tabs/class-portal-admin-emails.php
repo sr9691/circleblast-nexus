@@ -1,0 +1,158 @@
+<?php
+/**
+ * Portal Admin – Emails Tab (super-admin)
+ *
+ * Extracted from class-portal-admin.php for maintainability.
+ */
+
+defined('ABSPATH') || exit;
+
+final class CBNexus_Portal_Admin_Emails {
+
+	private static $email_templates = [
+		'welcome_member'           => ['name' => 'Welcome New Member',        'group' => 'Members'],
+		'meeting_request_received' => ['name' => 'Meeting Request Received',  'group' => '1:1 Meetings'],
+		'meeting_request_sent'     => ['name' => 'Meeting Request Sent',      'group' => '1:1 Meetings'],
+		'meeting_accepted'         => ['name' => 'Meeting Accepted',          'group' => '1:1 Meetings'],
+		'meeting_declined'         => ['name' => 'Meeting Declined',          'group' => '1:1 Meetings'],
+		'meeting_reminder'         => ['name' => 'Meeting Reminder',          'group' => '1:1 Meetings'],
+		'meeting_notes_request'    => ['name' => 'Notes Request',             'group' => '1:1 Meetings'],
+		'suggestion_match'         => ['name' => 'Monthly Match',             'group' => 'Matching'],
+		'suggestion_reminder'      => ['name' => 'Match Reminder',            'group' => 'Matching'],
+		'circleup_summary'         => ['name' => 'CircleUp Recap',            'group' => 'CircleUp'],
+		'event_reminder'           => ['name' => 'Event Reminder',            'group' => 'Events'],
+		'events_digest'            => ['name' => 'Events Digest',             'group' => 'Events'],
+		'monthly_admin_report'     => ['name' => 'Monthly Admin Report',      'group' => 'Admin'],
+		'recruit_stage_referrer'   => ['name' => 'Referrer Stage Update',    'group' => 'Recruitment'],
+		'recruit_invitation'       => ['name' => 'Candidate Invitation',     'group' => 'Recruitment'],
+		'recruit_accepted'         => ['name' => 'Candidate Accepted',       'group' => 'Recruitment'],
+		'recruit_visited_thankyou'  => ['name' => 'Visit Thank You',          'group' => 'Recruitment'],
+		'recruit_feedback_referrer' => ['name' => 'Feedback Received (Referrer)', 'group' => 'Recruitment'],
+	];
+
+	public static function render(): void {
+		if (!current_user_can('cbnexus_manage_plugin_settings')) {
+			echo '<div class="cbnexus-card"><p>Permission denied.</p></div>';
+			return;
+		}
+
+		$notice = sanitize_key($_GET['pa_notice'] ?? '');
+		CBNexus_Portal_Admin::render_notice($notice);
+
+		if (isset($_GET['tpl'])) {
+			self::render_email_editor(sanitize_key($_GET['tpl']));
+			return;
+		}
+
+		$grouped = [];
+		foreach (self::$email_templates as $id => $meta) {
+			$grouped[$meta['group']][$id] = $meta;
+		}
+		?>
+		<div class="cbnexus-card">
+			<h2>Email Templates</h2>
+			<p class="cbnexus-text-muted">Customize the emails CircleBlast sends. Edits override the default templates.</p>
+
+			<?php foreach ($grouped as $group => $templates) : ?>
+				<h3 style="margin:20px 0 8px;"><?php echo esc_html($group); ?></h3>
+				<div class="cbnexus-admin-table-wrap">
+					<table class="cbnexus-admin-table">
+						<thead><tr>
+							<th>Template</th>
+							<th style="width:100px;">Customized?</th>
+							<th style="width:80px;">Actions</th>
+						</tr></thead>
+						<tbody>
+						<?php foreach ($templates as $id => $meta) :
+							$has_override = (bool) get_option('cbnexus_email_tpl_' . $id);
+						?>
+							<tr>
+								<td><?php echo esc_html($meta['name']); ?></td>
+								<td><?php echo $has_override ? '<span class="cbnexus-status-pill cbnexus-status-green">Yes</span>' : '<span class="cbnexus-admin-meta">Default</span>'; ?></td>
+								<td><a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('emails', ['tpl' => $id])); ?>" class="cbnexus-link">Edit</a></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			<?php endforeach; ?>
+		</div>
+		<?php
+	}
+
+	private static function render_email_editor(string $tpl_id): void {
+		if (!isset(self::$email_templates[$tpl_id])) {
+			echo '<div class="cbnexus-card"><p>Template not found.</p></div>';
+			return;
+		}
+
+		$meta     = self::$email_templates[$tpl_id];
+		$override = get_option('cbnexus_email_tpl_' . $tpl_id);
+		$file     = CBNEXUS_PLUGIN_DIR . 'templates/emails/' . $tpl_id . '.php';
+		$default  = file_exists($file) ? include $file : ['subject' => '', 'body' => ''];
+
+		$subject = $override['subject'] ?? $default['subject'] ?? '';
+		$body    = $override['body'] ?? $default['body'] ?? '';
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2>Edit: <?php echo esc_html($meta['name']); ?></h2>
+				<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('emails')); ?>" class="cbnexus-btn">← Back</a>
+			</div>
+
+			<form method="post" action="">
+				<?php wp_nonce_field('cbnexus_portal_save_email_tpl'); ?>
+				<input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl_id); ?>" />
+
+				<div class="cbnexus-admin-form-stack">
+					<div>
+						<label>Subject Line</label>
+						<input type="text" name="subject" value="<?php echo esc_attr($subject); ?>" />
+					</div>
+					<div>
+						<label>Body (HTML)</label>
+						<textarea name="body" rows="12" style="font-family:monospace;font-size:13px;"><?php echo esc_textarea($body); ?></textarea>
+					</div>
+					<p class="cbnexus-admin-meta">Use <code>{{variable}}</code> placeholders. Available: first_name, last_name, display_name, email, site_url, portal_url, login_url.</p>
+				</div>
+
+				<div class="cbnexus-admin-button-row">
+					<button type="submit" name="cbnexus_portal_save_email_tpl" value="1" class="cbnexus-btn cbnexus-btn-accent">Save Template</button>
+					<?php if ($override) : ?>
+						<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('emails', ['cbnexus_portal_reset_tpl' => $tpl_id]), 'cbnexus_portal_reset_' . $tpl_id, '_panonce')); ?>" class="cbnexus-btn" onclick="return confirm('Reset to default template?');">Reset to Default</a>
+					<?php endif; ?>
+				</div>
+			</form>
+		</div>
+		<?php
+	}
+
+	// ─── Action Handlers ────────────────────────────────────────────────
+
+	public static function handle_save_email_template(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_save_email_tpl')) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		$tpl_id = sanitize_key($_POST['tpl_id'] ?? '');
+		if (!isset(self::$email_templates[$tpl_id])) { return; }
+
+		update_option('cbnexus_email_tpl_' . $tpl_id, [
+			'subject' => sanitize_text_field(wp_unslash($_POST['subject'] ?? '')),
+			'body'    => wp_unslash($_POST['body'] ?? ''),
+		]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('emails', ['tpl' => $tpl_id, 'pa_notice' => 'template_saved']));
+		exit;
+	}
+
+	public static function handle_reset_email_template(): void {
+		$tpl_id = sanitize_key($_GET['cbnexus_portal_reset_tpl']);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_reset_' . $tpl_id)) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		delete_option('cbnexus_email_tpl_' . $tpl_id);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('emails', ['pa_notice' => 'template_reset']));
+		exit;
+	}
+}

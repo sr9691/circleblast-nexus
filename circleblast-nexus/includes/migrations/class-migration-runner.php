@@ -133,6 +133,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_017_Create_Recruitment_Categories',
 				'method' => 'up',
 			],
+			'018_add_guest_cost' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/018-add-guest-cost.php',
+				'class'  => 'CBNexus_Migration_018_Add_Guest_Cost',
+				'method' => 'up',
+			],
 		];
 	}
 
