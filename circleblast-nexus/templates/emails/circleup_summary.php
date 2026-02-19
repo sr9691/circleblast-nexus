@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 return [
-	'subject' => 'CircleUp Recap: {{title}}',
+	'subject' => 'ClubWorks Meeting Recap: {{title}}',
 	'body'    => '
 <p style="font-size:16px;color:#333;margin:0 0 16px;">Hi {{first_name}},</p>
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">
