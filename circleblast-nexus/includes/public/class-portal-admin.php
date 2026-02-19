@@ -58,6 +58,10 @@ final class CBNexus_Portal_Admin {
 		if (isset($_POST['cbnexus_portal_update_candidate'])) {
 			self::handle_update_candidate();
 		}
+		// Recruitment: save candidate edit (full form).
+		if (isset($_POST['cbnexus_portal_save_candidate'])) {
+			self::handle_save_candidate();
+		}
 		// Matching: save rules.
 		if (isset($_POST['cbnexus_portal_save_rules'])) {
 			self::handle_save_rules();
@@ -591,6 +595,13 @@ final class CBNexus_Portal_Admin {
 		$filter = sanitize_key($_GET['stage'] ?? '');
 		$members = CBNexus_Member_Repository::get_all_members('active');
 
+		// If editing a candidate, show the edit form.
+		$edit_id = absint($_GET['edit_candidate'] ?? 0);
+		if ($edit_id) {
+			self::render_candidate_form($edit_id, $members);
+			return;
+		}
+
 		// Stage counts.
 		$stage_counts = [];
 		foreach (self::$recruit_stages as $key => $label) {
@@ -670,10 +681,11 @@ final class CBNexus_Portal_Admin {
 						<th>Stage</th>
 						<th>Notes</th>
 						<th>Updated</th>
+						<th>Actions</th>
 					</tr></thead>
 					<tbody>
 					<?php if (empty($candidates)) : ?>
-						<tr><td colspan="6" class="cbnexus-admin-empty">No candidates yet.</td></tr>
+						<tr><td colspan="7" class="cbnexus-admin-empty">No candidates yet.</td></tr>
 					<?php else : foreach ($candidates as $c) : ?>
 						<tr>
 							<td>
@@ -697,6 +709,9 @@ final class CBNexus_Portal_Admin {
 							</td>
 							<td class="cbnexus-admin-meta"><?php echo esc_html($c->notes ?: '—'); ?></td>
 							<td class="cbnexus-admin-meta"><?php echo esc_html(date_i18n('M j', strtotime($c->updated_at))); ?></td>
+							<td class="cbnexus-admin-actions-cell">
+								<a href="<?php echo esc_url(self::admin_url('recruitment', ['edit_candidate' => $c->id])); ?>" class="cbnexus-link">Edit</a>
+							</td>
 						</tr>
 					<?php endforeach; endif; ?>
 					</tbody>
@@ -704,6 +719,134 @@ final class CBNexus_Portal_Admin {
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Inline candidate edit form within the portal.
+	 */
+	private static function render_candidate_form(int $id, array $members): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_candidates';
+		$c = $wpdb->get_row($wpdb->prepare(
+			"SELECT c.*, u.display_name as referrer_name FROM {$table} c LEFT JOIN {$wpdb->users} u ON c.referrer_id = u.ID WHERE c.id = %d",
+			$id
+		));
+
+		if (!$c) {
+			echo '<div class="cbnexus-card"><p>Candidate not found.</p></div>';
+			return;
+		}
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2>Edit Candidate</h2>
+				<a href="<?php echo esc_url(self::admin_url('recruitment')); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm">← Back</a>
+			</div>
+
+			<form method="post" style="max-width:600px;margin-top:12px;">
+				<?php wp_nonce_field('cbnexus_portal_save_candidate'); ?>
+				<input type="hidden" name="candidate_id" value="<?php echo esc_attr($c->id); ?>" />
+
+				<div style="display:flex;flex-direction:column;gap:12px;">
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Name *</label>
+							<input type="text" name="name" value="<?php echo esc_attr($c->name); ?>" class="cbnexus-input" style="width:100%;" required />
+						</div>
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Email</label>
+							<input type="email" name="email" value="<?php echo esc_attr($c->email); ?>" class="cbnexus-input" style="width:100%;" />
+						</div>
+					</div>
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Company</label>
+							<input type="text" name="company" value="<?php echo esc_attr($c->company); ?>" class="cbnexus-input" style="width:100%;" />
+						</div>
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Industry</label>
+							<input type="text" name="industry" value="<?php echo esc_attr($c->industry); ?>" class="cbnexus-input" style="width:100%;" />
+						</div>
+					</div>
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Stage</label>
+							<select name="stage" class="cbnexus-input" style="width:100%;">
+								<?php foreach (self::$recruit_stages as $key => $label) : ?>
+									<option value="<?php echo esc_attr($key); ?>" <?php selected($c->stage, $key); ?>><?php echo esc_html($label); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Referred By</label>
+							<select name="referrer_id" class="cbnexus-input" style="width:100%;">
+								<option value="0">—</option>
+								<?php foreach ($members as $m) : ?>
+									<option value="<?php echo esc_attr($m['user_id']); ?>" <?php selected((int) $c->referrer_id, $m['user_id']); ?>><?php echo esc_html($m['display_name']); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Notes</label>
+						<textarea name="notes" rows="3" class="cbnexus-input" style="width:100%;"><?php echo esc_textarea($c->notes); ?></textarea>
+					</div>
+				</div>
+
+				<div style="margin-top:16px;display:flex;gap:8px;">
+					<button type="submit" name="cbnexus_portal_save_candidate" value="1" class="cbnexus-btn cbnexus-btn-primary">Update Candidate</button>
+					<a href="<?php echo esc_url(self::admin_url('recruitment')); ?>" class="cbnexus-btn cbnexus-btn-outline">Cancel</a>
+				</div>
+			</form>
+
+			<div style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280;">
+				Added <?php echo esc_html(date_i18n('M j, Y', strtotime($c->created_at))); ?>
+				· Last updated <?php echo esc_html(date_i18n('M j, Y g:i A', strtotime($c->updated_at))); ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Handle full candidate edit form save.
+	 */
+	private static function handle_save_candidate(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_save_candidate')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_candidates';
+		$id    = absint($_POST['candidate_id'] ?? 0);
+		$new_stage = sanitize_key($_POST['stage'] ?? 'referral');
+
+		// Get current state for automation comparison.
+		$candidate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+		if (!$candidate) { return; }
+
+		$old_stage = $candidate->stage;
+
+		$wpdb->update($table, [
+			'name'        => sanitize_text_field(wp_unslash($_POST['name'] ?? '')),
+			'email'       => sanitize_email($_POST['email'] ?? ''),
+			'company'     => sanitize_text_field(wp_unslash($_POST['company'] ?? '')),
+			'industry'    => sanitize_text_field(wp_unslash($_POST['industry'] ?? '')),
+			'referrer_id' => absint($_POST['referrer_id'] ?? 0) ?: null,
+			'stage'       => $new_stage,
+			'notes'       => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
+			'updated_at'  => gmdate('Y-m-d H:i:s'),
+		], ['id' => $id], ['%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'], ['%d']);
+
+		// Trigger automations if stage changed.
+		// Re-fetch the updated candidate so automations use the new referrer_id/email.
+		if ($old_stage !== $new_stage) {
+			$updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+			if ($updated) {
+				self::run_recruitment_automations($updated, $old_stage, $new_stage);
+			}
+		}
+
+		wp_safe_redirect(self::admin_url('recruitment', ['pa_notice' => 'candidate_saved']));
+		exit;
 	}
 
 	private static function handle_add_candidate(): void {
@@ -1544,6 +1687,7 @@ final class CBNexus_Portal_Admin {
 			'member_updated'     => 'Member profile updated.',
 			'candidate_added'    => 'Candidate added to pipeline.',
 			'candidate_updated'  => 'Candidate stage updated.',
+			'candidate_saved'    => 'Candidate updated.',
 			'rules_saved'        => 'Matching rules saved.',
 			'cycle_complete'     => 'Suggestion cycle completed. Emails sent.',
 			'circleup_created'   => 'CircleUp meeting created.',
