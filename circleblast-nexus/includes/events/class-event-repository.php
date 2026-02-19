@@ -29,6 +29,7 @@ final class CBNexus_Event_Repository {
 			'registration_url' => esc_url_raw($data['registration_url'] ?? ''),
 			'reminder_notes'   => sanitize_textarea_field($data['reminder_notes'] ?? ''),
 			'cost'             => sanitize_text_field($data['cost'] ?? ''),
+			'guest_cost'       => sanitize_text_field($data['guest_cost'] ?? ''),
 			'max_attendees'    => !empty($data['max_attendees']) ? absint($data['max_attendees']) : null,
 			'organizer_id'     => absint($data['organizer_id']),
 			'status'           => $data['status'] ?? 'pending',

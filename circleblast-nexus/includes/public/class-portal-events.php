@@ -37,6 +37,7 @@ final class CBNexus_Portal_Events {
 			'registration_url' => esc_url_raw(wp_unslash($_POST['registration_url'] ?? '')),
 			'reminder_notes'   => sanitize_textarea_field(wp_unslash($_POST['reminder_notes'] ?? '')),
 			'cost'             => sanitize_text_field(wp_unslash($_POST['cost'] ?? '')),
+			'guest_cost'       => sanitize_text_field(wp_unslash($_POST['guest_cost'] ?? '')),
 			'max_attendees'    => sanitize_text_field(wp_unslash($_POST['max_attendees'] ?? '')),
 		]);
 
@@ -241,7 +242,8 @@ final class CBNexus_Portal_Events {
 					<div style="display:flex;gap:6px;flex-wrap:wrap;">
 						<?php if ($cat_label) : ?><span class="cbnexus-pill cbnexus-pill--accent-soft"><?php echo esc_html($cat_label); ?></span><?php endif; ?>
 						<?php if ($event->audience === 'members') : ?><span class="cbnexus-pill cbnexus-pill--gold-soft">Members only</span><?php endif; ?>
-						<?php if ($event->cost) : ?><span class="cbnexus-pill"><?php echo esc_html($event->cost); ?></span><?php endif; ?>
+						<?php if ($event->cost) : ?><span class="cbnexus-pill">Members: <?php echo esc_html($event->cost); ?></span><?php endif; ?>
+						<?php if ($event->guest_cost) : ?><span class="cbnexus-pill">Guests: <?php echo esc_html($event->guest_cost); ?></span><?php endif; ?>
 						<span class="cbnexus-pill cbnexus-pill--green-soft"><?php echo esc_html($counts['going']); ?> going</span>
 					</div>
 				</div>
@@ -353,8 +355,10 @@ final class CBNexus_Portal_Events {
 							<option value="members"><?php esc_html_e('Members Only', 'circleblast-nexus'); ?></option>
 							<option value="public"><?php esc_html_e('Open to Public', 'circleblast-nexus'); ?></option>
 						</select></div>
-					<div class="cbnexus-form-field"><label><?php esc_html_e('Cost', 'circleblast-nexus'); ?></label>
+					<div class="cbnexus-form-field"><label><?php esc_html_e('Member Cost', 'circleblast-nexus'); ?></label>
 						<input type="text" name="cost" placeholder="<?php esc_attr_e('Free, $25, etc.', 'circleblast-nexus'); ?>" /></div>
+					<div class="cbnexus-form-field"><label><?php esc_html_e('Guest Cost', 'circleblast-nexus'); ?></label>
+						<input type="text" name="guest_cost" placeholder="<?php esc_attr_e('Free, $35, etc.', 'circleblast-nexus'); ?>" /></div>
 					<div class="cbnexus-form-field"><label><?php esc_html_e('Max Attendees', 'circleblast-nexus'); ?></label>
 						<input type="number" name="max_attendees" min="1" placeholder="<?php esc_attr_e('Leave blank for unlimited', 'circleblast-nexus'); ?>" /></div>
 				</div>

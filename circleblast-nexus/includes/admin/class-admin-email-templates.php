@@ -26,6 +26,7 @@ final class CBNexus_Admin_Email_Templates {
 		'circleup_summary'       => ['name' => 'CircleUp Recap',             'group' => 'CircleUp'],
 		'circleup_forward'       => ['name' => 'CircleUp Forward',           'group' => 'CircleUp'],
 		'event_reminder'         => ['name' => 'Event Reminder',             'group' => 'Events'],
+		'events_digest'          => ['name' => 'Events Digest',              'group' => 'Events'],
 		'event_pending'          => ['name' => 'Event Pending Approval',     'group' => 'Events'],
 		'monthly_admin_report'   => ['name' => 'Monthly Admin Report',       'group' => 'Admin'],
 		'recruitment_categories' => ['name' => 'Recruitment Categories',     'group' => 'Recruitment'],

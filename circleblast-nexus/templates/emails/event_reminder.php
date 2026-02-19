@@ -10,6 +10,7 @@ Just a reminder — <strong>{{event_title}}</strong> is coming up tomorrow!</p>
 <p style="margin:0 0 4px;font-size:15px;"><strong>📅 {{event_date}}</strong></p>
 <p style="margin:0 0 4px;font-size:14px;color:#4a5568;">🕐 {{event_time}}</p>
 <p style="margin:0;font-size:14px;color:#4a5568;">📍 {{event_location}}</p>
+{{cost_block}}
 </div>
 {{reminder_notes_block}}
 {{registration_block}}

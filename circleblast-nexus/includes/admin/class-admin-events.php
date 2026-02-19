@@ -80,6 +80,7 @@ final class CBNexus_Admin_Events {
 			'registration_url' => esc_url_raw($_POST['registration_url'] ?? ''),
 			'reminder_notes'   => sanitize_textarea_field(wp_unslash($_POST['reminder_notes'] ?? '')),
 			'cost'             => sanitize_text_field($_POST['cost'] ?? ''),
+			'guest_cost'       => sanitize_text_field($_POST['guest_cost'] ?? ''),
 		];
 
 		if ($id) {
@@ -224,8 +225,10 @@ final class CBNexus_Admin_Events {
 						</select></td></tr>
 					<tr><th><label><?php esc_html_e('Registration URL', 'circleblast-nexus'); ?></label></th>
 						<td><input type="url" name="registration_url" value="<?php echo esc_attr($event->registration_url ?? ''); ?>" class="large-text" /></td></tr>
-					<tr><th><label><?php esc_html_e('Cost', 'circleblast-nexus'); ?></label></th>
+					<tr><th><label><?php esc_html_e('Member Cost', 'circleblast-nexus'); ?></label></th>
 						<td><input type="text" name="cost" value="<?php echo esc_attr($event->cost ?? ''); ?>" style="width:200px;" placeholder="Free, $25, etc." /></td></tr>
+					<tr><th><label><?php esc_html_e('Guest Cost', 'circleblast-nexus'); ?></label></th>
+						<td><input type="text" name="guest_cost" value="<?php echo esc_attr($event->guest_cost ?? ''); ?>" style="width:200px;" placeholder="Free, $35, etc." /></td></tr>
 					<tr><th><label><?php esc_html_e('Reminder Notes', 'circleblast-nexus'); ?></label></th>
 						<td><textarea name="reminder_notes" rows="2" class="large-text" placeholder="Notes to include in the reminder email"><?php echo esc_textarea($event->reminder_notes ?? ''); ?></textarea>
 						<p class="description"><?php esc_html_e('These notes will be included in the automatic reminder email sent the day before the event.', 'circleblast-nexus'); ?></p></td></tr>

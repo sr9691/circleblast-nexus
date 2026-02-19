@@ -102,6 +102,7 @@ add_action('cbnexus_ai_extraction', ['CBNexus_AI_Extractor', 'process_pending'])
 add_action('cbnexus_analytics_snapshot', ['CBNexus_Portal_Club', 'take_snapshot']);
 add_action('cbnexus_monthly_report', ['CBNexus_Admin_Analytics', 'send_monthly_report']);
 add_action('cbnexus_event_reminders', ['CBNexus_Event_Service', 'send_reminders']);
+add_action('cbnexus_events_digest', ['CBNexus_Event_Service', 'send_digest']);
 add_action('cbnexus_token_cleanup', ['CBNexus_Token_Service', 'cleanup']);
 
 /**
@@ -194,6 +195,9 @@ function cbnexus_activate(): void {
 	if (!wp_next_scheduled('cbnexus_event_reminders')) {
 		wp_schedule_event(time(), 'daily', 'cbnexus_event_reminders');
 	}
+	if (!wp_next_scheduled('cbnexus_events_digest')) {
+		wp_schedule_event(time(), 'weekly', 'cbnexus_events_digest');
+	}
 
 	// Token cleanup: daily removal of expired tokens.
 	if (!wp_next_scheduled('cbnexus_token_cleanup')) {
@@ -217,6 +221,7 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_analytics_snapshot');
 	wp_clear_scheduled_hook('cbnexus_monthly_report');
 	wp_clear_scheduled_hook('cbnexus_event_reminders');
+	wp_clear_scheduled_hook('cbnexus_events_digest');
 	wp_clear_scheduled_hook('cbnexus_token_cleanup');
 	wp_clear_scheduled_hook('cbnexus_recruitment_blast');
 }

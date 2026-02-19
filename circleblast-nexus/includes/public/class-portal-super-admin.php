@@ -425,6 +425,7 @@ final class CBNexus_Portal_Super_Admin {
 							'cbnexus_analytics_snapshot'   => 'Analytics Snapshot',
 							'cbnexus_monthly_report'       => 'Monthly Report',
 							'cbnexus_event_reminders'      => 'Event Reminders',
+						'cbnexus_events_digest'        => 'Events Digest',
 							'cbnexus_token_cleanup'        => 'Token Cleanup',
 						];
 						foreach ($crons as $hook => $label) :
