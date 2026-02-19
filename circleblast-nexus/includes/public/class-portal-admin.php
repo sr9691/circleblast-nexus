@@ -246,6 +246,9 @@ final class CBNexus_Portal_Admin {
 								<?php if ($status !== 'inactive') : ?>
 									<a href="<?php echo esc_url(self::member_action_url('deactivate', $uid)); ?>" class="cbnexus-link cbnexus-link-red">Deactivate</a>
 								<?php endif; ?>
+								<?php if ($status !== 'alumni') : ?>
+									<a href="<?php echo esc_url(self::member_action_url('alumni', $uid)); ?>" class="cbnexus-link" style="color:#6b7280;">Alumni</a>
+								<?php endif; ?>
 							</td>
 						</tr>
 					<?php endforeach; endif; ?>
