@@ -108,6 +108,10 @@ final class CBNexus_Token_Router {
 				self::render_quick_share_form($data, $raw_token);
 				exit;
 
+			case 'visit_feedback':
+				self::handle_visit_feedback($raw_token, $data);
+				exit;
+
 			default:
 				self::render_page('Unknown Action', '<p>This link is not recognized.</p>');
 				exit;
@@ -405,6 +409,55 @@ final class CBNexus_Token_Router {
 		]]);
 
 		self::render_page('Shared! ✅', '<p>Thanks for contributing — your ' . esc_html($type) . ' has been added.</p>');
+		exit;
+	}
+
+	// ─── Visit Feedback (Recruitment) ─────────────────────────────────
+
+	private static function handle_visit_feedback(string $raw_token, array $peeked): void {
+		$candidate_id = $peeked['payload']['candidate_id'] ?? 0;
+		$answer       = $peeked['payload']['answer'] ?? '';
+
+		// Consume the token (single-use).
+		$consumed = CBNexus_Token_Service::validate($raw_token);
+		if (!$consumed) {
+			self::render_page('Already Answered', '<p>Looks like you\'ve already responded — thank you!</p><p><a href="' . esc_url(home_url()) . '">Visit CircleBlast →</a></p>');
+			exit;
+		}
+
+		$labels = [
+			'yes'   => 'Yes, I\'m in!',
+			'maybe' => 'Tell me more',
+			'later' => 'Not right now',
+			'no'    => 'Not for me',
+		];
+		$label = $labels[$answer] ?? $answer;
+
+		// Store the response.
+		update_option('cbnexus_visit_feedback_' . $candidate_id, [
+			'answer'      => $answer,
+			'label'       => $label,
+			'answered_at' => gmdate('Y-m-d H:i:s'),
+		], false);
+
+		if (class_exists('CBNexus_Logger')) {
+			CBNexus_Logger::info('Visit feedback received.', [
+				'candidate_id' => $candidate_id,
+				'answer'       => $label,
+			]);
+		}
+
+		// Friendly confirmation.
+		$messages = [
+			'yes'   => '<p>🎉 That\'s great to hear! Someone from CircleBlast will be in touch soon about next steps.</p>',
+			'maybe' => '<p>Thanks! We\'ll have someone reach out with more details about what membership looks like.</p>',
+			'later' => '<p>No problem at all — the door is always open. Thanks for letting us know!</p>',
+			'no'    => '<p>We appreciate your honesty. Thanks for taking the time to visit us!</p>',
+		];
+		$body = ($messages[$answer] ?? '<p>Thanks for your feedback!</p>')
+			. '<p style="margin-top:16px;"><a href="' . esc_url(home_url()) . '" style="color:#5b2d6e;">Visit CircleBlast →</a></p>';
+
+		self::render_page('Thanks for Your Feedback!', $body);
 		exit;
 	}
 

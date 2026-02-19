@@ -707,7 +707,15 @@ final class CBNexus_Portal_Admin {
 									</select>
 								</form>
 							</td>
-							<td class="cbnexus-admin-meta"><?php echo esc_html($c->notes ?: '—'); ?></td>
+							<td class="cbnexus-admin-meta">
+								<?php echo esc_html($c->notes ?: '—'); ?>
+								<?php
+								$fb = get_option('cbnexus_visit_feedback_' . $c->id);
+								if ($fb && is_array($fb) && !empty($fb['label'])) :
+								?>
+									<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;background:#f3eef6;border-radius:10px;font-size:11px;color:#5b2d6e;font-weight:600;">📊 <?php echo esc_html($fb['label']); ?></span></div>
+								<?php endif; ?>
+							</td>
 							<td class="cbnexus-admin-meta"><?php echo esc_html(date_i18n('M j', strtotime($c->updated_at))); ?></td>
 							<td class="cbnexus-admin-actions-cell">
 								<a href="<?php echo esc_url(self::admin_url('recruitment', ['edit_candidate' => $c->id])); ?>" class="cbnexus-link">Edit</a>
@@ -802,6 +810,15 @@ final class CBNexus_Portal_Admin {
 			<div style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280;">
 				Added <?php echo esc_html(date_i18n('M j, Y', strtotime($c->created_at))); ?>
 				· Last updated <?php echo esc_html(date_i18n('M j, Y g:i A', strtotime($c->updated_at))); ?>
+				<?php
+				$fb = get_option('cbnexus_visit_feedback_' . $c->id);
+				if ($fb && is_array($fb) && !empty($fb['label'])) :
+				?>
+					<div style="margin-top:8px;padding:10px 14px;background:#f8f5fa;border-radius:8px;color:#4a154b;font-size:13px;">
+						<strong>📊 Visit Feedback:</strong> <?php echo esc_html($fb['label']); ?>
+						<span style="color:#a094a8;margin-left:6px;">(<?php echo esc_html(date_i18n('M j, Y', strtotime($fb['answered_at']))); ?>)</span>
+					</div>
+				<?php endif; ?>
 			</div>
 		</div>
 		<?php
@@ -917,6 +934,7 @@ final class CBNexus_Portal_Admin {
 	 *
 	 * - Any stage change → notify referrer
 	 * - Moved to "invited" → email the candidate with invitation
+	 * - Moved to "visited" → thank-you email to candidate with feedback request (once only)
 	 * - Moved to "accepted" → auto-create member account, send welcome email, notify referrer with congrats
 	 */
 	private static function run_recruitment_automations(object $candidate, string $old_stage, string $new_stage): void {
@@ -986,7 +1004,42 @@ final class CBNexus_Portal_Admin {
 			]);
 		}
 
-		// ── 3. Notify referrer on any stage change ──
+		// ── 3. "Visited" → NPS-style feedback survey email (once only) ──
+		if ($new_stage === 'visited' && !empty($candidate->email)) {
+			$opt_key = 'cbnexus_recruit_visited_sent_' . $candidate->id;
+			if (!get_option($opt_key)) {
+				// Generate tokenized feedback URLs (single-use per question).
+				$feedback_urls = self::generate_visit_feedback_urls((int) $candidate->id);
+
+				$followup = $referrer
+					? $referrer->display_name
+					: 'A member of the CircleBlast Council';
+
+				CBNexus_Email_Service::send('recruit_visited_thankyou', $candidate->email, [
+					'candidate_first_name' => $candidate_first,
+					'candidate_name'       => $candidate->name,
+					'followup_name'        => $followup,
+					'fb_yes'               => $feedback_urls['fb_yes'],
+					'fb_maybe'             => $feedback_urls['fb_maybe'],
+					'fb_later'             => $feedback_urls['fb_later'],
+					'fb_no'                => $feedback_urls['fb_no'],
+				], [
+					'related_type' => 'recruitment_visited',
+					'related_id'   => $candidate->id,
+				]);
+
+				update_option($opt_key, gmdate('Y-m-d H:i:s'), false);
+
+				if (class_exists('CBNexus_Logger')) {
+					CBNexus_Logger::info('Visited feedback survey sent to candidate.', [
+						'candidate_id' => $candidate->id,
+						'email'        => $candidate->email,
+					]);
+				}
+			}
+		}
+
+		// ── 4. Notify referrer on any stage change ──
 		if ($referrer) {
 			CBNexus_Email_Service::send('recruit_stage_referrer', $referrer->user_email, [
 				'referrer_name'        => $referrer->display_name,
@@ -1071,6 +1124,24 @@ final class CBNexus_Portal_Admin {
 		}
 
 		return $user_id;
+	}
+
+	/**
+	 * Generate tokenized one-click feedback URLs for the visit survey.
+	 * Single question: "Interested in joining?" with 4 answer options.
+	 * Uses user_id=0 since prospects aren't WP users yet.
+	 */
+	private static function generate_visit_feedback_urls(int $candidate_id): array {
+		$answers = ['yes', 'maybe', 'later', 'no'];
+		$urls = [];
+		foreach ($answers as $answer) {
+			$token = CBNexus_Token_Service::generate(0, 'visit_feedback', [
+				'candidate_id' => $candidate_id,
+				'answer'       => $answer,
+			], 30, false);
+			$urls['fb_' . $answer] = CBNexus_Token_Service::url($token);
+		}
+		return $urls;
 	}
 
 	// =====================================================================
@@ -1330,6 +1401,11 @@ final class CBNexus_Portal_Admin {
 							<?php endforeach; ?>
 						</div>
 					</div>
+					<div>
+						<label>Guest / Prospect Attendees</label>
+						<input type="text" name="guest_attendees" value="" class="cbnexus-input" style="width:100%;" placeholder="Enter guest names, comma-separated (matched against recruitment pipeline)" />
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Names matching candidates in the pipeline (stages: Referral–Invited) will automatically move to "Visited" and trigger a thank-you email.</p>
+					</div>
 				</div>
 				<button type="submit" name="cbnexus_portal_save_circleup" value="1" class="cbnexus-btn cbnexus-btn-accent">Save</button>
 			</form>
@@ -1407,8 +1483,76 @@ final class CBNexus_Portal_Admin {
 			}
 		}
 
+		// ── Guest attendees → match against recruitment pipeline ──
+		$guest_raw = sanitize_text_field(wp_unslash($_POST['guest_attendees'] ?? ''));
+		if ($guest_raw !== '') {
+			self::match_guest_attendees_to_pipeline($guest_raw);
+		}
+
 		wp_safe_redirect(self::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'circleup_saved']));
 		exit;
+	}
+
+	/**
+	 * Match comma-separated guest names against the recruitment pipeline.
+	 * Candidates in pre-visited stages (referral, contacted, invited) whose name
+	 * fuzzy-matches a guest name are auto-transitioned to "visited", triggering
+	 * the thank-you email and referrer notification (once per candidate).
+	 */
+	private static function match_guest_attendees_to_pipeline(string $guest_csv): void {
+		$names = array_filter(array_map('trim', explode(',', $guest_csv)));
+		if (empty($names)) { return; }
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_candidates';
+
+		// Get all candidates in stages that precede "visited".
+		$pre_visited = ['referral', 'contacted', 'invited'];
+		$placeholders = implode(',', array_fill(0, count($pre_visited), '%s'));
+		$candidates = $wpdb->get_results($wpdb->prepare(
+			"SELECT * FROM {$table} WHERE stage IN ({$placeholders})",
+			...$pre_visited
+		));
+
+		if (empty($candidates)) { return; }
+
+		foreach ($names as $guest_name) {
+			$guest_lower = mb_strtolower($guest_name);
+
+			foreach ($candidates as $c) {
+				$candidate_lower = mb_strtolower(trim($c->name));
+
+				// Match: exact, or guest name contained in candidate name, or vice versa.
+				$match = ($guest_lower === $candidate_lower)
+					|| (mb_strlen($guest_lower) >= 3 && mb_strpos($candidate_lower, $guest_lower) !== false)
+					|| (mb_strlen($candidate_lower) >= 3 && mb_strpos($guest_lower, $candidate_lower) !== false);
+
+				if (!$match) { continue; }
+
+				$old_stage = $c->stage;
+
+				// Update the candidate stage.
+				$wpdb->update($table, [
+					'stage'      => 'visited',
+					'updated_at' => gmdate('Y-m-d H:i:s'),
+				], ['id' => $c->id], ['%s', '%s'], ['%d']);
+
+				// Trigger the automation (thank-you email + referrer notification).
+				// The one-time guard inside run_recruitment_automations prevents duplicates.
+				self::run_recruitment_automations($c, $old_stage, 'visited');
+
+				if (class_exists('CBNexus_Logger')) {
+					CBNexus_Logger::info('Guest attendee matched to pipeline candidate; auto-transitioned to visited.', [
+						'guest_name'   => $guest_name,
+						'candidate_id' => $c->id,
+						'candidate'    => $c->name,
+						'from_stage'   => $old_stage,
+					]);
+				}
+
+				break; // One match per guest name is enough.
+			}
+		}
 	}
 
 	private static function handle_extract(): void {
@@ -1830,6 +1974,7 @@ final class CBNexus_Portal_Admin {
 		'recruit_stage_referrer'   => ['name' => 'Referrer Stage Update',    'group' => 'Recruitment'],
 		'recruit_invitation'       => ['name' => 'Candidate Invitation',     'group' => 'Recruitment'],
 		'recruit_accepted'         => ['name' => 'Candidate Accepted',       'group' => 'Recruitment'],
+		'recruit_visited_thankyou' => ['name' => 'Visit Thank You',          'group' => 'Recruitment'],
 	];
 
 	private static function render_emails(): void {
