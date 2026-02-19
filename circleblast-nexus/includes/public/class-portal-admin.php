@@ -18,7 +18,7 @@ final class CBNexus_Portal_Admin {
 		'members'     => ['label' => 'Members',     'icon' => '👥', 'cap' => 'cbnexus_manage_members'],
 		'recruitment' => ['label' => 'Recruitment',  'icon' => '🎯', 'cap' => 'cbnexus_manage_members'],
 		'matching'    => ['label' => 'Matching',     'icon' => '🔗', 'cap' => 'cbnexus_manage_matching_rules'],
-		'archivist'   => ['label' => 'Archivist',    'icon' => '📝', 'cap' => 'cbnexus_manage_circleup'],
+		'archivist'   => ['label' => 'Meeting Notes', 'icon' => '📝', 'cap' => 'cbnexus_manage_circleup'],
 		'events'      => ['label' => 'Events',       'icon' => '📅', 'cap' => 'cbnexus_manage_members'],
 		// Super-admin tabs (cb_super_admin only).
 		'analytics'   => ['label' => 'Analytics',    'icon' => '📊', 'cap' => 'cbnexus_export_data'],
@@ -1398,6 +1398,12 @@ final class CBNexus_Portal_Admin {
 		$members  = CBNexus_Member_Repository::get_all_members('active');
 		$attendees = CBNexus_CircleUp_Repository::get_attendees($id);
 		$attendee_ids = array_column($attendees, 'member_id');
+
+		// Fetch recruits in "invited" stage for the attendees section.
+		global $wpdb;
+		$invited_recruits = $wpdb->get_results(
+			"SELECT id, name, stage FROM {$wpdb->prefix}cb_candidates WHERE stage = 'invited' ORDER BY name ASC"
+		) ?: [];
 		$notice = sanitize_key($_GET['pa_notice'] ?? '');
 		$base = self::admin_url('archivist', ['circleup_id' => $id]);
 		?>
@@ -1419,7 +1425,12 @@ final class CBNexus_Portal_Admin {
 				<div class="cbnexus-admin-form-stack">
 					<div>
 						<label>Curated Summary</label>
-						<textarea name="curated_summary" rows="5"><?php echo esc_textarea($meeting->curated_summary ?? ''); ?></textarea>
+						<textarea name="curated_summary" rows="5"><?php echo esc_textarea($meeting->curated_summary ?: $meeting->ai_summary ?? ''); ?></textarea>
+					</div>
+					<div>
+						<label>Transcript</label>
+						<textarea name="full_transcript" rows="8" placeholder="Paste or edit the meeting transcript here…"><?php echo esc_textarea($meeting->full_transcript ?? ''); ?></textarea>
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Paste your Fireflies or manual transcript here. Once saved, use "Run AI Extraction" to generate the curated summary and items.</p>
 					</div>
 					<div>
 						<label>Attendees</label>
@@ -1429,6 +1440,17 @@ final class CBNexus_Portal_Admin {
 							<?php endforeach; ?>
 						</div>
 					</div>
+					<?php if (!empty($invited_recruits)) : ?>
+					<div>
+						<label>Invited Recruits <span style="font-size:12px;color:#6b7280;font-weight:normal;">(pipeline stage: Invited)</span></label>
+						<div class="cbnexus-admin-checkbox-grid">
+							<?php foreach ($invited_recruits as $r) : ?>
+								<label style="color:#92400e;"><input type="checkbox" name="guest_recruit_ids[]" value="<?php echo esc_attr($r->id); ?>" /> <?php echo esc_html($r->name); ?> <span style="font-size:11px;color:#b45309;">★ Invited</span></label>
+							<?php endforeach; ?>
+						</div>
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Checking a recruit here will automatically move them to "Visited" stage and trigger their thank-you email.</p>
+					</div>
+					<?php endif; ?>
 					<div>
 						<label>Guest / Prospect Attendees</label>
 						<input type="text" name="guest_attendees" value="" class="cbnexus-input" style="width:100%;" placeholder="Enter guest names, comma-separated (matched against recruitment pipeline)" />
@@ -1498,6 +1520,7 @@ final class CBNexus_Portal_Admin {
 		$id = absint($_POST['circleup_id'] ?? 0);
 		CBNexus_CircleUp_Repository::update_meeting($id, [
 			'curated_summary' => wp_unslash($_POST['curated_summary'] ?? ''),
+			'full_transcript' => wp_unslash($_POST['full_transcript'] ?? ''),
 		]);
 
 		// Sync attendees.
@@ -1515,6 +1538,12 @@ final class CBNexus_Portal_Admin {
 		$guest_raw = sanitize_text_field(wp_unslash($_POST['guest_attendees'] ?? ''));
 		if ($guest_raw !== '') {
 			self::match_guest_attendees_to_pipeline($guest_raw);
+		}
+
+		// ── Invited recruits checked as attending → transition to "visited" ──
+		$recruit_ids = array_map('absint', (array) ($_POST['guest_recruit_ids'] ?? []));
+		if (!empty($recruit_ids)) {
+			self::transition_checked_recruits_to_visited($recruit_ids);
 		}
 
 		wp_safe_redirect(self::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'circleup_saved']));
@@ -1583,14 +1612,58 @@ final class CBNexus_Portal_Admin {
 		}
 	}
 
+	/**
+	 * Transition explicitly checked invited recruits to "visited" stage.
+	 *
+	 * @param int[] $candidate_ids Candidate IDs checked by the Archivist.
+	 */
+	private static function transition_checked_recruits_to_visited(array $candidate_ids): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_candidates';
+
+		foreach ($candidate_ids as $cid) {
+			if ($cid <= 0) { continue; }
+
+			$candidate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $cid));
+			if (!$candidate || $candidate->stage === 'visited') { continue; }
+
+			$old_stage = $candidate->stage;
+
+			$wpdb->update($table, [
+				'stage'      => 'visited',
+				'updated_at' => gmdate('Y-m-d H:i:s'),
+			], ['id' => $cid], ['%s', '%s'], ['%d']);
+
+			// Trigger thank-you email + referrer notification.
+			self::run_recruitment_automations($candidate, $old_stage, 'visited');
+
+			if (class_exists('CBNexus_Logger')) {
+				CBNexus_Logger::info('Invited recruit checked as attending; auto-transitioned to visited.', [
+					'candidate_id' => $cid,
+					'candidate'    => $candidate->name,
+					'from_stage'   => $old_stage,
+				]);
+			}
+		}
+	}
+
 	private static function handle_extract(): void {
 		$id = absint($_GET['cbnexus_portal_extract']);
 		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_extract_' . $id)) { return; }
 		if (!current_user_can('cbnexus_manage_circleup')) { return; }
 
-		CBNexus_AI_Extractor::process_meeting($id);
+		$result = CBNexus_AI_Extractor::extract($id);
 
-		wp_safe_redirect(self::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'extraction_done']));
+		if (!empty($result['success'])) {
+			$notice = 'extraction_done';
+		} else {
+			$notice = 'extraction_failed';
+			// Store the error message briefly so the notice can display it.
+			$errors = implode(' ', $result['errors'] ?? ['Unknown error.']);
+			set_transient('cbnexus_extract_error_' . $id, $errors, 60);
+		}
+
+		wp_safe_redirect(self::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => $notice]));
 		exit;
 	}
 
@@ -1872,6 +1945,18 @@ final class CBNexus_Portal_Admin {
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';
+
+		// Dynamic error message for extraction failures.
+		if ($notice === 'extraction_failed') {
+			$circleup_id = absint($_GET['circleup_id'] ?? 0);
+			$err = get_transient('cbnexus_extract_error_' . $circleup_id);
+			delete_transient('cbnexus_extract_error_' . $circleup_id);
+			$msg = 'AI extraction failed: ' . ($err ?: 'Unknown error. Check that CBNEXUS_CLAUDE_API_KEY is defined in wp-config.php.');
+			$type = 'error';
+			echo '<div class="cbnexus-portal-notice cbnexus-notice-' . esc_attr($type) . '">' . esc_html($msg) . '</div>';
+			return;
+		}
+
 		if (!$msg) { return; }
 		$type = ($notice === 'error') ? 'error' : 'success';
 		echo '<div class="cbnexus-portal-notice cbnexus-notice-' . esc_attr($type) . '">' . esc_html($msg) . '</div>';
