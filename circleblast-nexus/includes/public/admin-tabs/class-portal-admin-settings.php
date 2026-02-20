@@ -158,6 +158,7 @@ final class CBNexus_Portal_Admin_Settings {
 							<thead><tr>
 								<th>Task</th>
 								<th>Frequency</th>
+								<th>Status</th>
 								<th>Next Run</th>
 							</tr></thead>
 							<tbody>
@@ -166,10 +167,11 @@ final class CBNexus_Portal_Admin_Settings {
 							$saved_crons = get_option('cbnexus_cron_schedules', []);
 							foreach ($crons as $hook => $def) :
 								$current_freq = $saved_crons[$hook] ?? $def['default'];
+								$is_disabled = ($current_freq === 'disabled');
 								$next = wp_next_scheduled($hook);
-								$next_str = $next ? date_i18n('M j, g:i a', $next) : 'Not scheduled';
+								$next_str = $is_disabled ? '—' : ($next ? date_i18n('M j, g:i a', $next) : 'Not scheduled');
 							?>
-								<tr>
+								<tr<?php echo $is_disabled ? ' style="opacity:.55;"' : ''; ?>>
 									<td>
 										<strong><?php echo esc_html($def['label']); ?></strong>
 										<div class="cbnexus-admin-meta"><?php echo esc_html($def['description']); ?></div>
@@ -180,6 +182,15 @@ final class CBNexus_Portal_Admin_Settings {
 												<option value="<?php echo esc_attr($val); ?>" <?php selected($current_freq, $val); ?>><?php echo esc_html($lbl); ?></option>
 											<?php endforeach; ?>
 										</select>
+									</td>
+									<td>
+										<?php if ($is_disabled) : ?>
+											<span class="cbnexus-status-pill cbnexus-status-red">Disabled</span>
+										<?php elseif ($next) : ?>
+											<span class="cbnexus-status-pill cbnexus-status-green">Active</span>
+										<?php else : ?>
+											<span class="cbnexus-status-pill cbnexus-status-gold">Pending</span>
+										<?php endif; ?>
 									</td>
 									<td class="cbnexus-admin-meta"><?php echo esc_html($next_str); ?></td>
 								</tr>
@@ -310,17 +321,20 @@ final class CBNexus_Portal_Admin_Settings {
 	 */
 	private static function get_cron_definitions(): array {
 		$freq_daily_weekly_monthly = [
-			'daily'   => 'Daily',
-			'weekly'  => 'Weekly',
-			'monthly' => 'Monthly',
+			'daily'    => 'Daily',
+			'weekly'   => 'Weekly',
+			'monthly'  => 'Monthly',
+			'disabled' => '⛔ Disabled',
 		];
 		$freq_daily_weekly = [
-			'daily'  => 'Daily',
-			'weekly' => 'Weekly',
+			'daily'    => 'Daily',
+			'weekly'   => 'Weekly',
+			'disabled' => '⛔ Disabled',
 		];
 		$freq_hourly_daily = [
-			'hourly' => 'Hourly',
-			'daily'  => 'Daily',
+			'hourly'   => 'Hourly',
+			'daily'    => 'Daily',
+			'disabled' => '⛔ Disabled',
 		];
 
 		return [
@@ -410,12 +424,16 @@ final class CBNexus_Portal_Admin_Settings {
 			$old_freq = $saved[$hook] ?? $def['default'];
 
 			if ($new_freq !== $old_freq) {
-				// Unschedule the old event and reschedule with new frequency.
+				// Always unschedule the old event first.
 				$ts = wp_next_scheduled($hook);
 				if ($ts) {
 					wp_unschedule_event($ts, $hook);
 				}
-				wp_schedule_event(time(), $new_freq, $hook);
+
+				// Only reschedule if not disabled.
+				if ($new_freq !== 'disabled') {
+					wp_schedule_event(time(), $new_freq, $hook);
+				}
 			}
 
 			$saved[$hook] = $new_freq;

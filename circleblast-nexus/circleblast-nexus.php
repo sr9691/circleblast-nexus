@@ -163,45 +163,25 @@ function cbnexus_activate(): void {
 		CBNexus_Log_Retention::schedule();
 	}
 
-	// ITER-0009: Schedule daily meeting reminders.
-	if (!wp_next_scheduled('cbnexus_meeting_reminders')) {
-		wp_schedule_event(time(), 'daily', 'cbnexus_meeting_reminders');
-	}
-
-	// ITER-0011: Schedule monthly suggestion cycle + weekly follow-up reminders.
-	if (!wp_next_scheduled('cbnexus_suggestion_cycle')) {
-		wp_schedule_event(time(), 'monthly', 'cbnexus_suggestion_cycle');
-	}
-	if (!wp_next_scheduled('cbnexus_suggestion_reminders')) {
-		wp_schedule_event(time(), 'weekly', 'cbnexus_suggestion_reminders');
-	}
-
-	// ITER-0013: Schedule daily AI extraction for new transcripts.
-	if (!wp_next_scheduled('cbnexus_ai_extraction')) {
-		wp_schedule_event(time(), 'daily', 'cbnexus_ai_extraction');
-	}
-
-	// ITER-0016: Nightly analytics snapshot.
-	if (!wp_next_scheduled('cbnexus_analytics_snapshot')) {
-		wp_schedule_event(time(), 'daily', 'cbnexus_analytics_snapshot');
-	}
-
-	// ITER-0017: Monthly admin report.
-	if (!wp_next_scheduled('cbnexus_monthly_report')) {
-		wp_schedule_event(time(), 'monthly', 'cbnexus_monthly_report');
-	}
-
-	// Event reminders: daily check for tomorrow's events.
-	if (!wp_next_scheduled('cbnexus_event_reminders')) {
-		wp_schedule_event(time(), 'daily', 'cbnexus_event_reminders');
-	}
-	if (!wp_next_scheduled('cbnexus_events_digest')) {
-		wp_schedule_event(time(), 'weekly', 'cbnexus_events_digest');
-	}
-
-	// Token cleanup: daily removal of expired tokens.
-	if (!wp_next_scheduled('cbnexus_token_cleanup')) {
-		wp_schedule_event(time(), 'daily', 'cbnexus_token_cleanup');
+	// Schedule cron jobs — respects saved frequencies and disabled states.
+	$cron_overrides = get_option('cbnexus_cron_schedules', []);
+	$cron_defaults = [
+		'cbnexus_meeting_reminders'    => 'daily',
+		'cbnexus_suggestion_cycle'     => 'monthly',
+		'cbnexus_suggestion_reminders' => 'weekly',
+		'cbnexus_ai_extraction'        => 'daily',
+		'cbnexus_analytics_snapshot'   => 'daily',
+		'cbnexus_monthly_report'       => 'monthly',
+		'cbnexus_event_reminders'      => 'daily',
+		'cbnexus_events_digest'        => 'weekly',
+		'cbnexus_token_cleanup'        => 'daily',
+	];
+	foreach ($cron_defaults as $hook => $default_freq) {
+		$freq = $cron_overrides[$hook] ?? $default_freq;
+		if ($freq === 'disabled') { continue; }
+		if (!wp_next_scheduled($hook)) {
+			wp_schedule_event(time(), $freq, $hook);
+		}
 	}
 }
 
