@@ -48,7 +48,13 @@ final class CBNexus_Admin_Events {
 		if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'cbnexus_cancel_' . $id)) { return; }
 		if (!current_user_can('cbnexus_manage_members')) { return; }
 
-		CBNexus_Event_Repository::update($id, ['status' => 'cancelled']);
+		// If pending, treat cancel as deny (notifies organizer). If approved, just cancel.
+		$event = CBNexus_Event_Repository::get($id);
+		if ($event && $event->status === 'pending') {
+			CBNexus_Event_Service::deny($id, get_current_user_id());
+		} else {
+			CBNexus_Event_Repository::update($id, ['status' => 'cancelled']);
+		}
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-events&cbnexus_notice=cancelled'));
 		exit;
 	}

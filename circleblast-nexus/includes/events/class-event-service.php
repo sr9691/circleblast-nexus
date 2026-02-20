@@ -37,21 +37,52 @@ final class CBNexus_Event_Service {
 		}
 
 		if ($data['status'] === 'pending') {
+			$event = CBNexus_Event_Repository::get($id);
 			self::notify_admins_pending($id, $data);
+			if ($event) {
+				self::notify_submitter_pending($id, $event);
+			}
 		}
 
 		return ['success' => true, 'event_id' => $id];
 	}
 
 	/**
-	 * Approve a pending event.
+	 * Approve a pending event and notify the submitting member.
 	 */
 	public static function approve(int $event_id, int $admin_id): bool {
-		return CBNexus_Event_Repository::update($event_id, [
+		$event = CBNexus_Event_Repository::get($event_id);
+		if (!$event || $event->status !== 'pending') { return false; }
+
+		$updated = CBNexus_Event_Repository::update($event_id, [
 			'status'      => 'approved',
 			'approved_by' => $admin_id,
 			'approved_at' => gmdate('Y-m-d H:i:s'),
 		]);
+
+		if ($updated && $event->organizer_id) {
+			self::notify_submitter_approved($event);
+		}
+
+		return $updated;
+	}
+
+	/**
+	 * Deny a pending event and notify the submitting member.
+	 */
+	public static function deny(int $event_id, int $admin_id): bool {
+		$event = CBNexus_Event_Repository::get($event_id);
+		if (!$event || $event->status !== 'pending') { return false; }
+
+		$updated = CBNexus_Event_Repository::update($event_id, [
+			'status' => 'denied',
+		]);
+
+		if ($updated && $event->organizer_id) {
+			self::notify_submitter_denied($event);
+		}
+
+		return $updated;
 	}
 
 	/**
@@ -85,20 +116,161 @@ final class CBNexus_Event_Service {
 	}
 
 	/**
-	 * Notify admins of a pending event submission.
+	 * Notify Super Admin users of a pending event with tokenized approve/deny links.
 	 */
 	private static function notify_admins_pending(int $event_id, array $data): void {
-		$admins = get_users(['role__in' => ['cb_admin', 'cb_super_admin', 'administrator']]);
-		$review_url = admin_url('admin.php?page=cbnexus-events&action=edit&id=' . $event_id);
+		$super_admins = get_users(['role__in' => ['cb_super_admin', 'administrator']]);
+		if (empty($super_admins)) { return; }
 
-		foreach ($admins as $admin) {
+		$event = CBNexus_Event_Repository::get($event_id);
+		if (!$event) { return; }
+
+		$submitter    = get_userdata($event->organizer_id);
+		$submitter_name = $submitter ? $submitter->display_name : 'A member';
+
+		$portal_url   = class_exists('CBNexus_Portal_Router')
+			? CBNexus_Portal_Router::get_portal_url() : home_url();
+		$review_url   = add_query_arg(['section' => 'admin', 'admin_tab' => 'events', 'edit_event' => $event_id], $portal_url);
+
+		// Build conditional detail rows for the email.
+		$time_row       = '';
+		$location_row   = '';
+		$audience_row   = '';
+		$category_row   = '';
+		$cost_row       = '';
+		$registration_row = '';
+		$description_block = '';
+
+		if (!empty($event->event_time)) {
+			$time_str = date_i18n('g:i A', strtotime($event->event_time));
+			if (!empty($event->end_time)) {
+				$time_str .= ' – ' . date_i18n('g:i A', strtotime($event->end_time));
+			}
+			$time_row = '<tr><td style="padding:4px 0;font-size:14px;color:#4a5568;width:30px;">🕐</td>'
+				. '<td style="padding:4px 0;font-size:14px;color:#333;">' . esc_html($time_str) . '</td></tr>';
+		}
+		if (!empty($event->location)) {
+			$location_row = '<tr><td style="padding:4px 0;font-size:14px;color:#4a5568;width:30px;">📍</td>'
+				. '<td style="padding:4px 0;font-size:14px;color:#333;">' . esc_html($event->location) . '</td></tr>';
+		}
+		$audience_labels = ['all' => 'Everyone', 'members' => 'Members Only', 'public' => 'Open to Public'];
+		$aud_label = $audience_labels[$event->audience] ?? 'Everyone';
+		$audience_row = '<tr><td style="padding:4px 0;font-size:14px;color:#4a5568;width:30px;">👥</td>'
+			. '<td style="padding:4px 0;font-size:14px;color:#333;">' . esc_html($aud_label) . '</td></tr>';
+		if (!empty($event->category) && isset(self::CATEGORIES[$event->category])) {
+			$category_row = '<tr><td style="padding:4px 0;font-size:14px;color:#4a5568;width:30px;">🏷️</td>'
+				. '<td style="padding:4px 0;font-size:14px;color:#333;">' . esc_html(self::CATEGORIES[$event->category]) . '</td></tr>';
+		}
+		$cost_parts = [];
+		if (!empty($event->cost))       { $cost_parts[] = 'Members: ' . esc_html($event->cost); }
+		if (!empty($event->guest_cost)) { $cost_parts[] = 'Guests: ' . esc_html($event->guest_cost); }
+		if (!empty($cost_parts)) {
+			$cost_row = '<tr><td style="padding:4px 0;font-size:14px;color:#4a5568;width:30px;">💰</td>'
+				. '<td style="padding:4px 0;font-size:14px;color:#333;">' . implode(' · ', $cost_parts) . '</td></tr>';
+		}
+		if (!empty($event->registration_url)) {
+			$registration_row = '<tr><td style="padding:4px 0;font-size:14px;color:#4a5568;width:30px;">🔗</td>'
+				. '<td style="padding:4px 0;font-size:14px;color:#333;"><a href="' . esc_url($event->registration_url) . '" style="color:#2563eb;">Registration link</a></td></tr>';
+		}
+		if (!empty($event->description)) {
+			$description_block = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">'
+				. '<p style="margin:0;font-size:14px;color:#4a5568;line-height:1.6;">' . esc_html(wp_trim_words($event->description, 60)) . '</p></div>';
+		}
+
+		foreach ($super_admins as $admin) {
+			// Generate unique single-use tokens for each admin.
+			$approve_token = CBNexus_Token_Service::generate($admin->ID, 'approve_event', ['event_id' => $event_id], 14);
+			$deny_token    = CBNexus_Token_Service::generate($admin->ID, 'deny_event', ['event_id' => $event_id], 14);
+
 			CBNexus_Email_Service::send('event_pending', $admin->user_email, [
-				'admin_name'   => $admin->first_name ?: $admin->display_name,
-				'event_title'  => $data['title'],
-				'event_date'   => $data['event_date'],
-				'review_url'   => $review_url,
+				'admin_name'          => $admin->first_name ?: $admin->display_name,
+				'submitter_name'      => $submitter_name,
+				'event_title'         => $event->title,
+				'event_date_formatted' => date_i18n('l, F j, Y', strtotime($event->event_date)),
+				'time_row'            => $time_row,
+				'location_row'        => $location_row,
+				'audience_row'        => $audience_row,
+				'category_row'        => $category_row,
+				'cost_row'            => $cost_row,
+				'registration_row'    => $registration_row,
+				'description_block'   => $description_block,
+				'approve_url'         => CBNexus_Token_Service::url($approve_token),
+				'deny_url'            => CBNexus_Token_Service::url($deny_token),
+				'portal_review_url'   => $review_url,
 			], ['recipient_id' => $admin->ID, 'related_id' => $event_id, 'related_type' => 'event_pending']);
 		}
+	}
+
+	/**
+	 * Send a confirmation email to the member who submitted the event.
+	 */
+	private static function notify_submitter_pending(int $event_id, object $event): void {
+		$submitter = get_userdata($event->organizer_id);
+		if (!$submitter) { return; }
+
+		$time_line = '';
+		if (!empty($event->event_time)) {
+			$t = date_i18n('g:i A', strtotime($event->event_time));
+			if (!empty($event->end_time)) { $t .= ' – ' . date_i18n('g:i A', strtotime($event->end_time)); }
+			$time_line = '<p style="margin:4px 0 0;font-size:14px;color:#4a5568;">🕐 ' . esc_html($t) . '</p>';
+		}
+		$location_line = '';
+		if (!empty($event->location)) {
+			$location_line = '<p style="margin:4px 0 0;font-size:14px;color:#4a5568;">📍 ' . esc_html($event->location) . '</p>';
+		}
+
+		CBNexus_Email_Service::send('event_submitted_confirmation', $submitter->user_email, [
+			'first_name'          => $submitter->first_name ?: $submitter->display_name,
+			'event_title'         => $event->title,
+			'event_date_formatted' => date_i18n('l, F j, Y', strtotime($event->event_date)),
+			'time_line'           => $time_line,
+			'location_line'       => $location_line,
+		], ['recipient_id' => $submitter->ID, 'related_id' => $event_id, 'related_type' => 'event_submitted_confirmation']);
+	}
+
+	/**
+	 * Notify the submitter that their event has been approved.
+	 */
+	private static function notify_submitter_approved(object $event): void {
+		$submitter = get_userdata($event->organizer_id);
+		if (!$submitter) { return; }
+
+		$portal_url = class_exists('CBNexus_Portal_Router')
+			? CBNexus_Portal_Router::get_portal_url() : home_url();
+		$event_url = add_query_arg(['section' => 'events', 'event_id' => $event->id], $portal_url);
+
+		$time_line = '';
+		if (!empty($event->event_time)) {
+			$t = date_i18n('g:i A', strtotime($event->event_time));
+			if (!empty($event->end_time)) { $t .= ' – ' . date_i18n('g:i A', strtotime($event->end_time)); }
+			$time_line = '<p style="margin:4px 0 0;font-size:14px;color:#166534;">🕐 ' . esc_html($t) . '</p>';
+		}
+		$location_line = '';
+		if (!empty($event->location)) {
+			$location_line = '<p style="margin:4px 0 0;font-size:14px;color:#166534;">📍 ' . esc_html($event->location) . '</p>';
+		}
+
+		CBNexus_Email_Service::send('event_approved', $submitter->user_email, [
+			'first_name'          => $submitter->first_name ?: $submitter->display_name,
+			'event_title'         => $event->title,
+			'event_date_formatted' => date_i18n('l, F j, Y', strtotime($event->event_date)),
+			'time_line'           => $time_line,
+			'location_line'       => $location_line,
+			'event_url'           => $event_url,
+		], ['recipient_id' => $submitter->ID, 'related_id' => (int) $event->id, 'related_type' => 'event_approved']);
+	}
+
+	/**
+	 * Notify the submitter that their event has been denied.
+	 */
+	private static function notify_submitter_denied(object $event): void {
+		$submitter = get_userdata($event->organizer_id);
+		if (!$submitter) { return; }
+
+		CBNexus_Email_Service::send('event_denied', $submitter->user_email, [
+			'first_name'  => $submitter->first_name ?: $submitter->display_name,
+			'event_title' => $event->title,
+		], ['recipient_id' => $submitter->ID, 'related_id' => (int) $event->id, 'related_type' => 'event_denied']);
 	}
 
 	private static function validate(array $data): array {

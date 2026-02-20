@@ -208,7 +208,7 @@ final class CBNexus_Portal_Admin {
 	public static function status_pill(string $status): void {
 		$colors = [
 			'active' => 'green', 'approved' => 'green', 'published' => 'green', 'accepted' => 'green',
-			'inactive' => 'red', 'cancelled' => 'red', 'declined' => 'red',
+			'inactive' => 'red', 'cancelled' => 'red', 'declined' => 'red', 'denied' => 'red',
 			'alumni' => 'muted', 'closed' => 'muted',
 			'pending' => 'gold', 'draft' => 'gold', 'suggested' => 'gold',
 			'referral' => 'blue', 'contacted' => 'blue', 'invited' => 'blue', 'visited' => 'blue', 'decision' => 'gold',

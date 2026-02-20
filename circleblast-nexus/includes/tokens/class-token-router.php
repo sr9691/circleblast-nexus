@@ -108,6 +108,42 @@ final class CBNexus_Token_Router {
 				self::render_quick_share_form($data, $raw_token);
 				exit;
 
+			case 'approve_event':
+				$consumed = CBNexus_Token_Service::validate($raw_token);
+				if ($consumed) {
+					$eid = $consumed['payload']['event_id'] ?? 0;
+					$event = CBNexus_Event_Repository::get($eid);
+					if ($event && $event->status === 'pending') {
+						CBNexus_Event_Service::approve($eid, $consumed['user_id']);
+						self::render_page('Event Approved! ✅', '<p>The event <strong>' . esc_html($event->title) . '</strong> has been approved and is now visible to all members.</p><p>The organizer has been notified.</p>');
+					} elseif ($event && $event->status === 'approved') {
+						self::render_page('Already Approved', '<p><strong>' . esc_html($event->title) . '</strong> was already approved — no action needed.</p>');
+					} elseif ($event && $event->status === 'denied') {
+						self::render_page('Event Was Denied', '<p>This event was already denied by another admin. If you want to approve it, please use the admin portal.</p>');
+					} else {
+						self::render_page('Event Not Found', '<p>This event could not be found.</p>');
+					}
+				}
+				exit;
+
+			case 'deny_event':
+				$consumed = CBNexus_Token_Service::validate($raw_token);
+				if ($consumed) {
+					$eid = $consumed['payload']['event_id'] ?? 0;
+					$event = CBNexus_Event_Repository::get($eid);
+					if ($event && $event->status === 'pending') {
+						CBNexus_Event_Service::deny($eid, $consumed['user_id']);
+						self::render_page('Event Denied', '<p>The event <strong>' . esc_html($event->title) . '</strong> has been denied.</p><p>The organizer has been notified.</p>');
+					} elseif ($event && $event->status === 'denied') {
+						self::render_page('Already Denied', '<p>This event was already denied — no action needed.</p>');
+					} elseif ($event && $event->status === 'approved') {
+						self::render_page('Event Was Approved', '<p>This event was already approved by another admin. If you want to reverse this, please use the admin portal.</p>');
+					} else {
+						self::render_page('Event Not Found', '<p>This event could not be found.</p>');
+					}
+				}
+				exit;
+
 			case 'visit_feedback':
 				self::handle_visit_feedback($raw_token, $data);
 				exit;
