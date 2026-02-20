@@ -65,6 +65,8 @@ final class CBNexus_Portal_Admin_Analytics {
 			</div>
 		</div>
 
+		<?php self::render_coverage_card(); ?>
+
 		<div class="cbnexus-card">
 			<h3>Member Engagement</h3>
 			<div class="cbnexus-admin-table-wrap">
@@ -148,6 +150,132 @@ final class CBNexus_Portal_Admin_Analytics {
 			resetBtn.addEventListener('click', clearFilter);
 		})();
 		</script>
+		<?php
+	}
+
+	// ─── Recruitment Coverage Card ────────────────────────────────────
+
+	private static function render_coverage_card(): void {
+		if (!class_exists('CBNexus_Recruitment_Coverage_Service')) {
+			return;
+		}
+
+		$summary = CBNexus_Recruitment_Coverage_Service::get_summary();
+		if ($summary['total'] === 0) {
+			return;
+		}
+
+		$all = CBNexus_Recruitment_Coverage_Service::get_full_coverage();
+		$pipeline = CBNexus_Recruitment_Coverage_Service::get_pipeline_summary();
+		$portal_url = CBNexus_Portal_Router::get_portal_url();
+		$manage_url = add_query_arg(['section' => 'manage', 'admin_tab' => 'recruitment'], $portal_url);
+
+		$status_icons = ['covered' => '🟢', 'partial' => '🟡', 'gap' => '🔴'];
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h3 style="margin:0;">🎯 Recruitment Coverage</h3>
+				<a href="<?php echo esc_url($manage_url); ?>" class="cbnexus-btn cbnexus-btn-sm">Manage Recruitment</a>
+			</div>
+
+			<!-- Summary stats row -->
+			<div class="cbnexus-admin-stats-row" style="margin-bottom:16px;">
+				<div class="cbnexus-admin-stat">
+					<div class="cbnexus-admin-stat-value"><?php echo esc_html($summary['coverage_pct']); ?>%</div>
+					<div class="cbnexus-admin-stat-label">Coverage</div>
+				</div>
+				<div class="cbnexus-admin-stat">
+					<div class="cbnexus-admin-stat-value" style="color:#059669;"><?php echo esc_html($summary['covered']); ?></div>
+					<div class="cbnexus-admin-stat-label">Filled</div>
+				</div>
+				<div class="cbnexus-admin-stat">
+					<div class="cbnexus-admin-stat-value" style="color:#d97706;"><?php echo esc_html($summary['partial']); ?></div>
+					<div class="cbnexus-admin-stat-label">Partial</div>
+				</div>
+				<div class="cbnexus-admin-stat">
+					<div class="cbnexus-admin-stat-value" style="color:#dc2626;"><?php echo esc_html($summary['gaps']); ?></div>
+					<div class="cbnexus-admin-stat-label">Open</div>
+				</div>
+				<div class="cbnexus-admin-stat">
+					<div class="cbnexus-admin-stat-value"><?php echo esc_html($summary['total']); ?></div>
+					<div class="cbnexus-admin-stat-label">Total</div>
+				</div>
+				<div class="cbnexus-admin-stat">
+					<div class="cbnexus-admin-stat-value" style="color:#5b2d6e;"><?php echo esc_html($pipeline['total']); ?></div>
+					<div class="cbnexus-admin-stat-label">In Pipeline</div>
+				</div>
+			</div>
+
+			<?php if ($pipeline['total'] > 0) : ?>
+			<!-- Pipeline funnel -->
+			<div style="margin-bottom:16px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:8px;">
+				<div style="font-size:13px;font-weight:600;margin-bottom:10px;">📋 Recruit Pipeline <span style="font-weight:400;color:#6c757d;">(<?php echo esc_html($pipeline['total']); ?> active)</span></div>
+				<div class="cbnexus-admin-stats-row">
+					<?php
+					$stages = ['referral' => 'Referral', 'contacted' => 'Contacted', 'invited' => 'Invited', 'visited' => 'Visited', 'decision' => 'Decision'];
+					$colors = ['#8b7a94', '#a78bba', '#7c5b99', '#5b2d6e', '#3d1a4a'];
+					$ci = 0;
+					foreach ($stages as $key => $label) : ?>
+						<div class="cbnexus-admin-stat">
+							<div class="cbnexus-admin-stat-value" style="color:<?php echo esc_attr($colors[$ci]); ?>;"><?php echo esc_html($pipeline[$key]); ?></div>
+							<div class="cbnexus-admin-stat-label"><?php echo esc_html($label); ?></div>
+						</div>
+					<?php $ci++; endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
+			<!-- Category table -->
+			<div class="cbnexus-admin-table-wrap">
+				<table class="cbnexus-admin-table">
+					<thead><tr>
+						<th style="width:30px;">Status</th>
+						<th>Category</th>
+						<th>Industry</th>
+						<th>Priority</th>
+						<th>Filled By</th>
+						<th>Pipeline</th>
+					</tr></thead>
+					<tbody>
+					<?php foreach ($all as $cat) :
+						$status = $cat->coverage_status ?? 'gap';
+						$icon   = $status_icons[$status] ?? '🔴';
+						$p_cls  = ['high' => 'red', 'medium' => 'gold', 'low' => 'green'];
+					?>
+						<tr>
+							<td style="text-align:center;"><?php echo $icon; ?></td>
+							<td>
+								<strong><?php echo esc_html($cat->title); ?></strong>
+								<?php if ($cat->description) : ?>
+									<div class="cbnexus-admin-meta"><?php echo esc_html(wp_trim_words($cat->description, 10)); ?></div>
+								<?php endif; ?>
+							</td>
+							<td><?php echo esc_html($cat->industry ?: '—'); ?></td>
+							<td><span class="cbnexus-status-pill cbnexus-status-<?php echo esc_attr($p_cls[$cat->priority] ?? 'muted'); ?>"><?php echo esc_html(ucfirst($cat->priority)); ?></span></td>
+							<td>
+								<?php if (!empty($cat->members)) :
+									foreach ($cat->members as $mem) : ?>
+										<span style="display:inline-block;font-size:12px;padding:2px 8px;background:#f3eef6;border-radius:10px;color:#5b2d6e;margin:1px 2px;"><?php echo esc_html($mem['display_name']); ?></span>
+									<?php endforeach;
+								else : ?>
+									<span class="cbnexus-admin-meta">—</span>
+								<?php endif; ?>
+							</td>
+							<td>
+								<?php if (!empty($cat->pipeline_candidates)) :
+									foreach ($cat->pipeline_candidates as $cand) : ?>
+										<span style="display:inline-block;font-size:11px;padding:1px 6px;background:#fef3c7;border-radius:8px;color:#92400e;margin:1px 2px;"><?php echo esc_html($cand->name); ?> <span style="opacity:.6;">(<?php echo esc_html($cand->stage); ?>)</span></span>
+									<?php endforeach;
+								else : ?>
+									<span class="cbnexus-admin-meta">—</span>
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
 		<?php
 	}
 

@@ -253,6 +253,36 @@ final class CBNexus_Recruitment_Coverage_Service {
 	// ─── Email Prompt HTML ────────────────────────────────────────────
 
 	/**
+	 * Get candidate counts by pipeline stage.
+	 *
+	 * @return array{referral:int, contacted:int, invited:int, visited:int, decision:int, total:int}
+	 */
+	public static function get_pipeline_summary(): array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_candidates';
+
+		if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") !== $table) {
+			return ['referral' => 0, 'contacted' => 0, 'invited' => 0, 'visited' => 0, 'decision' => 0, 'total' => 0];
+		}
+
+		$rows = $wpdb->get_results(
+			"SELECT stage, COUNT(*) as cnt FROM {$table}
+			 WHERE stage IN ('referral','contacted','invited','visited','decision')
+			 GROUP BY stage"
+		);
+
+		$counts = ['referral' => 0, 'contacted' => 0, 'invited' => 0, 'visited' => 0, 'decision' => 0];
+		$total = 0;
+		foreach ($rows ?: [] as $r) {
+			$counts[$r->stage] = (int) $r->cnt;
+			$total += (int) $r->cnt;
+		}
+		$counts['total'] = $total;
+
+		return $counts;
+	}
+
+	/**
 	 * Get the subtle footer block HTML for regular emails.
 	 *
 	 * Shows top 2-3 open categories with priority dots in a compact list.

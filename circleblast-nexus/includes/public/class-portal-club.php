@@ -111,6 +111,8 @@ final class CBNexus_Portal_Club {
 				</div>
 			</div>
 
+			<?php self::render_coverage_card(); ?>
+
 			<!-- Recent Wins -->
 			<?php if (!empty($wins)) : ?>
 			<div class="cbnexus-card">
@@ -126,6 +128,106 @@ final class CBNexus_Portal_Club {
 				</div>
 			</div>
 			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	// ─── Recruitment Coverage Card ────────────────────────────────────
+
+	private static function render_coverage_card(): void {
+		if (!class_exists('CBNexus_Recruitment_Coverage_Service')) {
+			return;
+		}
+
+		$summary = CBNexus_Recruitment_Coverage_Service::get_summary();
+		if ($summary['total'] === 0) {
+			return;
+		}
+
+		$all      = CBNexus_Recruitment_Coverage_Service::get_full_coverage();
+		$pipeline = CBNexus_Recruitment_Coverage_Service::get_pipeline_summary();
+		$is_admin = current_user_can('cbnexus_manage_members');
+		$portal_url = CBNexus_Portal_Router::get_portal_url();
+
+		$status_icons  = ['covered' => '🟢', 'partial' => '🟡', 'gap' => '🔴'];
+		$status_labels = ['covered' => 'Covered', 'partial' => 'Partial', 'gap' => 'Open'];
+		?>
+		<div class="cbnexus-card">
+			<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+				<h3 style="margin:0;">🎯 <?php esc_html_e('Recruitment Coverage', 'circleblast-nexus'); ?></h3>
+				<?php if ($is_admin) : ?>
+					<a href="<?php echo esc_url(add_query_arg(['section' => 'manage', 'admin_tab' => 'recruitment'], $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('Manage →', 'circleblast-nexus'); ?></a>
+				<?php endif; ?>
+			</div>
+
+			<!-- Summary bar -->
+			<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:12px 16px;background:var(--cb-bg-deep,#f8f6fa);border-radius:8px;">
+				<div style="flex:1;min-width:120px;">
+					<div style="font-size:28px;font-weight:800;color:var(--cb-text);"><?php echo esc_html($summary['coverage_pct']); ?>%</div>
+					<div style="font-size:12px;color:var(--cb-text-sec);"><?php esc_html_e('Coverage', 'circleblast-nexus'); ?></div>
+				</div>
+				<div style="display:flex;gap:14px;">
+					<div style="text-align:center;">
+						<div style="font-size:20px;font-weight:700;color:#059669;"><?php echo esc_html($summary['covered']); ?></div>
+						<div style="font-size:11px;color:var(--cb-text-ter);"><?php esc_html_e('Filled', 'circleblast-nexus'); ?></div>
+					</div>
+					<?php if ($summary['partial'] > 0) : ?>
+					<div style="text-align:center;">
+						<div style="font-size:20px;font-weight:700;color:#d97706;"><?php echo esc_html($summary['partial']); ?></div>
+						<div style="font-size:11px;color:var(--cb-text-ter);"><?php esc_html_e('Partial', 'circleblast-nexus'); ?></div>
+					</div>
+					<?php endif; ?>
+					<div style="text-align:center;">
+						<div style="font-size:20px;font-weight:700;color:#dc2626;"><?php echo esc_html($summary['gaps']); ?></div>
+						<div style="font-size:11px;color:var(--cb-text-ter);"><?php esc_html_e('Open', 'circleblast-nexus'); ?></div>
+					</div>
+					<div style="text-align:center;">
+						<div style="font-size:20px;font-weight:700;color:#5b2d6e;"><?php echo esc_html($pipeline['total']); ?></div>
+						<div style="font-size:11px;color:var(--cb-text-ter);"><?php esc_html_e('In Pipeline', 'circleblast-nexus'); ?></div>
+					</div>
+				</div>
+			</div>
+
+			<?php if ($pipeline['total'] > 0) :
+				$stages = ['referral' => 'Referral', 'contacted' => 'Contacted', 'invited' => 'Invited', 'visited' => 'Visited', 'decision' => 'Decision'];
+				$colors = ['#8b7a94', '#a78bba', '#7c5b99', '#5b2d6e', '#3d1a4a'];
+			?>
+			<!-- Pipeline breakdown -->
+			<div style="margin-bottom:16px;padding:12px 16px;border:1px solid var(--cb-border,#e5e7eb);border-radius:8px;">
+				<div style="font-size:13px;font-weight:600;margin-bottom:10px;">📋 <?php esc_html_e('Recruit Pipeline', 'circleblast-nexus'); ?></div>
+				<div style="display:flex;gap:8px;flex-wrap:wrap;">
+					<?php $ci = 0; foreach ($stages as $key => $label) : ?>
+						<div style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:var(--cb-bg-deep,#f8f6fa);border-radius:6px;">
+							<div style="font-size:18px;font-weight:700;color:<?php echo esc_attr($colors[$ci]); ?>;"><?php echo esc_html($pipeline[$key]); ?></div>
+							<div style="font-size:10px;color:var(--cb-text-ter);"><?php echo esc_html($label); ?></div>
+						</div>
+					<?php $ci++; endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
+			<!-- Category grid -->
+			<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+				<?php foreach ($all as $cat) :
+					$status = $cat->coverage_status ?? 'gap';
+					$icon   = $status_icons[$status] ?? '🔴';
+					$label  = $status_labels[$status] ?? 'Open';
+				?>
+					<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--cb-border,#e5e7eb);border-radius:8px;background:var(--cb-card,#fff);<?php echo $status === 'gap' ? 'border-style:dashed;opacity:0.75;' : ''; ?>">
+						<span style="font-size:12px;flex-shrink:0;"><?php echo $icon; ?></span>
+						<div style="flex:1;min-width:0;">
+							<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo esc_html($cat->title); ?></div>
+							<?php if ($status !== 'gap' && !empty($cat->members)) : ?>
+								<div style="font-size:11px;color:var(--cb-text-ter);">
+									<?php echo esc_html(implode(', ', array_column($cat->members, 'display_name'))); ?>
+								</div>
+							<?php elseif ($status === 'gap') : ?>
+								<div style="font-size:11px;color:var(--cb-text-ter);font-style:italic;"><?php echo esc_html($label); ?><?php if ($cat->priority === 'high') : ?> <span style="color:#dc2626;">●</span><?php endif; ?></div>
+							<?php endif; ?>
+						</div>
+					</div>
+				<?php endforeach; ?>
+			</div>
 		</div>
 		<?php
 	}
