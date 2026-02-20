@@ -18,6 +18,6 @@ return [
 {{events_list}}
 
 <p style="font-size:15px;color:#333;line-height:1.6;margin:16px 0;">
-Visit the <a href="{{portal_url}}" style="color:#5b2d6e;font-weight:600;">Events page</a> to RSVP and see full details.</p>
+Visit the <a href="{{portal_url}}" style="color:{{color_primary}};font-weight:600;">Events page</a> to RSVP and see full details.</p>
 <p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
 ];

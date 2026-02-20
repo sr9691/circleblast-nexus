@@ -17,7 +17,7 @@ Great news — <strong>{{candidate_name}}</strong> has been accepted into Circle
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">
 As their referrer, you played a key role in growing our community. Consider reaching out to welcome them and offer to be their first 1:1 meeting — it\'s a great way to help them feel connected from day one.</p>
 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:20px 0;">
-<tr><td style="background-color:#2563eb;border-radius:6px;">
+<tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{portal_url}}" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Open Member Portal</a>
 </td></tr></table>
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 8px;">Thank you for helping CircleBlast grow stronger.</p>

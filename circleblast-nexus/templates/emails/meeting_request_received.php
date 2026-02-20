@@ -7,7 +7,7 @@ return [
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">
 <strong>{{requester_name}}</strong> ({{requester_title}}) would like to connect with you for a 1:1 meeting.</p>
 <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-<td style="background-color:#5b2d6e;border-radius:6px;margin-right:12px;">
+<td style="background-color:{{color_primary}};border-radius:6px;margin-right:12px;">
 <a href="{{accept_url}}" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Accept</a>
 </td>
 <td style="width:12px;"></td>

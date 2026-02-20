@@ -13,7 +13,7 @@ We\'ve matched you with <strong>{{other_name}}</strong> for a 1:1 meeting this m
 </div>
 <p style="font-size:15px;color:#333;margin:0 0 20px;">Would you like to connect?</p>
 <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-<td style="background-color:#2563eb;border-radius:6px;margin-right:12px;">
+<td style="background-color:{{color_primary}};border-radius:6px;margin-right:12px;">
 <a href="{{accept_url}}" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Accept</a>
 </td>
 <td style="width:12px;"></td>
@@ -21,6 +21,6 @@ We\'ve matched you with <strong>{{other_name}}</strong> for a 1:1 meeting this m
 <a href="{{decline_url}}" style="display:inline-block;padding:12px 24px;color:#4a5568;text-decoration:none;font-size:15px;font-weight:500;">Decline</a>
 </td>
 </tr></table>
-<p style="font-size:13px;color:#a0aec0;margin:16px 0 0;">Or <a href="{{meetings_url}}" style="color:#2563eb;">view in your portal</a>.</p>
+<p style="font-size:13px;color:#a0aec0;margin:16px 0 0;">Or <a href="{{meetings_url}}" style="color:{{color_primary}};">view in your portal</a>.</p>
 <p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
 ];

@@ -22,7 +22,7 @@ Your account has been created. Here\'s how to get started:</p>
 <li><strong>Request a 1:1</strong> with someone who shares your interests</li>
 </ol>
 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:24px 0;">
-<tr><td style="background-color:#2563eb;border-radius:6px;">
+<tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{login_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">Set Your Password &amp; Log In</a>
 </td></tr></table>
 <p style="font-size:13px;color:#6c757d;word-break:break-all;margin:0 0 20px;">{{login_url}}</p>

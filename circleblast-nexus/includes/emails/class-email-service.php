@@ -27,6 +27,17 @@ final class CBNexus_Email_Service {
 			return false;
 		}
 
+		// Inject color scheme variables so templates can use {{color_primary}}, {{color_secondary}}, etc.
+		$colors = CBNexus_Color_Scheme::get_email_colors();
+		$vars = array_merge([
+			'color_primary'   => $colors['btn_primary'],
+			'color_secondary' => $colors['secondary'],
+			'color_accent'    => $colors['accent_text'],
+			'color_green'     => $colors['green'],
+			'color_blue'      => $colors['blue'],
+			'logo_url'        => CBNexus_Color_Scheme::get_logo_url('email'),
+		], $vars);
+
 		$subject   = self::replace_placeholders($options['subject'] ?? $template['subject'], $vars);
 
 		// Pre-process special HTML block variables.
@@ -150,9 +161,13 @@ final class CBNexus_Email_Service {
 	 * Pre-process variables that contain pre-rendered HTML blocks.
 	 */
 	private static function process_html_blocks(array &$vars): void {
+		$colors = CBNexus_Color_Scheme::get_email_colors();
+		$primary = esc_attr($colors['btn_primary']);
+		$secondary = esc_attr($colors['secondary']);
+
 		// Reminder notes block for event emails.
 		if (!empty($vars['reminder_notes'])) {
-			$vars['reminder_notes_block'] = '<div style="background:#fff7ed;border-left:3px solid #c49a3c;padding:12px 16px;margin:16px 0;font-size:14px;">'
+			$vars['reminder_notes_block'] = '<div style="background:#fff7ed;border-left:3px solid ' . $secondary . ';padding:12px 16px;margin:16px 0;font-size:14px;">'
 				. '<strong>📝 Notes:</strong> ' . esc_html($vars['reminder_notes']) . '</div>';
 		} else {
 			$vars['reminder_notes_block'] = '';
@@ -161,7 +176,7 @@ final class CBNexus_Email_Service {
 		// Registration block.
 		if (!empty($vars['registration_url'])) {
 			$vars['registration_block'] = '<table role="presentation" cellspacing="0" cellpadding="0" style="margin:16px 0;">'
-				. '<tr><td style="background-color:#5b2d6e;border-radius:6px;">'
+				. '<tr><td style="background-color:' . $primary . ';border-radius:6px;">'
 				. '<a href="' . esc_url($vars['registration_url']) . '" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Register →</a>'
 				. '</td></tr></table>';
 		} else {
@@ -170,7 +185,7 @@ final class CBNexus_Email_Service {
 
 		// Forward note block.
 		if (!empty($vars['forward_note'])) {
-			$vars['forward_note_block'] = '<div style="background:#f8fafc;border-left:3px solid #5b2d6e;padding:12px 16px;margin:16px 0;font-style:italic;font-size:14px;color:#4a5568;">'
+			$vars['forward_note_block'] = '<div style="background:#f8fafc;border-left:3px solid ' . $primary . ';padding:12px 16px;margin:16px 0;font-style:italic;font-size:14px;color:#4a5568;">'
 				. esc_html($vars['forward_note']) . '</div>';
 		} else {
 			$vars['forward_note_block'] = $vars['forward_note_block'] ?? '';
@@ -186,6 +201,10 @@ final class CBNexus_Email_Service {
 
 	private static function wrap_html(string $body, string $subject): string {
 		$year = gmdate('Y');
+		$colors = CBNexus_Color_Scheme::get_email_colors();
+		$logo_url = CBNexus_Color_Scheme::get_logo_url('email');
+		$header_bg = esc_attr($colors['header_bg']);
+
 		return '<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>' . esc_html($subject) . '</title></head>
@@ -193,8 +212,9 @@ final class CBNexus_Email_Service {
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f5f5f5;">
 <tr><td align="center" style="padding:30px 15px;">
 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
-<tr><td style="background-color:#1a365d;padding:24px 30px;text-align:center;">
-<h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;">CircleBlast</h1>
+<tr><td style="background-color:' . $header_bg . ';padding:24px 30px;text-align:center;">
+<img src="' . esc_url($logo_url) . '" alt="CircleBlast" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px;" />
+<span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:22px;font-weight:600;">CircleBlast</span>
 </td></tr>
 <tr><td style="padding:30px;">' . $body . '</td></tr>
 <tr><td style="padding:20px 30px;background-color:#f8f9fa;text-align:center;font-size:13px;color:#6c757d;">

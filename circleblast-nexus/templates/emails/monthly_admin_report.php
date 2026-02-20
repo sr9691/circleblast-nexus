@@ -10,7 +10,7 @@ return [
 <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;">
 <tr>
 <td style="text-align:center;padding:8px;">
-<div style="font-size:28px;font-weight:700;color:#2563eb;">{{total_members}}</div>
+<div style="font-size:28px;font-weight:700;color:{{color_primary}};">{{total_members}}</div>
 <div style="font-size:13px;color:#718096;">Active Members</div>
 </td>
 <td style="text-align:center;padding:8px;">
@@ -30,7 +30,7 @@ return [
 </div>
 
 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:24px 0;">
-<tr><td style="background-color:#2563eb;border-radius:6px;">
+<tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{portal_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">View Full Analytics</a>
 </td></tr></table>
 <p style="font-size:15px;color:#333;">— CircleBlast Nexus</p>',

@@ -1,9 +1,9 @@
 /**
  * CircleBlast Nexus – Portal Styles
- * Plum & Gold · Soft Contrast Theme
+ * Blue & Orange · CircleBlast Brand Theme
  *
- * Design system matching the CircleBlast Nexus demo.
- * DM Sans typography, plum accent, antique gold secondary,
+ * Design system matching the CircleBlast logo colors.
+ * DM Sans typography, steel blue primary, amber orange secondary,
  * rounded cards with soft shadows, horizontal pill navigation.
  */
 
@@ -11,34 +11,36 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 /* ── CSS Variables ───────────────────────────────────────────── */
+/* These defaults match the CircleBlast logo. Active color scheme
+   overrides are injected as inline CSS by CBNexus_Color_Scheme. */
 :root {
-	--cb-bg:           #f3eef6;
-	--cb-bg-deep:      #ebe4f0;
+	--cb-bg:           #f0f4f8;
+	--cb-bg-deep:      #e4ebf2;
 	--cb-card:         #ffffff;
 	--cb-card-hover:   #fdfcfe;
-	--cb-border:       #e0d6e8;
-	--cb-border-soft:  #eee8f2;
-	--cb-text:         #2a1f33;
-	--cb-text-sec:     #6b5c78;
-	--cb-text-ter:     #9b90a5;
-	--cb-accent:       #5b2d6e;
-	--cb-accent-soft:  #f0e6f6;
-	--cb-accent-hover: #4a2359;
-	--cb-accent-mid:   #7b4d8e;
-	--cb-gold:         #c49a3c;
-	--cb-gold-soft:    #fdf6e8;
-	--cb-gold-border:  #eedbb0;
-	--cb-gold-deep:    #a37f2e;
-	--cb-green:        #4a7a56;
-	--cb-green-soft:   #eef5ef;
-	--cb-green-border: #c5dac8;
-	--cb-blue:         #4a6f8a;
-	--cb-blue-soft:    #ecf2f7;
-	--cb-red:          #9e4444;
-	--cb-red-soft:     #f8eded;
-	--cb-shadow:       0 1px 3px rgba(42,31,51,.06), 0 1px 2px rgba(42,31,51,.04);
-	--cb-shadow-md:    0 4px 14px rgba(42,31,51,.08), 0 2px 4px rgba(42,31,51,.04);
-	--cb-shadow-lg:    0 8px 24px rgba(42,31,51,.10);
+	--cb-border:       #d0d9e3;
+	--cb-border-soft:  #e4ebf2;
+	--cb-text:         #1e2a3a;
+	--cb-text-sec:     #5a6a7e;
+	--cb-text-ter:     #8c97a5;
+	--cb-accent:       #2b5a94;
+	--cb-accent-soft:  #e8eff7;
+	--cb-accent-hover: #1e4777;
+	--cb-accent-mid:   #5a85b5;
+	--cb-gold:         #f09214;
+	--cb-gold-soft:    #fef5e6;
+	--cb-gold-border:  #f5c97a;
+	--cb-gold-deep:    #cc7c11;
+	--cb-green:        #3d8b4d;
+	--cb-green-soft:   #eaf5ed;
+	--cb-green-border: #a8d5b2;
+	--cb-blue:         #2b5a94;
+	--cb-blue-soft:    #e8eff7;
+	--cb-red:          #c44040;
+	--cb-red-soft:     #faeaea;
+	--cb-shadow:       0 1px 3px rgba(30,42,58,.06), 0 1px 2px rgba(30,42,58,.04);
+	--cb-shadow-md:    0 4px 14px rgba(30,42,58,.08), 0 2px 4px rgba(30,42,58,.04);
+	--cb-shadow-lg:    0 8px 24px rgba(30,42,58,.10);
 	--cb-radius:       16px;
 	--cb-radius-sm:    12px;
 	--cb-radius-pill:  24px;
@@ -78,6 +80,13 @@
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 2px;
+}
+
+.cbnexus-portal-brand-logo {
+	width: 36px;
+	height: 36px;
+	object-fit: contain;
+	flex-shrink: 0;
 }
 
 .cbnexus-portal-brand-dot {
@@ -1937,4 +1946,188 @@
 		flex-direction: column;
 		gap: 4px;
 	}
+}
+
+/* ── Color Scheme Picker ─────────────────────────────────────── */
+.cbnexus-scheme-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.cbnexus-scheme-option {
+	position: relative;
+	border: 2px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	padding: 0;
+	cursor: pointer;
+	transition: border-color 0.15s, box-shadow 0.15s;
+	overflow: hidden;
+	background: var(--cb-card);
+}
+
+.cbnexus-scheme-option:hover {
+	border-color: var(--cb-accent-mid);
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-scheme-option.active {
+	border-color: var(--cb-accent);
+	box-shadow: 0 0 0 2px var(--cb-accent-soft);
+}
+
+.cbnexus-scheme-bar {
+	height: 6px;
+	width: 100%;
+}
+
+.cbnexus-scheme-swatches {
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+	padding: 12px 8px;
+}
+
+.cbnexus-scheme-swatch {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: block;
+}
+
+.cbnexus-scheme-label {
+	text-align: center;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 0 8px 10px;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-scheme-active-badge {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: var(--cb-accent);
+	color: #fff;
+	font-size: 10px;
+	font-weight: 700;
+	padding: 2px 6px;
+	border-radius: 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.cbnexus-color-input {
+	width: 36px;
+	height: 36px;
+	border: 2px solid var(--cb-border);
+	border-radius: 6px;
+	padding: 2px;
+	cursor: pointer;
+	background: transparent;
+}
+
+.cbnexus-color-input::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.cbnexus-color-input::-webkit-color-swatch {
+	border: none;
+	border-radius: 4px;
+}
+
+/* ── Live Preview Widget ─────────────────────────────────────── */
+.cbnexus-scheme-live-preview {
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	overflow: hidden;
+	max-width: 400px;
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-slp-header {
+	background: var(--cb-accent);
+	padding: 12px 16px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cbnexus-slp-body {
+	background: var(--cb-bg);
+	padding: 12px;
+}
+
+.cbnexus-slp-nav {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+.cbnexus-slp-pill {
+	padding: 4px 12px;
+	border-radius: 12px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	border: 1px solid var(--cb-border);
+}
+
+.cbnexus-slp-pill.active {
+	background: var(--cb-accent);
+	color: #fff;
+	border-color: transparent;
+}
+
+.cbnexus-slp-card {
+	background: #fff;
+	border-radius: 10px;
+	padding: 14px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.cbnexus-slp-btn {
+	display: inline-block;
+	padding: 5px 14px;
+	border-radius: 8px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--cb-accent);
+	color: #fff;
+	cursor: default;
+}
+
+.cbnexus-slp-btn-sec {
+	display: inline-block;
+	padding: 5px 14px;
+	border-radius: 8px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--cb-gold);
+	color: #fff;
+	cursor: default;
+}
+
+.cbnexus-slp-badge {
+	padding: 2px 10px;
+	border-radius: 8px;
+	font-size: 10px;
+	font-weight: 700;
+}
+
+.cbnexus-slp-badge.green {
+	background: var(--cb-green-soft);
+	color: var(--cb-green);
+}
+
+.cbnexus-slp-badge.gold {
+	background: var(--cb-gold-soft);
+	color: var(--cb-gold);
+}
+
+.cbnexus-slp-badge.red {
+	background: var(--cb-red-soft);
+	color: var(--cb-red);
 }

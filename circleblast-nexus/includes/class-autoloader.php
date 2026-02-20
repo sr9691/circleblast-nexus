@@ -81,6 +81,7 @@ final class CBNexus_Autoloader {
 		// Events
 		'CBNexus_Event_Repository'           => 'includes/events/class-event-repository.php',
 		'CBNexus_Event_Service'              => 'includes/events/class-event-service.php',
+		'CBNexus_Color_Scheme'               => 'includes/class-color-scheme.php',
 		'CBNexus_Portal_Events'              => 'includes/public/class-portal-events.php',
 		'CBNexus_Admin_Events'               => 'includes/admin/class-admin-events.php',
 

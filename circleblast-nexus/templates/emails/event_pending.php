@@ -11,7 +11,7 @@ A member has submitted a new event for approval:</p>
 <p style="margin:0;font-size:14px;color:#4a5568;">📅 {{event_date}}</p>
 </div>
 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:24px 0;">
-<tr><td style="background-color:#5b2d6e;border-radius:6px;">
+<tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{review_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">Review Event</a>
 </td></tr></table>
 <p style="font-size:15px;color:#333;">— CircleBlast Nexus</p>',

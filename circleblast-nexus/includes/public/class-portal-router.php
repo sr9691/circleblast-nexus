@@ -87,6 +87,10 @@ final class CBNexus_Portal_Router {
 			CBNEXUS_VERSION
 		);
 
+		// Inject active color scheme overrides as inline CSS.
+		$scheme_css = CBNexus_Color_Scheme::get_css_overrides();
+		wp_add_inline_style('cbnexus-portal', $scheme_css);
+
 		// WordPress dashicons still used in some sub-components.
 		wp_enqueue_style('dashicons');
 
@@ -211,7 +215,7 @@ final class CBNexus_Portal_Router {
 		<header class="cbnexus-portal-header">
 			<div>
 				<div class="cbnexus-portal-brand">
-					<span class="cbnexus-portal-brand-dot"></span>
+					<img src="<?php echo esc_url(CBNexus_Color_Scheme::get_logo_url('small')); ?>" alt="CircleBlast" class="cbnexus-portal-brand-logo" width="36" height="36" />
 					<span class="cbnexus-portal-brand-name"><?php esc_html_e('CircleBlast', 'circleblast-nexus'); ?></span>
 				</div>
 				<h1 class="cbnexus-portal-subtitle"><?php esc_html_e('Member Portal', 'circleblast-nexus'); ?></h1>
