@@ -1,0 +1,217 @@
+/* ── Portal Layout ───────────────────────────────────────────── */
+.cbnexus-portal {
+	max-width: 900px;
+	margin: 0 auto;
+	font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+	color: var(--cb-text);
+	line-height: 1.6;
+	min-height: 100vh;
+	padding: 24px 16px;
+}
+
+.cbnexus-portal *, .cbnexus-portal *::before, .cbnexus-portal *::after {
+	box-sizing: border-box;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.cbnexus-portal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 22px 28px 16px;
+	background: var(--cb-card);
+	border-radius: 20px 20px 0 0;
+	border: 1px solid var(--cb-border);
+	border-bottom: none;
+	margin-bottom: 0;
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-portal-brand {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 2px;
+}
+
+.cbnexus-portal-brand-logo {
+	width: 36px;
+	height: 36px;
+	object-fit: contain;
+	flex-shrink: 0;
+}
+
+.cbnexus-portal-brand-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 4px;
+	background: var(--cb-gold);
+}
+
+.cbnexus-portal-brand-name {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--cb-accent);
+	letter-spacing: 1.2px;
+	text-transform: uppercase;
+}
+
+.cbnexus-portal-subtitle {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 400;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-portal-header-right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-shrink: 0;
+	flex-wrap: nowrap;
+}
+
+.cbnexus-header-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 6px 14px;
+	border-radius: var(--cb-radius-pill);
+	border: 1.5px solid var(--cb-border);
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	font-size: 12px;
+	font-weight: 600;
+	text-decoration: none;
+	transition: all .2s;
+	white-space: nowrap;
+}
+
+.cbnexus-header-link:hover {
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+}
+
+.cbnexus-header-link.active {
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	font-weight: 700;
+}
+
+.cbnexus-header-link-icon {
+	font-size: 13px;
+}
+
+.cbnexus-portal-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 13px;
+	background: linear-gradient(135deg, var(--cb-accent-soft), var(--cb-gold-soft));
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1.5px solid var(--cb-border);
+}
+
+.cbnexus-portal-avatar-initials {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--cb-accent);
+}
+
+/* ── Pill Navigation ─────────────────────────────────────────── */
+.cbnexus-portal-nav {
+	padding: 12px 28px;
+	background: transparent;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	display: flex;
+	gap: 8px;
+	position: relative;
+	border: none;
+	border-radius: 0;
+	width: auto;
+}
+
+.cbnexus-portal-nav::-webkit-scrollbar { height: 4px; }
+.cbnexus-portal-nav::-webkit-scrollbar-thumb { background: var(--cb-border); border-radius: 4px; }
+
+.cbnexus-portal-nav ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	gap: 8px;
+}
+
+.cbnexus-portal-nav li a {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 16px;
+	border-radius: var(--cb-radius-pill);
+	border: 2px solid transparent;
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: all .2s;
+	text-decoration: none;
+	flex-shrink: 0;
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-portal-nav li a:hover {
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+}
+
+.cbnexus-portal-nav li.cbnexus-nav-active a {
+	border-color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	color: var(--cb-accent);
+	font-weight: 700;
+	box-shadow: none;
+}
+
+.cbnexus-portal-nav li a .cbnexus-nav-icon {
+	font-size: 14px;
+}
+
+.cbnexus-portal-nav li a .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+/* ── Layout (no sidebar — stacked) ───────────────────────────── */
+.cbnexus-portal-layout {
+	display: flex;
+	flex-direction: column;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	min-height: 0;
+}
+
+/* ── Content Area ────────────────────────────────────────────── */
+.cbnexus-portal-content {
+	flex: 1;
+	padding: 24px 28px 40px;
+	min-width: 0;
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.cbnexus-card {
+	background: var(--cb-card);
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius);
+	padding: 20px 22px;
+	margin-bottom: 14px;
+	box-shadow: var(--cb-shadow);
+}
+

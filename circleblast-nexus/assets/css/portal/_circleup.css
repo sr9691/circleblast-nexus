@@ -1,0 +1,117 @@
+/* ══════════════════════════════════════════════════════════════
+   CircleUp Archive Styles
+   ══════════════════════════════════════════════════════════════ */
+
+.cbnexus-cu-submit-card {
+	padding: 14px 18px;
+}
+
+.cbnexus-cu-submit-card h3 { margin: 0 0 10px; }
+
+.cbnexus-cu-submit-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.cbnexus-cu-submit-row select {
+	padding: 9px 12px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	background: var(--cb-card);
+	font-family: inherit;
+}
+
+.cbnexus-cu-submit-row input[type="text"] {
+	flex: 1;
+	padding: 11px 14px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	background: var(--cb-card);
+	color: var(--cb-text);
+	font-family: inherit;
+}
+
+.cbnexus-cu-submit-row input[type="text"]:focus { outline: none; border-color: var(--cb-accent); }
+
+/* Timeline card */
+.cbnexus-cu-timeline-card {
+	cursor: pointer;
+	padding: 18px 20px;
+}
+
+.cbnexus-cu-timeline-card:hover { box-shadow: var(--cb-shadow-md); }
+
+.cbnexus-cu-timeline-date {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+
+.cbnexus-cu-timeline-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 5px;
+	background: var(--cb-gold);
+	flex-shrink: 0;
+}
+
+.cbnexus-cu-timeline-date-text {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-cu-summary {
+	color: var(--cb-text-sec);
+	font-size: 14px;
+	line-height: 1.6;
+	margin: 0 0 10px;
+}
+
+.cbnexus-cu-stats-row {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.cbnexus-cu-items-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.cbnexus-cu-items-list li {
+	padding: 9px 0;
+	border-bottom: 1px solid var(--cb-border-soft);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--cb-text);
+}
+
+.cbnexus-cu-items-list li:last-child { border-bottom: none; }
+
+.cbnexus-cu-attendees { font-size: 13px; color: var(--cb-text-sec); margin: 4px 0 0; }
+
+.cbnexus-cu-actions-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.cbnexus-cu-actions-table th,
+.cbnexus-cu-actions-table td {
+	padding: 8px 12px;
+	text-align: left;
+	border-bottom: 1px solid var(--cb-border-soft);
+}
+
+.cbnexus-cu-actions-table th {
+	font-weight: 600;
+	color: var(--cb-text-sec);
+	font-size: 13px;
+}
+

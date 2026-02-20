@@ -1,0 +1,64 @@
+/* ══════════════════════════════════════════════════════════════
+   Club Dashboard
+   ══════════════════════════════════════════════════════════════ */
+
+.cbnexus-club-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 16px;
+}
+
+.cbnexus-club-header h2 {
+	margin: 0;
+	font-size: 24px;
+	font-weight: 700;
+	color: var(--cb-text);
+	letter-spacing: -0.5px;
+}
+
+.cbnexus-club-rank {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 8px;
+	font-size: 12px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.cbnexus-club-rank--top { background: var(--cb-gold-soft); color: var(--cb-gold-deep); }
+.cbnexus-club-rank--other { background: var(--cb-bg-deep); color: var(--cb-text-ter); }
+
+.cbnexus-topic-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cbnexus-topic-tag {
+	display: inline-block;
+	padding: 5px 12px;
+	border-radius: 20px;
+	white-space: nowrap;
+}
+
+.cbnexus-topic-tag--0 { background: var(--cb-accent-soft); color: var(--cb-accent); }
+.cbnexus-topic-tag--1 { background: var(--cb-gold-soft); color: var(--cb-gold-deep); }
+.cbnexus-topic-tag--2 { background: var(--cb-bg-deep); color: var(--cb-text-sec); }
+
+.cbnexus-wins-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 10px;
+}
+
+.cbnexus-win-card {
+	background: var(--cb-gold-soft);
+	border: 1px solid var(--cb-gold-border);
+	border-radius: 14px;
+	padding: 14px;
+}
+
+.cbnexus-win-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+.cbnexus-win-card p { margin: 0 0 6px; font-size: 14px; line-height: 1.6; }
+

@@ -1,0 +1,47 @@
+/**
+ * CircleBlast Nexus – Portal Styles
+ * Blue & Orange · CircleBlast Brand Theme
+ *
+ * Design system matching the CircleBlast logo colors.
+ * DM Sans typography, steel blue primary, amber orange secondary,
+ * rounded cards with soft shadows, horizontal pill navigation.
+ */
+
+/* ── Google Font Import ──────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+/* ── CSS Variables ───────────────────────────────────────────── */
+/* These defaults match the CircleBlast logo. Active color scheme
+   overrides are injected as inline CSS by CBNexus_Color_Scheme. */
+:root {
+	--cb-bg:           #f0f4f8;
+	--cb-bg-deep:      #e4ebf2;
+	--cb-card:         #ffffff;
+	--cb-card-hover:   #fdfcfe;
+	--cb-border:       #d0d9e3;
+	--cb-border-soft:  #e4ebf2;
+	--cb-text:         #1e2a3a;
+	--cb-text-sec:     #5a6a7e;
+	--cb-text-ter:     #8c97a5;
+	--cb-accent:       #2b5a94;
+	--cb-accent-soft:  #e8eff7;
+	--cb-accent-hover: #1e4777;
+	--cb-accent-mid:   #5a85b5;
+	--cb-gold:         #f09214;
+	--cb-gold-soft:    #fef5e6;
+	--cb-gold-border:  #f5c97a;
+	--cb-gold-deep:    #cc7c11;
+	--cb-green:        #3d8b4d;
+	--cb-green-soft:   #eaf5ed;
+	--cb-green-border: #a8d5b2;
+	--cb-blue:         #2b5a94;
+	--cb-blue-soft:    #e8eff7;
+	--cb-red:          #c44040;
+	--cb-red-soft:     #faeaea;
+	--cb-shadow:       0 1px 3px rgba(30,42,58,.06), 0 1px 2px rgba(30,42,58,.04);
+	--cb-shadow-md:    0 4px 14px rgba(30,42,58,.08), 0 2px 4px rgba(30,42,58,.04);
+	--cb-shadow-lg:    0 8px 24px rgba(30,42,58,.10);
+	--cb-radius:       16px;
+	--cb-radius-sm:    12px;
+	--cb-radius-pill:  24px;
+}

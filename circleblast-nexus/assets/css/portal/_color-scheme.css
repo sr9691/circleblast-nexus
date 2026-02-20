@@ -1,0 +1,183 @@
+/* ── Color Scheme Picker ─────────────────────────────────────── */
+.cbnexus-scheme-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.cbnexus-scheme-option {
+	position: relative;
+	border: 2px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	padding: 0;
+	cursor: pointer;
+	transition: border-color 0.15s, box-shadow 0.15s;
+	overflow: hidden;
+	background: var(--cb-card);
+}
+
+.cbnexus-scheme-option:hover {
+	border-color: var(--cb-accent-mid);
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-scheme-option.active {
+	border-color: var(--cb-accent);
+	box-shadow: 0 0 0 2px var(--cb-accent-soft);
+}
+
+.cbnexus-scheme-bar {
+	height: 6px;
+	width: 100%;
+}
+
+.cbnexus-scheme-swatches {
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+	padding: 12px 8px;
+}
+
+.cbnexus-scheme-swatch {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: block;
+}
+
+.cbnexus-scheme-label {
+	text-align: center;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 0 8px 10px;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-scheme-active-badge {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: var(--cb-accent);
+	color: #fff;
+	font-size: 10px;
+	font-weight: 700;
+	padding: 2px 6px;
+	border-radius: 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.cbnexus-color-input {
+	width: 36px;
+	height: 36px;
+	border: 2px solid var(--cb-border);
+	border-radius: 6px;
+	padding: 2px;
+	cursor: pointer;
+	background: transparent;
+}
+
+.cbnexus-color-input::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.cbnexus-color-input::-webkit-color-swatch {
+	border: none;
+	border-radius: 4px;
+}
+
+/* ── Live Preview Widget ─────────────────────────────────────── */
+.cbnexus-scheme-live-preview {
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	overflow: hidden;
+	max-width: 400px;
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-slp-header {
+	background: var(--cb-accent);
+	padding: 12px 16px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cbnexus-slp-body {
+	background: var(--cb-bg);
+	padding: 12px;
+}
+
+.cbnexus-slp-nav {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+.cbnexus-slp-pill {
+	padding: 4px 12px;
+	border-radius: 12px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	border: 1px solid var(--cb-border);
+}
+
+.cbnexus-slp-pill.active {
+	background: var(--cb-accent);
+	color: #fff;
+	border-color: transparent;
+}
+
+.cbnexus-slp-card {
+	background: #fff;
+	border-radius: 10px;
+	padding: 14px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.cbnexus-slp-btn {
+	display: inline-block;
+	padding: 5px 14px;
+	border-radius: 8px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--cb-accent);
+	color: #fff;
+	cursor: default;
+}
+
+.cbnexus-slp-btn-sec {
+	display: inline-block;
+	padding: 5px 14px;
+	border-radius: 8px;
+	font-size: 11px;
+	font-weight: 600;
+	background: var(--cb-gold);
+	color: #fff;
+	cursor: default;
+}
+
+.cbnexus-slp-badge {
+	padding: 2px 10px;
+	border-radius: 8px;
+	font-size: 10px;
+	font-weight: 700;
+}
+
+.cbnexus-slp-badge.green {
+	background: var(--cb-green-soft);
+	color: var(--cb-green);
+}
+
+.cbnexus-slp-badge.gold {
+	background: var(--cb-gold-soft);
+	color: var(--cb-gold);
+}
+
+.cbnexus-slp-badge.red {
+	background: var(--cb-red-soft);
+	color: var(--cb-red);
+}

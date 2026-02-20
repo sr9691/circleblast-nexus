@@ -1,0 +1,110 @@
+/* ══════════════════════════════════════════════════════════════
+   Meetings Styles
+   ══════════════════════════════════════════════════════════════ */
+
+.cbnexus-meeting-action-card,
+.cbnexus-meeting-notes-card {
+	padding: 16px 20px;
+	border: 1px solid var(--cb-border-soft);
+	border-radius: var(--cb-radius-sm);
+	margin-bottom: 12px;
+	background: var(--cb-card);
+}
+
+.cbnexus-meeting-action-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+}
+
+.cbnexus-meeting-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cbnexus-meeting-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.cbnexus-meeting-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--cb-border-soft);
+}
+
+.cbnexus-meeting-row:last-child { border-bottom: none; }
+.cbnexus-meeting-row .cbnexus-meeting-info { flex: 1; }
+
+.cbnexus-schedule-input {
+	padding: 8px 12px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 13px;
+	font-family: inherit;
+}
+
+/* Notes form */
+.cbnexus-notes-form { margin-top: 14px; }
+
+.cbnexus-notes-form .cbnexus-form-field { margin-bottom: 10px; }
+
+.cbnexus-notes-form .cbnexus-form-field label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cb-text-sec);
+	letter-spacing: 0.3px;
+	text-transform: uppercase;
+}
+
+.cbnexus-notes-form textarea {
+	width: 100%;
+	padding: 10px 14px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	resize: vertical;
+	background: var(--cb-card);
+	color: var(--cb-text);
+	font-family: inherit;
+}
+
+.cbnexus-notes-form textarea:focus {
+	outline: none;
+	border-color: var(--cb-accent);
+}
+
+.cbnexus-rating-input {
+	display: flex;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+.cbnexus-rating-btn {
+	width: 38px;
+	height: 38px;
+	border-radius: 10px;
+	border: 1.5px solid var(--cb-border);
+	background: var(--cb-bg-deep);
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--cb-text);
+	cursor: pointer;
+	transition: all .15s;
+	font-family: inherit;
+}
+
+.cbnexus-rating-btn:hover, .cbnexus-rating-btn.active {
+	background: var(--cb-accent-soft);
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+}
+

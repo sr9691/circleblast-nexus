@@ -1,0 +1,288 @@
+/* ══════════════════════════════════════════════════════════════
+   Directory Styles
+   ══════════════════════════════════════════════════════════════ */
+
+.cbnexus-dir-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.cbnexus-dir-search {
+	flex: 1;
+	min-width: 200px;
+}
+
+.cbnexus-dir-search input {
+	width: 100%;
+	padding: 11px 14px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	background: var(--cb-card);
+	color: var(--cb-text);
+	transition: border-color .15s;
+	font-family: inherit;
+}
+
+.cbnexus-dir-search input:focus {
+	outline: none;
+	border-color: var(--cb-accent);
+}
+
+.cbnexus-dir-filters {
+	display: flex;
+	gap: 8px;
+}
+
+.cbnexus-dir-filters select {
+	padding: 10px 12px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	background: var(--cb-card);
+	color: var(--cb-text);
+	font-family: inherit;
+}
+
+.cbnexus-dir-view-toggle {
+	display: flex;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	overflow: hidden;
+}
+
+.cbnexus-view-btn {
+	padding: 8px 14px;
+	border: none;
+	background: var(--cb-card);
+	color: var(--cb-text-ter);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 400;
+	transition: all .15s;
+}
+
+.cbnexus-view-btn:hover { background: var(--cb-bg-deep); color: var(--cb-text); }
+.cbnexus-view-btn.active { background: var(--cb-accent-soft); color: var(--cb-accent); font-weight: 600; }
+.cbnexus-view-btn .dashicons { font-size: 18px; width: 18px; height: 18px; }
+
+.cbnexus-dir-meta {
+	display: block;
+	margin-bottom: 12px;
+	font-size: 13px;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-dir-loading {
+	text-align: center;
+	padding: 20px;
+	color: var(--cb-text-sec);
+}
+
+/* ── Grid View ───────────────────────────────────────────────── */
+.cbnexus-dir-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 12px;
+}
+
+.cbnexus-dir-grid .cbnexus-member-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 22px 18px;
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius);
+	background: var(--cb-card);
+	box-shadow: var(--cb-shadow);
+	transition: box-shadow .2s;
+	cursor: pointer;
+}
+
+.cbnexus-dir-grid .cbnexus-member-card:hover {
+	box-shadow: var(--cb-shadow-md);
+}
+
+.cbnexus-dir-grid .cbnexus-member-avatar { margin-bottom: 10px; }
+.cbnexus-dir-grid .cbnexus-member-info { margin-bottom: 8px; }
+.cbnexus-dir-grid .cbnexus-member-actions { margin-top: 14px; }
+
+/* ── List View ───────────────────────────────────────────────── */
+.cbnexus-dir-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.cbnexus-dir-list .cbnexus-member-card {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 18px;
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius);
+	background: var(--cb-card);
+	box-shadow: var(--cb-shadow);
+	transition: box-shadow .15s;
+	cursor: pointer;
+}
+
+.cbnexus-dir-list .cbnexus-member-card:hover { box-shadow: var(--cb-shadow-md); }
+.cbnexus-dir-list .cbnexus-member-info { flex: 1; }
+.cbnexus-dir-list .cbnexus-member-name { margin-bottom: 2px; }
+
+/* ── Avatars ─────────────────────────────────────────────────── */
+.cbnexus-member-avatar {
+	width: 52px;
+	height: 52px;
+	border-radius: 20px;
+	overflow: hidden;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cbnexus-member-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.cbnexus-member-initials {
+	font-size: 18px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+}
+
+.cbnexus-profile-avatar-lg {
+	width: 80px;
+	height: 80px;
+	border-radius: 30px;
+	overflow: hidden;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cbnexus-profile-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+.cbnexus-member-initials-lg { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+
+/* ── Card Content ────────────────────────────────────────────── */
+.cbnexus-member-name {
+	margin: 0 0 2px;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cbnexus-member-name a {
+	color: var(--cb-text);
+	text-decoration: none;
+}
+
+.cbnexus-member-name a:hover { color: var(--cb-accent); }
+
+.cbnexus-member-title {
+	margin: 0;
+	font-size: 13px;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-member-company {
+	margin: 0 0 6px;
+	font-size: 13px;
+	color: var(--cb-text-sec);
+}
+
+.cbnexus-member-industry {
+	display: inline-block;
+	padding: 4px 11px;
+	background: var(--cb-bg-deep);
+	border: 1px solid var(--cb-border);
+	border-radius: 20px;
+	color: var(--cb-text-sec);
+	font-size: 12px;
+	font-weight: 500;
+	margin-bottom: 8px;
+}
+
+/* ── Profile Page ────────────────────────────────────────────── */
+.cbnexus-profile-page { max-width: 100%; }
+
+.cbnexus-back-link {
+	display: inline-block;
+	margin-bottom: 14px;
+	color: var(--cb-accent);
+	text-decoration: none;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cbnexus-back-link:hover { text-decoration: underline; }
+
+.cbnexus-profile-header {
+	display: flex;
+	gap: 20px;
+	align-items: flex-start;
+	padding: 20px 22px;
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius);
+	background: var(--cb-card);
+	margin-bottom: 14px;
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-profile-header-info { flex: 1; }
+.cbnexus-profile-header-info h2 { margin: 0 0 2px; font-size: 22px; font-weight: 700; color: var(--cb-text); letter-spacing: -0.3px; }
+.cbnexus-profile-jobtitle { margin: 0 0 8px; font-size: 15px; color: var(--cb-text-sec); }
+.cbnexus-profile-since { margin: 8px 0 0; font-size: 13px; color: var(--cb-text-sec); }
+
+.cbnexus-profile-header-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+
+.cbnexus-profile-columns {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+/* ── Contact List ────────────────────────────────────────────── */
+.cbnexus-contact-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cbnexus-contact-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 14px;
+}
+
+.cbnexus-contact-item .dashicons {
+	color: var(--cb-text-sec);
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+}
+
+.cbnexus-contact-item a { color: var(--cb-accent); text-decoration: none; }
+.cbnexus-contact-item a:hover { text-decoration: underline; }
+
+.cbnexus-dir-empty {
+	text-align: center;
+	padding: 40px 20px;
+	color: var(--cb-text-sec);
+}
+

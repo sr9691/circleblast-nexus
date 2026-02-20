@@ -1,0 +1,35 @@
+/* ══════════════════════════════════════════════════════════════
+   Profile Edit Page (matching demo)
+   ══════════════════════════════════════════════════════════════ */
+
+.cbnexus-profile-edit-header {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.cbnexus-profile-edit-avatar {
+	width: 68px;
+	height: 68px;
+	border-radius: 24px;
+	background: var(--cb-accent-soft);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid var(--cb-border);
+}
+
+.cbnexus-profile-edit-avatar span {
+	font-size: 26px;
+	font-weight: 700;
+	color: var(--cb-accent);
+}
+
+.cbnexus-profile-edit-name h2 {
+	margin: 0 0 2px;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--cb-text);
+}
+
