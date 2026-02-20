@@ -249,4 +249,111 @@ final class CBNexus_Recruitment_Coverage_Service {
 
 		return $map;
 	}
+
+	// ─── Email Prompt HTML ────────────────────────────────────────────
+
+	/**
+	 * Get the subtle footer block HTML for regular emails.
+	 *
+	 * Shows top 2-3 open categories with priority dots in a compact list.
+	 * Returns empty string if no gaps exist.
+	 */
+	public static function get_footer_prompt_html(): string {
+		$gaps = self::get_top_gaps(3);
+		if (empty($gaps)) {
+			return '';
+		}
+
+		$admin_email = get_option('admin_email', '');
+		$p_colors = ['high' => '#dc2626', 'medium' => '#d97706', 'low' => '#059669'];
+
+		$html  = '<tr><td style="padding:0 30px;">';
+		$html .= '<table role="presentation" width="100%" cellspacing="0" cellpadding="0">';
+		$html .= '<tr><td style="border-top:1px solid #e9e3ed;padding:18px 0 4px;">';
+		$html .= '<p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#8b7a94;text-transform:uppercase;letter-spacing:0.8px;">We\'re Looking For&hellip;</p>';
+		$html .= '<table role="presentation" width="100%" cellspacing="0" cellpadding="0">';
+
+		foreach ($gaps as $gap) {
+			$dot = esc_attr($p_colors[$gap->priority] ?? '#d97706');
+			$html .= '<tr><td style="padding:4px 0;font-size:13px;color:#333;">';
+			$html .= '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' . $dot . ';margin-right:6px;vertical-align:middle;"></span>';
+			$html .= '<strong>' . esc_html($gap->title) . '</strong>';
+			if ($gap->description) {
+				$html .= ' <span style="color:#888;">&mdash; ' . esc_html(wp_trim_words($gap->description, 8, '…')) . '</span>';
+			}
+			$html .= '</td></tr>';
+		}
+
+		$html .= '</table>';
+
+		if ($admin_email) {
+			$mailto = 'mailto:' . esc_attr($admin_email) . '?subject=' . rawurlencode('CircleBlast referral');
+			$html .= '<p style="margin:10px 0 0;font-size:12px;color:#8b7a94;">Know someone who\'d be a great fit? <a href="' . $mailto . '" style="color:#5b2d6e;font-weight:600;text-decoration:none;">Send a referral &rarr;</a></p>';
+		}
+
+		$html .= '</td></tr></table></td></tr>';
+
+		return $html;
+	}
+
+	/**
+	 * Get the prominent "Help Us Grow" section HTML for digest/summary emails.
+	 *
+	 * Returns empty string if no gaps exist.
+	 */
+	public static function get_prominent_prompt_html(): string {
+		$gaps = self::get_top_gaps(3);
+		if (empty($gaps)) {
+			return '';
+		}
+
+		$admin_email = get_option('admin_email', '');
+		$p_colors = ['high' => '#dc2626', 'medium' => '#d97706', 'low' => '#059669'];
+		$p_labels = ['high' => 'High Priority', 'medium' => 'Medium Priority', 'low' => 'Low Priority'];
+
+		$html  = '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#faf6fc;border:1px solid #e9e3ed;border-radius:8px;margin:20px 0 0;">';
+		$html .= '<tr><td style="padding:22px 24px;">';
+		$html .= '<h3 style="margin:0 0 6px;font-size:16px;color:#5b2d6e;font-weight:700;">&#127793; Help Us Grow</h3>';
+		$html .= '<p style="margin:0 0 14px;font-size:13px;color:#555;line-height:1.5;">We\'re actively looking for members who can fill these roles. If someone comes to mind, we\'d love an introduction.</p>';
+		$html .= '<table role="presentation" width="100%" cellspacing="0" cellpadding="0">';
+
+		$first = true;
+		foreach ($gaps as $gap) {
+			$dot   = esc_attr($p_colors[$gap->priority] ?? '#d97706');
+			$label = esc_html($p_labels[$gap->priority] ?? 'Medium Priority');
+
+			if (!$first) {
+				$html .= '<tr><td style="height:6px;"></td></tr>';
+			}
+			$first = false;
+
+			$html .= '<tr><td style="padding:8px 12px;background:#fff;border-radius:6px;">';
+			$html .= '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>';
+			$html .= '<td style="font-size:14px;color:#1a1a2e;">';
+			$html .= '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' . $dot . ';margin-right:8px;vertical-align:middle;"></span>';
+			$html .= '<strong>' . esc_html($gap->title) . '</strong>';
+			$html .= '</td>';
+			$html .= '<td style="text-align:right;font-size:12px;color:' . $dot . ';font-weight:600;">' . $label . '</td>';
+			$html .= '</tr></table>';
+
+			if ($gap->description) {
+				$html .= '<p style="margin:4px 0 0 16px;font-size:12px;color:#777;">' . esc_html(wp_trim_words($gap->description, 12, '…')) . '</p>';
+			}
+			$html .= '</td></tr>';
+		}
+
+		$html .= '</table>';
+
+		// CTA
+		if ($admin_email) {
+			$mailto = 'mailto:' . esc_attr($admin_email) . '?subject=' . rawurlencode('CircleBlast referral');
+			$html .= '<p style="margin:16px 0 0;text-align:center;">';
+			$html .= '<a href="' . $mailto . '" style="display:inline-block;padding:10px 24px;background:#5b2d6e;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600;">Submit a Referral</a>';
+			$html .= '</p>';
+		}
+
+		$html .= '</td></tr></table>';
+
+		return $html;
+	}
 }

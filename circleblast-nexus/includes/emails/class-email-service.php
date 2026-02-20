@@ -44,7 +44,7 @@ final class CBNexus_Email_Service {
 		self::process_html_blocks($vars);
 
 		$body      = self::replace_placeholders($template['body'], $vars);
-		$html_body = self::wrap_html($body, $subject);
+		$html_body = self::wrap_html($body, $subject, $template_id);
 
 		$headers = [
 			'Content-Type: text/html; charset=UTF-8',
@@ -225,11 +225,33 @@ final class CBNexus_Email_Service {
 		return self::wrap_html($body, $subject);
 	}
 
-	private static function wrap_html(string $body, string $subject): string {
+	private static function wrap_html(string $body, string $subject, string $template_id = ''): string {
 		$year = gmdate('Y');
 		$colors = CBNexus_Color_Scheme::get_email_colors();
 		$logo_url = CBNexus_Color_Scheme::get_logo_url('email');
 		$header_bg = esc_attr($colors['header_bg']);
+
+		// Determine referral prompt type for this template.
+		$referral_html = '';
+		$prompt_type = 'none';
+		if ($template_id !== '' && class_exists('CBNexus_Recruitment_Coverage_Service')) {
+			$prompt_type = self::get_referral_prompt_type($template_id);
+			if ($prompt_type === 'subtle') {
+				$referral_html = CBNexus_Recruitment_Coverage_Service::get_footer_prompt_html();
+			} elseif ($prompt_type === 'prominent') {
+				$referral_html = CBNexus_Recruitment_Coverage_Service::get_prominent_prompt_html();
+			}
+		}
+
+		// For prominent type, append to the body content.
+		// For subtle type, insert as a separate row before the footer.
+		$body_with_prominent = ($referral_html && $prompt_type === 'prominent')
+			? $body . $referral_html
+			: $body;
+
+		$subtle_row = ($referral_html && $prompt_type === 'subtle')
+			? $referral_html
+			: '';
 
 		return '<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -242,11 +264,83 @@ final class CBNexus_Email_Service {
 <img src="' . esc_url($logo_url) . '" alt="CircleBlast" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px;" />
 <span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:22px;font-weight:600;">CircleBlast</span>
 </td></tr>
-<tr><td style="padding:30px;">' . $body . '</td></tr>
+<tr><td style="padding:30px;">' . $body_with_prominent . '</td></tr>
+' . $subtle_row . '
 <tr><td style="padding:20px 30px;background-color:#f8f9fa;text-align:center;font-size:13px;color:#6c757d;">
 <p style="margin:0;">CircleBlast Professional Networking Group</p>
 <p style="margin:5px 0 0;">&copy; ' . $year . ' CircleBlast. All rights reserved.</p>
 </td></tr></table></td></tr></table></body></html>';
+	}
+
+	/**
+	 * Defaults for which templates get which referral prompt type.
+	 */
+	private static $default_referral_prompts = [
+		'meeting_reminder'               => 'subtle',
+		'meeting_notes_request'          => 'subtle',
+		'event_reminder'                 => 'subtle',
+		'event_submitted_confirmation'   => 'subtle',
+		'events_digest'                  => 'prominent',
+		'circleup_summary'               => 'prominent',
+		'monthly_admin_report'           => 'prominent',
+	];
+
+	/**
+	 * Get the referral prompt type for a given template.
+	 *
+	 * Checks admin overrides (stored in cbnexus_email_referral_prompts option),
+	 * then falls back to built-in defaults.
+	 *
+	 * @return string 'subtle', 'prominent', or 'none'
+	 */
+	public static function get_referral_prompt_type(string $template_id): string {
+		$overrides = get_option('cbnexus_email_referral_prompts', []);
+
+		if (isset($overrides[$template_id])) {
+			return $overrides[$template_id];
+		}
+
+		return self::$default_referral_prompts[$template_id] ?? 'none';
+	}
+
+	/**
+	 * Get all template IDs with their referral prompt setting (for admin UI).
+	 */
+	public static function get_all_referral_prompt_settings(): array {
+		$overrides = get_option('cbnexus_email_referral_prompts', []);
+		$all = [];
+
+		// Gather all known templates from the defaults + any overrides.
+		$known = array_keys(self::$default_referral_prompts);
+		foreach ($overrides as $tid => $type) {
+			if (!in_array($tid, $known, true)) {
+				$known[] = $tid;
+			}
+		}
+
+		foreach ($known as $tid) {
+			$all[$tid] = $overrides[$tid] ?? (self::$default_referral_prompts[$tid] ?? 'none');
+		}
+
+		return $all;
+	}
+
+	/**
+	 * Save referral prompt settings from admin UI.
+	 */
+	public static function save_referral_prompt_settings(array $settings): void {
+		$clean = [];
+		foreach ($settings as $tid => $type) {
+			$tid  = sanitize_key($tid);
+			$type = in_array($type, ['subtle', 'prominent', 'none'], true) ? $type : 'none';
+
+			// Only store if different from default (keeps option small).
+			$default = self::$default_referral_prompts[$tid] ?? 'none';
+			if ($type !== $default) {
+				$clean[$tid] = $type;
+			}
+		}
+		update_option('cbnexus_email_referral_prompts', $clean, false);
 	}
 
 	private static function log_email(string $to_email, string $template_id, string $subject, string $status, array $options, ?string $error = null): void {

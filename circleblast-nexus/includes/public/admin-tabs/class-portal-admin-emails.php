@@ -10,24 +10,31 @@ defined('ABSPATH') || exit;
 final class CBNexus_Portal_Admin_Emails {
 
 	private static $email_templates = [
-		'welcome_member'           => ['name' => 'Welcome New Member',        'group' => 'Members'],
-		'meeting_request_received' => ['name' => 'Meeting Request Received',  'group' => '1:1 Meetings'],
-		'meeting_request_sent'     => ['name' => 'Meeting Request Sent',      'group' => '1:1 Meetings'],
-		'meeting_accepted'         => ['name' => 'Meeting Accepted',          'group' => '1:1 Meetings'],
-		'meeting_declined'         => ['name' => 'Meeting Declined',          'group' => '1:1 Meetings'],
-		'meeting_reminder'         => ['name' => 'Meeting Reminder',          'group' => '1:1 Meetings'],
-		'meeting_notes_request'    => ['name' => 'Notes Request',             'group' => '1:1 Meetings'],
-		'suggestion_match'         => ['name' => 'Monthly Match',             'group' => 'Matching'],
-		'suggestion_reminder'      => ['name' => 'Match Reminder',            'group' => 'Matching'],
-		'circleup_summary'         => ['name' => 'CircleUp Recap',            'group' => 'CircleUp'],
-		'event_reminder'           => ['name' => 'Event Reminder',            'group' => 'Events'],
-		'events_digest'            => ['name' => 'Events Digest',             'group' => 'Events'],
-		'monthly_admin_report'     => ['name' => 'Monthly Admin Report',      'group' => 'Admin'],
-		'recruit_stage_referrer'   => ['name' => 'Referrer Stage Update',    'group' => 'Recruitment'],
-		'recruit_invitation'       => ['name' => 'Candidate Invitation',     'group' => 'Recruitment'],
-		'recruit_accepted'         => ['name' => 'Candidate Accepted',       'group' => 'Recruitment'],
-		'recruit_visited_thankyou'  => ['name' => 'Visit Thank You',          'group' => 'Recruitment'],
-		'recruit_feedback_referrer' => ['name' => 'Feedback Received (Referrer)', 'group' => 'Recruitment'],
+		'welcome_member'                => ['name' => 'Welcome New Member',             'group' => 'Members'],
+		'reactivation_member'           => ['name' => 'Member Reactivation',            'group' => 'Members'],
+		'meeting_request_received'      => ['name' => 'Meeting Request Received',       'group' => '1:1 Meetings'],
+		'meeting_request_sent'          => ['name' => 'Meeting Request Sent',           'group' => '1:1 Meetings'],
+		'meeting_accepted'              => ['name' => 'Meeting Accepted',               'group' => '1:1 Meetings'],
+		'meeting_declined'              => ['name' => 'Meeting Declined',               'group' => '1:1 Meetings'],
+		'meeting_reminder'              => ['name' => 'Meeting Reminder',               'group' => '1:1 Meetings'],
+		'meeting_notes_request'         => ['name' => 'Notes Request',                  'group' => '1:1 Meetings'],
+		'suggestion_match'              => ['name' => 'Monthly Match',                  'group' => 'Matching'],
+		'suggestion_reminder'           => ['name' => 'Match Reminder',                 'group' => 'Matching'],
+		'circleup_summary'              => ['name' => 'CircleUp Recap',                 'group' => 'CircleUp'],
+		'circleup_forward'              => ['name' => 'CircleUp Forward',               'group' => 'CircleUp'],
+		'event_reminder'                => ['name' => 'Event Reminder',                 'group' => 'Events'],
+		'event_submitted_confirmation'  => ['name' => 'Event Submission Confirmation',  'group' => 'Events'],
+		'event_approved'                => ['name' => 'Event Approved',                 'group' => 'Events'],
+		'event_denied'                  => ['name' => 'Event Denied',                   'group' => 'Events'],
+		'event_pending'                 => ['name' => 'Event Pending Review',           'group' => 'Events'],
+		'events_digest'                 => ['name' => 'Events Digest',                  'group' => 'Events'],
+		'monthly_admin_report'          => ['name' => 'Monthly Admin Report',           'group' => 'Admin'],
+		'recruitment_categories'        => ['name' => 'Recruitment Categories Blast',   'group' => 'Recruitment'],
+		'recruit_stage_referrer'        => ['name' => 'Referrer Stage Update',          'group' => 'Recruitment'],
+		'recruit_invitation'            => ['name' => 'Candidate Invitation',           'group' => 'Recruitment'],
+		'recruit_accepted'              => ['name' => 'Candidate Accepted',             'group' => 'Recruitment'],
+		'recruit_visited_thankyou'      => ['name' => 'Visit Thank You',                'group' => 'Recruitment'],
+		'recruit_feedback_referrer'     => ['name' => 'Feedback Received (Referrer)',    'group' => 'Recruitment'],
 	];
 
 	public static function render(): void {
@@ -59,15 +66,26 @@ final class CBNexus_Portal_Admin_Emails {
 					<table class="cbnexus-admin-table">
 						<thead><tr>
 							<th>Template</th>
+							<th style="width:120px;">Referral Prompt</th>
 							<th style="width:100px;">Customized?</th>
 							<th style="width:80px;">Actions</th>
 						</tr></thead>
 						<tbody>
 						<?php foreach ($templates as $id => $meta) :
 							$has_override = (bool) get_option('cbnexus_email_tpl_' . $id);
+							$prompt_type  = CBNexus_Email_Service::get_referral_prompt_type($id);
 						?>
 							<tr>
 								<td><?php echo esc_html($meta['name']); ?></td>
+								<td>
+									<?php if ($prompt_type === 'prominent') : ?>
+										<span class="cbnexus-status-pill" style="background:#5b2d6e;">Prominent</span>
+									<?php elseif ($prompt_type === 'subtle') : ?>
+										<span class="cbnexus-status-pill" style="background:#8b7a94;">Subtle</span>
+									<?php else : ?>
+										<span class="cbnexus-admin-meta">None</span>
+									<?php endif; ?>
+								</td>
 								<td><?php echo $has_override ? '<span class="cbnexus-status-pill cbnexus-status-green">Yes</span>' : '<span class="cbnexus-admin-meta">Default</span>'; ?></td>
 								<td><a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('emails', ['tpl' => $id])); ?>" class="cbnexus-link">Edit</a></td>
 							</tr>
@@ -91,8 +109,9 @@ final class CBNexus_Portal_Admin_Emails {
 		$file     = CBNEXUS_PLUGIN_DIR . 'templates/emails/' . $tpl_id . '.php';
 		$default  = file_exists($file) ? include $file : ['subject' => '', 'body' => ''];
 
-		$subject = $override['subject'] ?? $default['subject'] ?? '';
-		$body    = $override['body'] ?? $default['body'] ?? '';
+		$subject      = $override['subject'] ?? $default['subject'] ?? '';
+		$body         = $override['body'] ?? $default['body'] ?? '';
+		$prompt_type  = CBNexus_Email_Service::get_referral_prompt_type($tpl_id);
 		?>
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
@@ -114,6 +133,25 @@ final class CBNexus_Portal_Admin_Emails {
 						<textarea name="body" rows="12" style="font-family:monospace;font-size:13px;"><?php echo esc_textarea($body); ?></textarea>
 					</div>
 					<p class="cbnexus-admin-meta">Use <code>{{variable}}</code> placeholders. Available: first_name, last_name, display_name, email, site_url, portal_url, login_url.</p>
+
+					<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">
+						<label><strong>Recruitment Referral Prompt</strong></label>
+						<p class="cbnexus-admin-meta" style="margin:0 0 8px;">Choose whether this email includes a recruitment referral section. Only shown when open roles exist.</p>
+						<select name="referral_prompt" style="min-width:200px;">
+							<option value="none" <?php selected($prompt_type, 'none'); ?>>None</option>
+							<option value="subtle" <?php selected($prompt_type, 'subtle'); ?>>Subtle footer</option>
+							<option value="prominent" <?php selected($prompt_type, 'prominent'); ?>>Prominent section</option>
+						</select>
+						<span class="cbnexus-admin-meta" style="margin-left:8px;">
+							<?php if ($prompt_type === 'subtle') : ?>
+								Compact "We're Looking For…" list above the email footer.
+							<?php elseif ($prompt_type === 'prominent') : ?>
+								"Help Us Grow" card with priority badges and referral CTA.
+							<?php else : ?>
+								No recruitment content in this email.
+							<?php endif; ?>
+						</span>
+					</div>
 				</div>
 
 				<div class="cbnexus-admin-button-row">
@@ -140,6 +178,12 @@ final class CBNexus_Portal_Admin_Emails {
 			'subject' => sanitize_text_field(wp_unslash($_POST['subject'] ?? '')),
 			'body'    => wp_unslash($_POST['body'] ?? ''),
 		]);
+
+		// Save referral prompt setting for this template.
+		$prompt = sanitize_key($_POST['referral_prompt'] ?? 'none');
+		$all_settings = get_option('cbnexus_email_referral_prompts', []);
+		$all_settings[$tpl_id] = $prompt;
+		CBNexus_Email_Service::save_referral_prompt_settings($all_settings);
 
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('emails', ['tpl' => $tpl_id, 'pa_notice' => 'template_saved']));
 		exit;
