@@ -1,0 +1,146 @@
+/* ── Rich-Text Email Editor ─────────────────────────────────── */
+/* Uses --cb-* theme variables so it adapts to any color scheme. */
+
+.cbnexus-rte-tabs {
+	display: flex;
+	gap: 0;
+	margin-bottom: 0;
+}
+.cbnexus-rte-tab {
+	padding: 6px 16px;
+	font-size: 13px;
+	font-weight: 600;
+	text-decoration: none;
+	border: 1.5px solid var(--cb-border);
+	border-bottom: none;
+	border-radius: var(--cb-radius-sm) var(--cb-radius-sm) 0 0;
+	background: var(--cb-bg);
+	color: var(--cb-text-sec);
+	cursor: pointer;
+	transition: color .15s, background .15s;
+}
+.cbnexus-rte-tab:hover {
+	color: var(--cb-text);
+	background: var(--cb-bg-deep);
+}
+.cbnexus-rte-tab.active {
+	background: var(--cb-card);
+	color: var(--cb-accent);
+	border-bottom-color: var(--cb-card);
+	position: relative;
+	z-index: 1;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────── */
+.cbnexus-rte-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	padding: 6px 8px;
+	background: var(--cb-bg);
+	border: 1.5px solid var(--cb-border);
+	border-top: none;
+}
+.cbnexus-rte-toolbar button {
+	padding: 4px 8px;
+	font-size: 13px;
+	background: var(--cb-card);
+	border: 1px solid var(--cb-border);
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--cb-text-sec);
+	line-height: 1.4;
+	transition: border-color .15s, color .15s, background .15s;
+}
+.cbnexus-rte-toolbar button:hover {
+	background: var(--cb-bg-deep);
+	border-color: var(--cb-accent-mid);
+	color: var(--cb-text);
+}
+.cbnexus-rte-sep {
+	width: 1px;
+	background: var(--cb-border-soft);
+	margin: 2px 4px;
+}
+
+/* ── Visual (contenteditable) ───────────────────────────────── */
+.cbnexus-rte-visual {
+	min-height: 250px;
+	max-height: 500px;
+	overflow-y: auto;
+	padding: 14px 16px;
+	border: 1.5px solid var(--cb-border);
+	border-top: none;
+	background: var(--cb-card);
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--cb-text);
+	outline: none;
+	border-radius: 0 0 var(--cb-radius-sm) var(--cb-radius-sm);
+	font-family: inherit;
+	transition: border-color .15s, box-shadow .15s;
+}
+.cbnexus-rte-visual:focus {
+	border-color: var(--cb-accent);
+	box-shadow: 0 0 0 2px var(--cb-accent-soft);
+}
+.cbnexus-rte-visual h2,
+.cbnexus-rte-visual h3 {
+	margin: 12px 0 4px;
+	color: var(--cb-text);
+}
+.cbnexus-rte-visual p {
+	margin: 0 0 8px;
+}
+.cbnexus-rte-visual a {
+	color: var(--cb-accent);
+}
+.cbnexus-rte-visual ul,
+.cbnexus-rte-visual ol {
+	margin: 0 0 8px 20px;
+}
+
+/* ── HTML (textarea) ────────────────────────────────────────── */
+.cbnexus-rte-html {
+	width: 100%;
+	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	font-size: 13px;
+	line-height: 1.6;
+	padding: 14px 16px;
+	border: 1.5px solid var(--cb-border);
+	border-top: none;
+	border-radius: 0 0 var(--cb-radius-sm) var(--cb-radius-sm);
+	resize: vertical;
+	background: var(--cb-card);
+	color: var(--cb-text);
+	transition: border-color .15s, box-shadow .15s;
+}
+.cbnexus-rte-html:focus {
+	border-color: var(--cb-accent);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--cb-accent-soft);
+}
+
+/* ── Placeholder Buttons ────────────────────────────────────── */
+.cbnexus-rte-placeholders {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-items: center;
+	margin-top: 8px;
+}
+.cbnexus-rte-placeholder-btn {
+	padding: 2px 8px;
+	font-size: 11px;
+	font-family: 'SFMono-Regular', Consolas, monospace;
+	background: var(--cb-accent-soft);
+	border: 1px solid var(--cb-border);
+	border-radius: var(--cb-radius-pill);
+	cursor: pointer;
+	color: var(--cb-accent);
+	transition: background .15s, border-color .15s;
+}
+.cbnexus-rte-placeholder-btn:hover {
+	background: var(--cb-accent-soft);
+	border-color: var(--cb-accent);
+}

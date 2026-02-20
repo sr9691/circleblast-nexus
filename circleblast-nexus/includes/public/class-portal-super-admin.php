@@ -277,6 +277,15 @@ final class CBNexus_Portal_Super_Admin {
 
 		$subject = $override['subject'] ?? $default['subject'] ?? '';
 		$body    = $override['body'] ?? $default['body'] ?? '';
+
+		// Enqueue the rich-text editor script.
+		wp_enqueue_script(
+			'cbnexus-email-editor',
+			CBNEXUS_PLUGIN_URL . 'assets/js/email-editor.js',
+			[],
+			CBNEXUS_VERSION,
+			true
+		);
 		?>
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
@@ -293,11 +302,10 @@ final class CBNexus_Portal_Super_Admin {
 						<label>Subject Line</label>
 						<input type="text" name="subject" value="<?php echo esc_attr($subject); ?>" />
 					</div>
-					<div>
-						<label>Body (HTML)</label>
-						<textarea name="body" rows="12" style="font-family:monospace;font-size:13px;"><?php echo esc_textarea($body); ?></textarea>
+					<div id="cbnexus-email-editor">
+						<label style="margin-bottom:8px;display:block;">Body</label>
+						<?php self::render_rte_editor($body); ?>
 					</div>
-					<p class="cbnexus-admin-meta">Use <code>{{variable}}</code> placeholders. Available: first_name, last_name, display_name, email, site_url, portal_url, login_url.</p>
 				</div>
 
 				<div class="cbnexus-admin-button-row">
@@ -307,6 +315,56 @@ final class CBNexus_Portal_Super_Admin {
 					<?php endif; ?>
 				</div>
 			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the Visual / HTML toggle rich-text editor.
+	 */
+	private static function render_rte_editor(string $body): void {
+		$placeholders = ['first_name', 'last_name', 'display_name', 'email', 'company', 'site_url', 'portal_url', 'login_url'];
+		?>
+		<!-- Editor mode tabs -->
+		<div class="cbnexus-rte-tabs">
+			<a href="#" data-rte-tab="visual" class="cbnexus-rte-tab active">Visual</a>
+			<a href="#" data-rte-tab="html" class="cbnexus-rte-tab">HTML</a>
+		</div>
+
+		<!-- Formatting toolbar (visual mode only) -->
+		<div class="cbnexus-rte-toolbar">
+			<button type="button" data-cmd="bold" title="Bold"><strong>B</strong></button>
+			<button type="button" data-cmd="italic" title="Italic"><em>I</em></button>
+			<button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+			<span class="cbnexus-rte-sep"></span>
+			<button type="button" data-cmd="formatBlock" data-val="<h2>" title="Heading">H</button>
+			<button type="button" data-cmd="formatBlock" data-val="<h3>" title="Subheading">H<small>2</small></button>
+			<button type="button" data-cmd="formatBlock" data-val="<p>" title="Paragraph">¶</button>
+			<span class="cbnexus-rte-sep"></span>
+			<button type="button" data-cmd="insertUnorderedList" title="Bullet List">• List</button>
+			<button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+			<span class="cbnexus-rte-sep"></span>
+			<button type="button" data-cmd="createLink" title="Insert Link">🔗 Link</button>
+			<button type="button" data-cmd="unlink" title="Remove Link">Unlink</button>
+			<span class="cbnexus-rte-sep"></span>
+			<button type="button" data-cmd="removeFormat" title="Clear Formatting">✕ Clear</button>
+		</div>
+
+		<!-- Visual editor (contenteditable) -->
+		<div class="cbnexus-rte-visual" contenteditable="true"><?php echo wp_kses_post($body); ?></div>
+
+		<!-- HTML editor (textarea, hidden by default) -->
+		<textarea class="cbnexus-rte-html" rows="14" style="display:none;"><?php echo esc_textarea($body); ?></textarea>
+
+		<!-- Hidden textarea that the form actually submits -->
+		<textarea name="body" style="display:none!important;"><?php echo esc_textarea($body); ?></textarea>
+
+		<!-- Placeholder insertion -->
+		<div class="cbnexus-rte-placeholders">
+			<span class="cbnexus-admin-meta">Insert placeholder:</span>
+			<?php foreach ($placeholders as $ph) : ?>
+				<button type="button" class="cbnexus-rte-placeholder-btn" data-placeholder="<?php echo esc_attr($ph); ?>">{{<?php echo esc_html($ph); ?>}}</button>
+			<?php endforeach; ?>
 		</div>
 		<?php
 	}

@@ -199,6 +199,15 @@ final class CBNexus_Admin_Email_Templates {
 			'reset'     => __('Template reset to default.', 'circleblast-nexus'),
 			'test_sent' => __('Test email sent.', 'circleblast-nexus'),
 		];
+		$placeholders = ['first_name', 'last_name', 'display_name', 'email', 'company', 'site_url', 'site_name', 'login_url'];
+
+		wp_enqueue_script(
+			'cbnexus-email-editor',
+			CBNEXUS_PLUGIN_URL . 'assets/js/email-editor.js',
+			[],
+			CBNEXUS_VERSION,
+			true
+		);
 		?>
 		<div class="wrap">
 			<h1><a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-email-templates')); ?>">← <?php esc_html_e('Templates', 'circleblast-nexus'); ?></a> / <?php echo esc_html($meta['name']); ?></h1>
@@ -214,9 +223,73 @@ final class CBNexus_Admin_Email_Templates {
 				<table class="form-table">
 					<tr><th><label><?php esc_html_e('Subject', 'circleblast-nexus'); ?></label></th>
 						<td><input type="text" name="subject" value="<?php echo esc_attr($tpl['subject']); ?>" class="large-text" /></td></tr>
-					<tr><th><label><?php esc_html_e('Body (HTML)', 'circleblast-nexus'); ?></label></th>
-						<td><textarea name="body" rows="18" class="large-text" style="font-family:monospace;font-size:13px;"><?php echo esc_textarea($tpl['body']); ?></textarea>
-							<p class="description"><?php esc_html_e('Use {{variable_name}} for dynamic content. HTML is allowed.', 'circleblast-nexus'); ?></p></td></tr>
+					<tr><th><label><?php esc_html_e('Body', 'circleblast-nexus'); ?></label></th>
+						<td>
+							<div id="cbnexus-email-editor">
+								<!-- Editor mode tabs -->
+								<div class="cbnexus-rte-tabs">
+									<a href="#" data-rte-tab="visual" class="cbnexus-rte-tab active">Visual</a>
+									<a href="#" data-rte-tab="html" class="cbnexus-rte-tab">HTML</a>
+								</div>
+
+								<!-- Formatting toolbar -->
+								<div class="cbnexus-rte-toolbar">
+									<button type="button" data-cmd="bold" title="Bold"><strong>B</strong></button>
+									<button type="button" data-cmd="italic" title="Italic"><em>I</em></button>
+									<button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+									<span class="cbnexus-rte-sep"></span>
+									<button type="button" data-cmd="formatBlock" data-val="<h2>" title="Heading">H</button>
+									<button type="button" data-cmd="formatBlock" data-val="<h3>" title="Subheading">H<small>2</small></button>
+									<button type="button" data-cmd="formatBlock" data-val="<p>" title="Paragraph">¶</button>
+									<span class="cbnexus-rte-sep"></span>
+									<button type="button" data-cmd="insertUnorderedList" title="Bullet List">• List</button>
+									<button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+									<span class="cbnexus-rte-sep"></span>
+									<button type="button" data-cmd="createLink" title="Insert Link">🔗 Link</button>
+									<button type="button" data-cmd="unlink" title="Remove Link">Unlink</button>
+									<span class="cbnexus-rte-sep"></span>
+									<button type="button" data-cmd="removeFormat" title="Clear Formatting">✕ Clear</button>
+								</div>
+
+								<!-- Visual editor -->
+								<div class="cbnexus-rte-visual" contenteditable="true"><?php echo wp_kses_post($tpl['body']); ?></div>
+
+								<!-- HTML editor (hidden by default) -->
+								<textarea class="cbnexus-rte-html" rows="18" style="display:none;"><?php echo esc_textarea($tpl['body']); ?></textarea>
+
+								<!-- Hidden textarea for form submission -->
+								<textarea name="body" style="display:none!important;"><?php echo esc_textarea($tpl['body']); ?></textarea>
+
+								<!-- Placeholder insertion -->
+								<div class="cbnexus-rte-placeholders">
+									<span class="description">Insert placeholder:</span>
+									<?php foreach ($placeholders as $ph) : ?>
+										<button type="button" class="cbnexus-rte-placeholder-btn" data-placeholder="<?php echo esc_attr($ph); ?>">{{<?php echo esc_html($ph); ?>}}</button>
+									<?php endforeach; ?>
+								</div>
+
+								<style>
+								.cbnexus-rte-tabs { display:flex; gap:0; margin-bottom:0; }
+								.cbnexus-rte-tab { padding:6px 16px; font-size:13px; font-weight:600; text-decoration:none; border:1px solid #c3c4c7; border-bottom:none; border-radius:4px 4px 0 0; background:#f0f0f1; color:#50575e; cursor:pointer; }
+								.cbnexus-rte-tab.active { background:#fff; color:#1d2327; border-bottom-color:#fff; position:relative; z-index:1; }
+								.cbnexus-rte-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:6px 8px; background:#f0f0f1; border:1px solid #c3c4c7; border-top:none; }
+								.cbnexus-rte-toolbar button { padding:4px 8px; font-size:13px; background:#fff; border:1px solid #c3c4c7; border-radius:3px; cursor:pointer; color:#50575e; line-height:1.4; }
+								.cbnexus-rte-toolbar button:hover { background:#f0f0f1; border-color:#8c8f94; color:#1d2327; }
+								.cbnexus-rte-sep { width:1px; background:#dcdcde; margin:2px 4px; }
+								.cbnexus-rte-visual { min-height:280px; max-height:500px; overflow-y:auto; padding:14px 16px; border:1px solid #c3c4c7; border-top:none; background:#fff; font-size:14px; line-height:1.7; color:#1d2327; outline:none; border-radius:0 0 4px 4px; }
+								.cbnexus-rte-visual:focus { border-color:#2271b1; box-shadow:0 0 0 1px #2271b1; }
+								.cbnexus-rte-visual h2, .cbnexus-rte-visual h3 { margin:12px 0 4px; }
+								.cbnexus-rte-visual p { margin:0 0 8px; }
+								.cbnexus-rte-visual a { color:#2271b1; }
+								.cbnexus-rte-visual ul, .cbnexus-rte-visual ol { margin:0 0 8px 20px; }
+								.cbnexus-rte-html { width:100%; font-family:Consolas, Monaco, monospace; font-size:13px; line-height:1.6; padding:14px 16px; border:1px solid #c3c4c7; border-top:none; border-radius:0 0 4px 4px; resize:vertical; }
+								.cbnexus-rte-html:focus { border-color:#2271b1; outline:none; box-shadow:0 0 0 1px #2271b1; }
+								.cbnexus-rte-placeholders { display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:8px; }
+								.cbnexus-rte-placeholder-btn { padding:2px 8px; font-size:11px; font-family:Consolas, Monaco, monospace; background:#f0f0f1; border:1px solid #c3c4c7; border-radius:3px; cursor:pointer; color:#50575e; }
+								.cbnexus-rte-placeholder-btn:hover { background:#dcdcde; border-color:#8c8f94; color:#1d2327; }
+								</style>
+							</div>
+						</td></tr>
 					<tr><th><label><?php esc_html_e('Send Test To', 'circleblast-nexus'); ?></label></th>
 						<td><div style="display:flex;gap:8px;">
 							<input type="email" name="test_email" value="<?php echo esc_attr(wp_get_current_user()->user_email); ?>" class="regular-text" />
