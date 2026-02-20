@@ -97,6 +97,10 @@ final class CBNexus_Fireflies_Webhook {
 	private static function validate_secret(\WP_REST_Request $request): bool {
 		$expected = defined('CBNEXUS_FIREFLIES_SECRET') ? CBNEXUS_FIREFLIES_SECRET : '';
 		if ($expected === '') {
+			$db_keys = get_option('cbnexus_api_keys', []);
+			$expected = $db_keys['fireflies_secret'] ?? '';
+		}
+		if ($expected === '') {
 			// No secret configured — accept all (dev mode).
 			return true;
 		}

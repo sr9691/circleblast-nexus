@@ -132,6 +132,10 @@ final class CBNexus_Portal_Admin {
 		if (isset($_POST['cbnexus_portal_save_email_sender'])) {
 			CBNexus_Portal_Admin_Settings::handle_save_email_sender();
 		}
+
+		if (isset($_POST['cbnexus_portal_save_api_keys'])) {
+			CBNexus_Portal_Admin_Settings::handle_save_api_keys();
+		}
 	}
 
 	// =====================================================================
@@ -253,6 +257,7 @@ final class CBNexus_Portal_Admin {
 			'scheme_saved'       => 'Color scheme updated! Changes are now live.',
 			'cron_saved'         => 'Cron schedules updated! Changes are now active.',
 			'sender_saved'       => 'Email sender settings saved.',
+			'apikeys_saved'      => 'API keys updated.',
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';

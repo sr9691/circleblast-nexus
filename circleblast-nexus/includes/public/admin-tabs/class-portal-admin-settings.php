@@ -230,17 +230,127 @@ final class CBNexus_Portal_Admin_Settings {
 
 				<div>
 					<h3>API Keys</h3>
-					<table class="cbnexus-admin-kv-table">
-						<tr>
-							<td>Claude API Key</td>
-							<td><?php echo defined('CBNEXUS_CLAUDE_API_KEY') ? '<span class="cbnexus-status-pill cbnexus-status-green">Configured</span>' : '<span class="cbnexus-status-pill cbnexus-status-gold">Not set</span>'; ?></td>
-						</tr>
-						<tr>
-							<td>Fireflies Secret</td>
-							<td><?php echo defined('CBNEXUS_FIREFLIES_SECRET') ? '<span class="cbnexus-status-pill cbnexus-status-green">Configured</span>' : '<span class="cbnexus-status-pill cbnexus-status-gold">Not set (dev mode)</span>'; ?></td>
-						</tr>
-					</table>
-					<p class="cbnexus-admin-meta" style="margin-top:8px;">API keys are configured in wp-config.php per security policy. They cannot be changed from this interface.</p>
+					<p class="cbnexus-admin-meta" style="margin:0 0 12px;">Manage API keys for external integrations. Keys set in <code>wp-config.php</code> take precedence and cannot be edited here.</p>
+					<?php
+					$db_keys = get_option('cbnexus_api_keys', []);
+					$built_in = [
+						'claude_api_key' => [
+							'label'    => 'Claude API Key',
+							'constant' => 'CBNEXUS_CLAUDE_API_KEY',
+							'hint'     => 'Used for AI extraction of CircleUp transcripts.',
+						],
+						'fireflies_secret' => [
+							'label'    => 'Fireflies Webhook Secret',
+							'constant' => 'CBNEXUS_FIREFLIES_SECRET',
+							'hint'     => 'Used to verify incoming Fireflies.ai webhooks.',
+						],
+					];
+					?>
+					<form method="post">
+						<?php wp_nonce_field('cbnexus_portal_save_api_keys', '_panonce_apikeys'); ?>
+						<table class="cbnexus-admin-table cbnexus-admin-table-sm">
+							<thead><tr>
+								<th>Key</th>
+								<th>Value</th>
+								<th>Source</th>
+								<th style="width:60px;"></th>
+							</tr></thead>
+							<tbody>
+							<?php foreach ($built_in as $key_id => $meta) :
+								$const_name = $meta['constant'];
+								$has_const = defined($const_name);
+								$db_val = $db_keys[$key_id] ?? '';
+								$has_value = $has_const || !empty($db_val);
+								$masked = '';
+								if ($has_const) {
+									$raw = constant($const_name);
+									$masked = str_repeat('•', max(0, strlen($raw) - 4)) . substr($raw, -4);
+								} elseif (!empty($db_val)) {
+									$masked = str_repeat('•', max(0, strlen($db_val) - 4)) . substr($db_val, -4);
+								}
+							?>
+								<tr>
+									<td>
+										<strong><?php echo esc_html($meta['label']); ?></strong>
+										<div class="cbnexus-admin-meta"><?php echo esc_html($meta['hint']); ?></div>
+									</td>
+									<td>
+										<?php if ($has_const) : ?>
+											<code style="font-size:12px;"><?php echo esc_html($masked); ?></code>
+										<?php else : ?>
+											<div class="cbnexus-apikey-display" id="apikey-display-<?php echo esc_attr($key_id); ?>" <?php echo empty($db_val) ? 'style="display:none;"' : ''; ?>>
+												<code style="font-size:12px;"><?php echo esc_html($masked); ?></code>
+											</div>
+											<div class="cbnexus-apikey-edit" id="apikey-edit-<?php echo esc_attr($key_id); ?>" <?php echo !empty($db_val) ? 'style="display:none;"' : ''; ?>>
+												<input type="password" name="api_key[<?php echo esc_attr($key_id); ?>]" value="" class="cbnexus-input" style="width:100%;max-width:360px;font-family:monospace;font-size:13px;" placeholder="Paste key here…" autocomplete="off" />
+											</div>
+										<?php endif; ?>
+									</td>
+									<td>
+										<?php if ($has_const) : ?>
+											<span class="cbnexus-status-pill cbnexus-status-green">wp-config.php</span>
+										<?php elseif (!empty($db_val)) : ?>
+											<span class="cbnexus-status-pill cbnexus-status-green">Database</span>
+										<?php else : ?>
+											<span class="cbnexus-status-pill cbnexus-status-gold">Not set</span>
+										<?php endif; ?>
+									</td>
+									<td>
+										<?php if (!$has_const) : ?>
+											<?php if (!empty($db_val)) : ?>
+												<button type="button" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline" onclick="document.getElementById('apikey-display-<?php echo esc_attr($key_id); ?>').style.display='none';document.getElementById('apikey-edit-<?php echo esc_attr($key_id); ?>').style.display='';">Edit</button>
+												<label style="display:inline;margin-left:4px;"><input type="checkbox" name="api_key_delete[<?php echo esc_attr($key_id); ?>]" value="1" /> <span style="font-size:12px;color:var(--cb-red);">Delete</span></label>
+											<?php endif; ?>
+										<?php else : ?>
+											<span class="cbnexus-admin-meta" style="font-size:11px;">Locked</span>
+										<?php endif; ?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+
+							<?php
+							// Custom keys stored in DB (not built-in).
+							$custom_keys = array_diff_key($db_keys, $built_in);
+							foreach ($custom_keys as $key_id => $val) :
+								$masked = str_repeat('•', max(0, strlen($val) - 4)) . substr($val, -4);
+							?>
+								<tr>
+									<td>
+										<strong><?php echo esc_html($key_id); ?></strong>
+										<div class="cbnexus-admin-meta">Custom key</div>
+									</td>
+									<td>
+										<div class="cbnexus-apikey-display" id="apikey-display-<?php echo esc_attr($key_id); ?>">
+											<code style="font-size:12px;"><?php echo esc_html($masked); ?></code>
+										</div>
+										<div class="cbnexus-apikey-edit" id="apikey-edit-<?php echo esc_attr($key_id); ?>" style="display:none;">
+											<input type="password" name="api_key[<?php echo esc_attr($key_id); ?>]" value="" class="cbnexus-input" style="width:100%;max-width:360px;font-family:monospace;font-size:13px;" placeholder="New value…" autocomplete="off" />
+										</div>
+									</td>
+									<td><span class="cbnexus-status-pill cbnexus-status-green">Database</span></td>
+									<td>
+										<button type="button" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline" onclick="document.getElementById('apikey-display-<?php echo esc_attr($key_id); ?>').style.display='none';document.getElementById('apikey-edit-<?php echo esc_attr($key_id); ?>').style.display='';">Edit</button>
+										<label style="display:inline;margin-left:4px;"><input type="checkbox" name="api_key_delete[<?php echo esc_attr($key_id); ?>]" value="1" /> <span style="font-size:12px;color:var(--cb-red);">Delete</span></label>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+
+							<!-- Add New Key row -->
+							<tr style="background:var(--cb-bg-deep);">
+								<td>
+									<input type="text" name="new_key_name" value="" class="cbnexus-input cbnexus-input-sm" style="width:100%;max-width:200px;" placeholder="Key name (e.g. smtp_password)" autocomplete="off" />
+								</td>
+								<td>
+									<input type="password" name="new_key_value" value="" class="cbnexus-input" style="width:100%;max-width:360px;font-family:monospace;font-size:13px;" placeholder="Key value…" autocomplete="off" />
+								</td>
+								<td colspan="2"><span class="cbnexus-admin-meta">Add new</span></td>
+							</tr>
+							</tbody>
+						</table>
+						<div style="margin-top:12px;">
+							<button type="submit" name="cbnexus_portal_save_api_keys" value="1" class="cbnexus-btn cbnexus-btn-primary">💾 Save API Keys</button>
+						</div>
+					</form>
 				</div>
 			</div>
 		</div>
@@ -432,6 +542,45 @@ final class CBNexus_Portal_Admin_Settings {
 	/**
 	 * Handle saving email sender settings.
 	 */
+	/**
+	 * Handle saving API keys.
+	 */
+	public static function handle_save_api_keys(): void {
+		if (!isset($_POST['cbnexus_portal_save_api_keys'])) { return; }
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_apikeys'] ?? ''), 'cbnexus_portal_save_api_keys')) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		$db_keys  = get_option('cbnexus_api_keys', []);
+		$input    = $_POST['api_key'] ?? [];
+		$deletes  = $_POST['api_key_delete'] ?? [];
+
+		// Process deletes.
+		foreach ($deletes as $key_id => $v) {
+			unset($db_keys[sanitize_key($key_id)]);
+		}
+
+		// Process edits (only update if a new value was submitted).
+		foreach ($input as $key_id => $val) {
+			$key_id = sanitize_key($key_id);
+			$val = sanitize_text_field($val);
+			if (!empty($val)) {
+				$db_keys[$key_id] = $val;
+			}
+		}
+
+		// Process new key.
+		$new_name  = sanitize_key($_POST['new_key_name'] ?? '');
+		$new_value = sanitize_text_field($_POST['new_key_value'] ?? '');
+		if (!empty($new_name) && !empty($new_value)) {
+			$db_keys[$new_name] = $new_value;
+		}
+
+		update_option('cbnexus_api_keys', $db_keys, false);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('settings', ['pa_notice' => 'apikeys_saved']));
+		exit;
+	}
+
 	public static function handle_save_email_sender(): void {
 		if (!isset($_POST['cbnexus_portal_save_email_sender'])) { return; }
 		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_sender'] ?? ''), 'cbnexus_portal_save_email_sender')) { return; }
