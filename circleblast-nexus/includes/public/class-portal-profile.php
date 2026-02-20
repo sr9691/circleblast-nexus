@@ -102,7 +102,7 @@ final class CBNexus_Portal_Profile {
 
 			<!-- Personal -->
 			<div class="cbnexus-card">
-				<div class="cbnexus-form-section-label"><?php esc_html_e('Personal', 'circleblast-nexus'); ?></div>
+				<div class="cbnexus-form-section-label"><?php esc_html_e('Your Details', 'circleblast-nexus'); ?></div>
 				<div class="cbnexus-form-row">
 					<div class="cbnexus-form-field">
 						<label for="first_name"><?php esc_html_e('First Name', 'circleblast-nexus'); ?></label>
@@ -138,6 +138,24 @@ final class CBNexus_Portal_Profile {
 						<input type="text" id="cb_title" name="cb_title" value="<?php echo esc_attr($profile['cb_title']); ?>" />
 					</div>
 				</div>
+				<?php
+				// Show read-only Category if assigned.
+				$member_cats = $profile['cb_member_categories'] ?? [];
+				if (!empty($member_cats)) :
+					$cat_id = is_array($member_cats) ? (int) ($member_cats[0] ?? 0) : 0;
+					if ($cat_id > 0) :
+						global $wpdb;
+						$cat_title = $wpdb->get_var($wpdb->prepare(
+							"SELECT title FROM {$wpdb->prefix}cb_recruitment_categories WHERE id = %d",
+							$cat_id
+						));
+						if ($cat_title) :
+				?>
+					<div class="cbnexus-form-field">
+						<label><?php esc_html_e('Category', 'circleblast-nexus'); ?></label>
+						<div style="padding:10px 0;"><span class="cbnexus-tag cbnexus-tag-category"><?php echo esc_html($cat_title); ?></span></div>
+					</div>
+				<?php endif; endif; endif; ?>
 				<div class="cbnexus-form-row">
 					<div class="cbnexus-form-field">
 						<label for="cb_industry"><?php esc_html_e('Industry', 'circleblast-nexus'); ?></label>
@@ -152,6 +170,10 @@ final class CBNexus_Portal_Profile {
 						<label for="cb_linkedin"><?php esc_html_e('LinkedIn', 'circleblast-nexus'); ?></label>
 						<input type="url" id="cb_linkedin" name="cb_linkedin" value="<?php echo esc_attr($profile['cb_linkedin']); ?>" />
 					</div>
+				</div>
+				<div class="cbnexus-form-field">
+					<label for="cb_website"><?php esc_html_e('Website', 'circleblast-nexus'); ?></label>
+					<input type="url" id="cb_website" name="cb_website" value="<?php echo esc_attr($profile['cb_website'] ?? ''); ?>" />
 				</div>
 			</div>
 

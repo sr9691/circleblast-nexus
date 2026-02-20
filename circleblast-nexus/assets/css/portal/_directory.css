@@ -82,34 +82,102 @@
 	color: var(--cb-text-sec);
 }
 
+/* ── Ghost Cards (Open Recruitment Needs) ────────────────────── */
+.cbnexus-dir-ghost-banner {
+	margin-bottom: 18px;
+}
+
+/* ── Directory filter selects inside admin-filters row ───────── */
+.cbnexus-dir-filter-select {
+	padding: 5px 12px;
+	border-radius: var(--cb-radius-pill);
+	border: 1.5px solid var(--cb-border);
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	font-size: 12px;
+	font-weight: 500;
+	font-family: inherit;
+	cursor: pointer;
+	transition: all .15s;
+	-webkit-appearance: none;
+	appearance: none;
+	padding-right: 24px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c97a5'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+}
+
+.cbnexus-dir-filter-select:hover {
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+}
+
+.cbnexus-dir-filter-select:focus {
+	outline: none;
+	border-color: var(--cb-accent);
+	background-color: var(--cb-accent-soft);
+	color: var(--cb-accent);
+}
+
+.cbnexus-dir-ghost-scroll {
+	display: flex;
+	gap: 12px;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	padding-bottom: 4px;
+}
+
+.cbnexus-ghost-card {
+	flex: 0 0 220px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 16px 18px;
+	border: 2px dashed var(--cb-border);
+	border-radius: var(--cb-radius);
+	background: var(--cb-card);
+	transition: border-color .2s, box-shadow .2s;
+}
+
+.cbnexus-ghost-card:hover {
+	box-shadow: var(--cb-shadow);
+}
+
+.cbnexus-ghost-title {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--cb-text);
+}
+
+.cbnexus-ghost-industry {
+	display: inline-block;
+	padding: 2px 8px;
+	background: var(--cb-bg-deep);
+	border: 1px solid var(--cb-border);
+	border-radius: 12px;
+	font-size: 11px;
+	color: var(--cb-text-sec);
+	font-weight: 500;
+	align-self: flex-start;
+}
+
+.cbnexus-ghost-cta {
+	font-size: 12px;
+	color: var(--cb-text-ter);
+	font-style: italic;
+}
+
+.cbnexus-ghost-refer-btn {
+	align-self: flex-start;
+	margin-top: 4px;
+}
+
 /* ── Grid View ───────────────────────────────────────────────── */
 .cbnexus-dir-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+	gap: 14px;
 }
-
-.cbnexus-dir-grid .cbnexus-member-card {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	padding: 22px 18px;
-	border: 1px solid var(--cb-border);
-	border-radius: var(--cb-radius);
-	background: var(--cb-card);
-	box-shadow: var(--cb-shadow);
-	transition: box-shadow .2s;
-	cursor: pointer;
-}
-
-.cbnexus-dir-grid .cbnexus-member-card:hover {
-	box-shadow: var(--cb-shadow-md);
-}
-
-.cbnexus-dir-grid .cbnexus-member-avatar { margin-bottom: 10px; }
-.cbnexus-dir-grid .cbnexus-member-info { margin-bottom: 8px; }
-.cbnexus-dir-grid .cbnexus-member-actions { margin-top: 14px; }
 
 /* ── List View ───────────────────────────────────────────────── */
 .cbnexus-dir-list {
@@ -118,22 +186,34 @@
 	gap: 8px;
 }
 
-.cbnexus-dir-list .cbnexus-member-card {
-	display: flex;
+.cbnexus-dir-list .cbnexus-admin-mcard {
+	flex-direction: row;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 14px;
+	gap: 12px;
 	padding: 14px 18px;
-	border: 1px solid var(--cb-border);
-	border-radius: var(--cb-radius);
-	background: var(--cb-card);
-	box-shadow: var(--cb-shadow);
-	transition: box-shadow .15s;
-	cursor: pointer;
 }
 
-.cbnexus-dir-list .cbnexus-member-card:hover { box-shadow: var(--cb-shadow-md); }
-.cbnexus-dir-list .cbnexus-member-info { flex: 1; }
-.cbnexus-dir-list .cbnexus-member-name { margin-bottom: 2px; }
+.cbnexus-dir-list .cbnexus-admin-mcard-header {
+	flex: 1;
+	min-width: 200px;
+	margin-bottom: 0;
+}
+
+.cbnexus-dir-list .cbnexus-admin-mcard-details {
+	flex: 1;
+	min-width: 200px;
+	border-top: none;
+	border-bottom: none;
+	border-left: 1px solid var(--cb-border-soft);
+	padding: 0 0 0 14px;
+	margin-bottom: 0;
+}
+
+.cbnexus-dir-list .cbnexus-admin-mcard-actions {
+	margin-top: 0;
+	flex-shrink: 0;
+}
 
 /* ── Avatars ─────────────────────────────────────────────────── */
 .cbnexus-member-avatar {
@@ -285,4 +365,3 @@
 	padding: 40px 20px;
 	color: var(--cb-text-sec);
 }
-

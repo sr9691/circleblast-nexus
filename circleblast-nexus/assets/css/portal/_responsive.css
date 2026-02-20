@@ -57,6 +57,17 @@
 	.cbnexus-dir-filters select { flex: 1; }
 	.cbnexus-dir-grid { grid-template-columns: 1fr; }
 
+	.cbnexus-dir-list .cbnexus-admin-mcard {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.cbnexus-dir-list .cbnexus-admin-mcard-details {
+		border-left: none;
+		border-top: 1px solid var(--cb-border-soft);
+		padding: 10px 0 0 0;
+	}
+
 	.cbnexus-profile-header {
 		flex-direction: column;
 		align-items: center;

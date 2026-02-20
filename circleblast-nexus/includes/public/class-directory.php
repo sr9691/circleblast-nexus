@@ -2,10 +2,12 @@
 /**
  * Member Directory
  *
- * ITER-0007 / UX Refresh: Searchable, filterable member directory matching
- * demo. Colored initials avatars with rounded-rect shape, "Request 1:1"
- * primary button on cards, pill-styled tags, profile page with two-column
- * layout for expertise/looking-for/can-help.
+ * Searchable, filterable member directory. Card design matches the
+ * Manage → Members admin view for visual consistency. Content is
+ * permission-based: admins see status + admin actions, members see
+ * contact icons + "Request 1:1".
+ *
+ * Ghost cards for open recruitment needs and AJAX filtering are preserved.
  */
 
 defined('ABSPATH') || exit;
@@ -36,6 +38,10 @@ final class CBNexus_Directory {
 			'nonce'    => wp_create_nonce('cbnexus_directory'),
 		]);
 	}
+
+	// =====================================================================
+	//  MAIN RENDER
+	// =====================================================================
 
 	public static function render(array $profile): void {
 		if (isset($_GET['member_id']) && absint($_GET['member_id']) > 0) {
@@ -79,50 +85,58 @@ final class CBNexus_Directory {
 			</div>
 			<?php endif; ?>
 
-			<div class="cbnexus-dir-controls">
-				<div class="cbnexus-dir-search">
-					<input type="text" id="cbnexus-dir-search" placeholder="<?php esc_attr_e('Search members...', 'circleblast-nexus'); ?>" />
+			<div class="cbnexus-card">
+				<div class="cbnexus-admin-header-row">
+					<h2>Directory (<span id="cbnexus-dir-count"><?php
+						$members = CBNexus_Member_Repository::get_all_members('active');
+						echo esc_html(count($members));
+					?></span>)</h2>
+					<div class="cbnexus-members-header-actions">
+						<div class="cbnexus-dir-view-toggle">
+							<button type="button" class="cbnexus-view-btn active" data-view="grid" title="<?php esc_attr_e('Grid View', 'circleblast-nexus'); ?>">▦</button>
+							<button type="button" class="cbnexus-view-btn" data-view="list" title="<?php esc_attr_e('List View', 'circleblast-nexus'); ?>">☰</button>
+						</div>
+					</div>
 				</div>
-				<div class="cbnexus-dir-filters">
-					<select id="cbnexus-dir-industry">
+
+				<!-- Filters -->
+				<div class="cbnexus-admin-filters">
+					<select id="cbnexus-dir-industry" class="cbnexus-dir-filter-select">
 						<option value=""><?php esc_html_e('All Industries', 'circleblast-nexus'); ?></option>
 						<?php foreach ($industries as $ind) : ?>
 							<option value="<?php echo esc_attr($ind); ?>"><?php echo esc_html($ind); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<?php if (!empty($recruit_cats)) : ?>
-					<select id="cbnexus-dir-category">
+					<select id="cbnexus-dir-category" class="cbnexus-dir-filter-select">
 						<option value=""><?php esc_html_e('All Categories', 'circleblast-nexus'); ?></option>
 						<?php foreach ($recruit_cats as $rc) : ?>
 							<option value="<?php echo esc_attr($rc->id); ?>"><?php echo esc_html($rc->title); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<?php endif; ?>
-					<div class="cbnexus-dir-view-toggle">
-						<button type="button" class="cbnexus-view-btn active" data-view="grid" title="<?php esc_attr_e('Grid View', 'circleblast-nexus'); ?>">⊞</button>
-						<button type="button" class="cbnexus-view-btn" data-view="list" title="<?php esc_attr_e('List View', 'circleblast-nexus'); ?>">☰</button>
-					</div>
+				</div>
+
+				<!-- Search -->
+				<div class="cbnexus-admin-search">
+					<input type="search" id="cbnexus-dir-search" placeholder="<?php esc_attr_e('Search by name, company, or keyword…', 'circleblast-nexus'); ?>" />
+				</div>
+
+				<div class="cbnexus-dir-loading" id="cbnexus-dir-loading" style="display:none;">
+					<p><?php esc_html_e('Loading members...', 'circleblast-nexus'); ?></p>
+				</div>
+
+				<div class="cbnexus-dir-results cbnexus-dir-grid" id="cbnexus-dir-results">
+					<?php echo self::render_cards($members); ?>
 				</div>
 			</div>
-
-			<div class="cbnexus-dir-meta">
-				<span id="cbnexus-dir-count"></span>
-			</div>
-
-			<div class="cbnexus-dir-loading" id="cbnexus-dir-loading" style="display:none;">
-				<p><?php esc_html_e('Loading members...', 'circleblast-nexus'); ?></p>
-			</div>
-
-			<div class="cbnexus-dir-results cbnexus-dir-grid" id="cbnexus-dir-results">
-				<?php
-				$members = CBNexus_Member_Repository::get_all_members('active');
-				echo self::render_cards($members);
-				?>
-			</div>
-			<script>document.getElementById('cbnexus-dir-count').textContent = '<?php echo esc_js(sprintf(_n('%d member', '%d members', count($members), 'circleblast-nexus'), count($members))); ?>';</script>
 		</div>
 		<?php
 	}
+
+	// =====================================================================
+	//  AJAX FILTER
+	// =====================================================================
 
 	public static function ajax_filter(): void {
 		check_ajax_referer('cbnexus_directory', 'nonce');
@@ -176,49 +190,79 @@ final class CBNexus_Directory {
 		]);
 	}
 
+	// =====================================================================
+	//  CARD RENDERING — Shared mcard design, permission-based content
+	// =====================================================================
+
 	private static function render_cards(array $members): string {
 		if (empty($members)) {
 			return '<div class="cbnexus-dir-empty"><p>' . esc_html__('No members found matching your criteria.', 'circleblast-nexus') . '</p></div>';
 		}
 
-		// Build category ID → title map for pills.
-		$cat_map = self::get_category_map();
-
+		$cat_map    = self::get_category_map();
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
-		$html = '';
+		$is_admin   = current_user_can('cbnexus_manage_members');
+		$viewer_id  = get_current_user_id();
+		$html       = '';
 
 		foreach ($members as $m) {
-			$profile_url = add_query_arg(['section' => 'directory', 'member_id' => $m['user_id']], $portal_url);
+			$uid         = $m['user_id'];
+			$profile_url = add_query_arg(['section' => 'directory', 'member_id' => $uid], $portal_url);
 			$initials    = self::get_initials($m);
-			$color       = self::get_avatar_color($m['user_id']);
+			$color       = self::get_avatar_color($uid);
 			$photo       = !empty($m['cb_photo_url']) ? $m['cb_photo_url'] : '';
+			$status      = $m['cb_member_status'] ?? 'active';
 			$expertise   = is_array($m['cb_expertise']) ? $m['cb_expertise'] : [];
 			$member_cats = $m['cb_member_categories'] ?? [];
 			if (!is_array($member_cats)) { $member_cats = json_decode($member_cats, true) ?: []; }
+			$cat_name = self::resolve_category_name($member_cats, $cat_map);
 
-			$html .= '<div class="cbnexus-member-card" data-industry="' . esc_attr($m['cb_industry'] ?? '') . '">';
+			$html .= '<div class="cbnexus-admin-mcard" data-industry="' . esc_attr($m['cb_industry'] ?? '') . '">';
 
-			// Avatar
-			$html .= '<div class="cbnexus-member-avatar" style="background:' . esc_attr($color) . '14;">';
+			// ── Header: avatar + identity + status (admin only) ──
+			$html .= '<div class="cbnexus-admin-mcard-header">';
+
+			$html .= '<div class="cbnexus-admin-mcard-avatar" style="background:' . esc_attr($color) . '14;">';
 			if ($photo) {
 				$html .= '<img src="' . esc_url($photo) . '" alt="' . esc_attr($m['display_name']) . '" />';
 			} else {
-				$html .= '<span class="cbnexus-member-initials" style="color:' . esc_attr($color) . ';">' . esc_html($initials) . '</span>';
+				$html .= '<span class="cbnexus-admin-mcard-initials" style="color:' . esc_attr($color) . ';">' . esc_html($initials) . '</span>';
 			}
 			$html .= '</div>';
 
-			// Info (clickable)
-			$html .= '<a href="' . esc_url($profile_url) . '" style="text-decoration:none;color:inherit;display:contents;">';
-			$html .= '<div class="cbnexus-member-info">';
-			$html .= '<h3 class="cbnexus-member-name">' . esc_html($m['display_name']) . '</h3>';
-			$html .= '<p class="cbnexus-member-title">' . esc_html($m['cb_title'] ?? '') . '</p>';
+			$html .= '<a href="' . esc_url($profile_url) . '" class="cbnexus-admin-mcard-identity cbnexus-mcard-link">';
+			$html .= '<h3 class="cbnexus-admin-mcard-name">' . esc_html($m['display_name']) . '</h3>';
+			$title_line = ($m['cb_title'] ?? '') . ($m['cb_company'] ? ' · ' . $m['cb_company'] : '');
+			$html .= '<p class="cbnexus-admin-mcard-title">' . esc_html($title_line) . '</p>';
+			$html .= '</a>';
 
-			if (!empty($m['cb_industry'])) {
-				$html .= '<span class="cbnexus-member-industry">' . esc_html($m['cb_industry']) . '</span>';
+			if ($is_admin) {
+				$html .= '<span class="cbnexus-status-pill cbnexus-status-' . esc_attr(self::status_color($status)) . '">' . esc_html(ucfirst($status)) . '</span>';
 			}
 
+			$html .= '</div>'; // end header
+
+			// ── Details ──
+			$html .= '<div class="cbnexus-admin-mcard-details">';
+
+			if ($cat_name !== '—') {
+				$html .= '<div class="cbnexus-admin-mcard-detail">';
+				$html .= '<span class="cbnexus-admin-mcard-detail-label">Category</span>';
+				$html .= '<span class="cbnexus-tag cbnexus-tag-category">' . esc_html($cat_name) . '</span>';
+				$html .= '</div>';
+			}
+			if (!empty($m['cb_industry'])) {
+				$html .= '<div class="cbnexus-admin-mcard-detail">';
+				$html .= '<span class="cbnexus-admin-mcard-detail-label">Industry</span>';
+				$html .= '<span class="cbnexus-admin-mcard-industry">' . esc_html($m['cb_industry']) . '</span>';
+				$html .= '</div>';
+			}
+
+			// Expertise tags (directory-specific — not shown on Manage page).
 			if (!empty($expertise)) {
-				$html .= '<div class="cbnexus-member-tags">';
+				$html .= '<div class="cbnexus-admin-mcard-detail cbnexus-admin-mcard-detail-tags">';
+				$html .= '<span class="cbnexus-admin-mcard-detail-label">Skills</span>';
+				$html .= '<span class="cbnexus-admin-mcard-tags-wrap">';
 				$show = array_slice($expertise, 0, 3);
 				foreach ($show as $tag) {
 					$html .= '<span class="cbnexus-tag">' . esc_html($tag) . '</span>';
@@ -226,45 +270,72 @@ final class CBNexus_Directory {
 				if (count($expertise) > 3) {
 					$html .= '<span class="cbnexus-tag cbnexus-tag-more">+' . (count($expertise) - 3) . '</span>';
 				}
+				$html .= '</span>';
 				$html .= '</div>';
 			}
 
-			// Category pills
-			if (!empty($member_cats) && !empty($cat_map)) {
-				$html .= '<div class="cbnexus-member-tags" style="margin-top:4px;">';
-				foreach ($member_cats as $cat_id) {
-					$cat_id = (int) $cat_id;
-					if (isset($cat_map[$cat_id])) {
-						$html .= '<span class="cbnexus-tag cbnexus-tag-category">' . esc_html($cat_map[$cat_id]) . '</span>';
-					}
+			// Admin-only: email + join date.
+			if ($is_admin) {
+				$html .= '<div class="cbnexus-admin-mcard-detail">';
+				$html .= '<span class="cbnexus-admin-mcard-detail-label">Email</span>';
+				$html .= '<span class="cbnexus-admin-mcard-value">' . esc_html($m['user_email']) . '</span>';
+				$html .= '</div>';
+				if (!empty($m['cb_join_date'])) {
+					$html .= '<div class="cbnexus-admin-mcard-detail">';
+					$html .= '<span class="cbnexus-admin-mcard-detail-label">Joined</span>';
+					$html .= '<span class="cbnexus-admin-mcard-value">' . esc_html($m['cb_join_date']) . '</span>';
+					$html .= '</div>';
+				}
+			}
+
+			$html .= '</div>'; // end details
+
+			// ── Actions (permission-based) ──
+			$html .= '<div class="cbnexus-admin-mcard-actions">';
+
+			if ($is_admin) {
+				// Admin actions: Edit + status transitions.
+				$edit_url = class_exists('CBNexus_Portal_Admin')
+					? CBNexus_Portal_Admin::admin_url('members', ['edit_member' => $uid])
+					: '#';
+				$html .= '<a href="' . esc_url($edit_url) . '" class="cbnexus-btn cbnexus-btn-sm">Edit</a>';
+				if ($status !== 'active') {
+					$html .= '<a href="' . esc_url(self::member_action_url('activate', $uid)) . '" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-success-outline">Activate</a>';
+				}
+				if ($status !== 'inactive') {
+					$html .= '<a href="' . esc_url(self::member_action_url('deactivate', $uid)) . '" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-danger-outline">Deactivate</a>';
+				}
+				if ($status !== 'alumni') {
+					$html .= '<a href="' . esc_url(self::member_action_url('alumni', $uid)) . '" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-muted-outline">Alumni</a>';
+				}
+			} else {
+				// Member actions: quick contact + Request 1:1.
+				$html .= '<div class="cbnexus-quick-contact">';
+				if (!empty($m['user_email'])) {
+					$html .= '<a href="mailto:' . esc_attr($m['user_email']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['user_email']) . '">✉️</a>';
+				}
+				if (!empty($m['cb_phone'])) {
+					$html .= '<a href="tel:' . esc_attr($m['cb_phone']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['cb_phone']) . '">📱</a>';
+				}
+				if (!empty($m['cb_linkedin'])) {
+					$html .= '<a href="' . esc_url($m['cb_linkedin']) . '" target="_blank" rel="noopener" class="cbnexus-contact-btn" title="LinkedIn">💼</a>';
 				}
 				$html .= '</div>';
+				if ((int) $uid !== $viewer_id) {
+					$html .= '<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm cbnexus-request-meeting-btn" data-member-id="' . esc_attr($uid) . '">' . esc_html__('Request 1:1', 'circleblast-nexus') . '</button>';
+				}
 			}
 
-			$html .= '</div>';
-			$html .= '</a>';
-
-			// Quick Contact bar + Request 1:1
-			$html .= '<div class="cbnexus-member-actions">';
-			$html .= '<div class="cbnexus-quick-contact">';
-			if (!empty($m['user_email'])) {
-				$html .= '<a href="mailto:' . esc_attr($m['user_email']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['user_email']) . '">✉️</a>';
-			}
-			if (!empty($m['cb_phone'])) {
-				$html .= '<a href="tel:' . esc_attr($m['cb_phone']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['cb_phone']) . '">📱</a>';
-			}
-			if (!empty($m['cb_linkedin'])) {
-				$html .= '<a href="' . esc_url($m['cb_linkedin']) . '" target="_blank" rel="noopener" class="cbnexus-contact-btn" title="LinkedIn">💼</a>';
-			}
-			$html .= '</div>';
-			$html .= '<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm cbnexus-request-meeting-btn" data-member-id="' . esc_attr($m['user_id']) . '" style="border-radius:10px;">' . esc_html__('Request 1:1', 'circleblast-nexus') . '</button>';
-			$html .= '</div>';
-
-			$html .= '</div>';
+			$html .= '</div>'; // end actions
+			$html .= '</div>'; // end card
 		}
 
 		return $html;
 	}
+
+	// =====================================================================
+	//  PROFILE PAGE (unchanged)
+	// =====================================================================
 
 	private static function render_member_profile(int $member_id, array $viewer_profile): void {
 		$member = CBNexus_Member_Repository::get_profile($member_id);
@@ -373,14 +444,14 @@ final class CBNexus_Directory {
 		<?php
 	}
 
-	/**
-	 * Build a category ID → title map from cb_recruitment_categories.
-	 */
+	// =====================================================================
+	//  HELPERS
+	// =====================================================================
+
 	private static function get_category_map(): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'cb_recruitment_categories';
 
-		// Quick check that the table exists (avoids errors pre-migration).
 		if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") !== $table) {
 			return [];
 		}
@@ -395,6 +466,15 @@ final class CBNexus_Directory {
 		return $map;
 	}
 
+	private static function resolve_category_name($cat_ids, array $cat_map): string {
+		if (empty($cat_ids)) { return '—'; }
+		$cat_id = is_array($cat_ids) ? (int) ($cat_ids[0] ?? 0) : 0;
+		if ($cat_id > 0 && isset($cat_map[$cat_id])) {
+			return $cat_map[$cat_id];
+		}
+		return '—';
+	}
+
 	private static function get_initials(array $m): string {
 		$first = $m['first_name'] ?? '';
 		$last  = $m['last_name'] ?? '';
@@ -405,11 +485,30 @@ final class CBNexus_Directory {
 		return strtoupper(mb_substr($display, 0, 2));
 	}
 
-	/**
-	 * Generate a consistent avatar color based on user ID.
-	 */
 	private static function get_avatar_color(int $user_id): string {
 		$colors = ['#6366f1', '#059669', '#dc2626', '#2563eb', '#d946ef', '#0891b2', '#ea580c', '#65a30d', '#8b5cf6', '#0d9488'];
 		return $colors[$user_id % count($colors)];
+	}
+
+	private static function status_color(string $status): string {
+		$map = [
+			'active' => 'green', 'inactive' => 'red', 'alumni' => 'muted',
+			'pending' => 'gold', 'draft' => 'gold',
+		];
+		return $map[$status] ?? 'muted';
+	}
+
+	/**
+	 * Build a nonce-protected member action URL (for admin actions in directory cards).
+	 */
+	private static function member_action_url(string $action, int $uid): string {
+		$base = class_exists('CBNexus_Portal_Admin')
+			? CBNexus_Portal_Admin::admin_url('members')
+			: '';
+		$url = add_query_arg([
+			'cbnexus_portal_member_action' => $action,
+			'uid' => $uid,
+		], $base);
+		return wp_nonce_url($url, 'cbnexus_pa_member_' . $uid, '_panonce');
 	}
 }

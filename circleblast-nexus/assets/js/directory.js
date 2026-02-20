@@ -65,7 +65,7 @@
 
 			if (json.success) {
 				resultsEl.innerHTML = json.data.html;
-				countEl.textContent = json.data.label;
+				countEl.textContent = json.data.count;
 			}
 		})
 		.catch(function () {

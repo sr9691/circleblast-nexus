@@ -69,6 +69,9 @@ final class CBNexus_Member_Repository {
 			return $user_id;
 		}
 
+		// Hide WP admin bar for members by default (clean portal experience).
+		update_user_meta($user_id, 'show_admin_bar_front', 'false');
+
 		// Save all profile meta.
 		self::update_profile($user_id, $profile_data);
 
