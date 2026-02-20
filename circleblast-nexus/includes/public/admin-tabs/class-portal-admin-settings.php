@@ -163,10 +163,9 @@ final class CBNexus_Portal_Admin_Settings {
 							<tbody>
 							<?php
 							$crons = self::get_cron_definitions();
-							$saved = get_option('cbnexus_cron_schedules', []);
-							$all_schedules = wp_get_schedules();
+							$saved_crons = get_option('cbnexus_cron_schedules', []);
 							foreach ($crons as $hook => $def) :
-								$current_freq = $saved[$hook] ?? $def['default'];
+								$current_freq = $saved_crons[$hook] ?? $def['default'];
 								$next = wp_next_scheduled($hook);
 								$next_str = $next ? date_i18n('M j, g:i a', $next) : 'Not scheduled';
 							?>
@@ -396,10 +395,9 @@ final class CBNexus_Portal_Admin_Settings {
 		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_cron'] ?? ''), 'cbnexus_portal_save_cron_schedules')) { return; }
 		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
 
-		$defs    = self::get_cron_definitions();
-		$input   = $_POST['cron_schedule'] ?? [];
-		$saved   = get_option('cbnexus_cron_schedules', []);
-		$changed = false;
+		$defs  = self::get_cron_definitions();
+		$input = $_POST['cron_schedule'] ?? [];
+		$saved = get_option('cbnexus_cron_schedules', []);
 
 		foreach ($defs as $hook => $def) {
 			$new_freq = sanitize_key($input[$hook] ?? $def['default']);
@@ -418,7 +416,6 @@ final class CBNexus_Portal_Admin_Settings {
 					wp_unschedule_event($ts, $hook);
 				}
 				wp_schedule_event(time(), $new_freq, $hook);
-				$changed = true;
 			}
 
 			$saved[$hook] = $new_freq;
@@ -426,8 +423,7 @@ final class CBNexus_Portal_Admin_Settings {
 
 		update_option('cbnexus_cron_schedules', $saved, false);
 
-		$notice = $changed ? 'cron_saved' : 'cron_saved';
-		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('settings', ['pa_notice' => $notice]));
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('settings', ['pa_notice' => 'cron_saved']));
 		exit;
 	}
 
