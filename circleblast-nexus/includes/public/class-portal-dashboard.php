@@ -93,6 +93,8 @@ final class CBNexus_Portal_Dashboard {
 			</div>
 			<?php endif; ?>
 
+			<?php self::render_recruitment_card(); ?>
+
 			<!-- Two-column: Coming Up + Action Items -->
 			<div class="cbnexus-dash-cols">
 				<div class="cbnexus-card">
@@ -153,6 +155,126 @@ final class CBNexus_Portal_Dashboard {
 					</div>
 				<?php endif; ?>
 			</div>
+		</div>
+		<?php
+	}
+
+	// ─── Recruitment Coverage Card ────────────────────────────────────
+
+	/**
+	 * Render the "Who We're Looking For" dashboard card.
+	 *
+	 * Phase 2 of Recruitment Coverage Visibility.
+	 * Shows coverage summary + top gap categories for all members.
+	 * Admins additionally see who fills covered categories and a manage link.
+	 */
+	private static function render_recruitment_card(): void {
+		if (!class_exists('CBNexus_Recruitment_Coverage_Service')) {
+			return;
+		}
+
+		$summary = CBNexus_Recruitment_Coverage_Service::get_summary();
+
+		// Don't show the card if there are no categories defined yet.
+		if ($summary['total'] === 0) {
+			return;
+		}
+
+		$gaps      = CBNexus_Recruitment_Coverage_Service::get_top_gaps(5);
+		$is_admin  = current_user_can('cbnexus_manage_members');
+		$admin_email = get_option('admin_email', '');
+		$portal_url  = CBNexus_Portal_Router::get_portal_url();
+
+		$p_dots = [
+			'high'   => '#dc2626',
+			'medium' => '#d97706',
+			'low'    => '#059669',
+		];
+		?>
+		<!-- Who We're Looking For -->
+		<div class="cbnexus-card cbnexus-recruit-card">
+			<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+				<div style="display:flex;align-items:center;gap:8px;">
+					<span style="font-size:18px;">🎯</span>
+					<h3 style="margin:0;font-size:16px;font-weight:700;"><?php esc_html_e("Who We're Looking For", 'circleblast-nexus'); ?></h3>
+				</div>
+				<?php if ($is_admin) : ?>
+					<a href="<?php echo esc_url(add_query_arg(['section' => 'manage', 'admin_tab' => 'recruitment'], $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('Manage →', 'circleblast-nexus'); ?></a>
+				<?php endif; ?>
+			</div>
+
+			<!-- Summary line -->
+			<div style="font-size:13px;color:var(--cb-text-sec,#6b7280);margin-bottom:14px;">
+				<?php
+				printf(
+					/* translators: 1: covered count, 2: total count, 3: gap count */
+					esc_html__('%1$d of %2$d categories covered · %3$d open roles', 'circleblast-nexus'),
+					$summary['covered'],
+					$summary['total'],
+					$summary['gaps']
+				);
+				?>
+			</div>
+
+			<?php if (!empty($gaps)) : ?>
+				<!-- Open categories -->
+				<div class="cbnexus-recruit-gaps">
+					<?php foreach ($gaps as $gap) : ?>
+						<div class="cbnexus-recruit-gap-row">
+							<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+								<span style="width:8px;height:8px;border-radius:50%;background:<?php echo esc_attr($p_dots[$gap->priority] ?? '#d97706'); ?>;flex-shrink:0;"></span>
+								<div style="min-width:0;">
+									<div style="font-weight:600;font-size:14px;line-height:1.3;"><?php echo esc_html($gap->title); ?></div>
+									<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:2px;">
+										<?php if ($gap->industry) : ?>
+											<span style="font-size:11px;padding:1px 6px;background:#f3eef6;border-radius:8px;color:#5b2d6e;"><?php echo esc_html($gap->industry); ?></span>
+										<?php endif; ?>
+										<?php if ($gap->description) : ?>
+											<span style="font-size:12px;color:var(--cb-text-ter,#9ca3af);"><?php echo esc_html(wp_trim_words($gap->description, 10)); ?></span>
+										<?php endif; ?>
+									</div>
+								</div>
+							</div>
+							<?php if ($admin_email) : ?>
+								<a href="mailto:<?php echo esc_attr($admin_email); ?>?subject=<?php echo esc_attr('CircleBlast referral — ' . $gap->title); ?>" class="cbnexus-recruit-refer-link"><?php esc_html_e('Know someone?', 'circleblast-nexus'); ?></a>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
+
+				<?php if ($summary['gaps'] > 5) : ?>
+					<div style="margin-top:10px;">
+						<a href="<?php echo esc_url(add_query_arg('section', 'club', $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('See all open roles →', 'circleblast-nexus'); ?></a>
+					</div>
+				<?php endif; ?>
+
+			<?php else : ?>
+				<div style="padding:8px 0;font-size:14px;color:#059669;font-weight:500;">
+					✅ <?php esc_html_e('All categories are covered!', 'circleblast-nexus'); ?>
+				</div>
+			<?php endif; ?>
+
+			<?php
+			// Admin enhancement: show covered categories with member names.
+			if ($is_admin) :
+				$all_cats = CBNexus_Recruitment_Coverage_Service::get_full_coverage();
+				$covered_cats = array_filter($all_cats, function ($c) {
+					return $c->coverage_status === 'covered' || $c->coverage_status === 'partial';
+				});
+				if (!empty($covered_cats)) :
+			?>
+				<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--cb-border,#e5e7eb);">
+					<div style="font-size:12px;font-weight:600;color:var(--cb-text-ter,#9ca3af);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;"><?php esc_html_e('Filled Roles', 'circleblast-nexus'); ?></div>
+					<?php foreach ($covered_cats as $cat) : ?>
+						<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+							<span style="font-size:13px;font-weight:500;min-width:120px;"><?php echo esc_html($cat->title); ?></span>
+							<?php foreach ($cat->members as $mem) : ?>
+								<span style="font-size:11px;padding:2px 8px;background:#f3eef6;border-radius:10px;color:#5b2d6e;"><?php echo esc_html($mem['display_name']); ?></span>
+							<?php endforeach; ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; endif; ?>
 		</div>
 		<?php
 	}

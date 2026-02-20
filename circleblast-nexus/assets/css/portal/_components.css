@@ -369,3 +369,41 @@
 .cbnexus-dash-action-row:last-child { border-bottom: none; }
 .cbnexus-dash-action-row .cbnexus-text-muted { display: block; }
 
+/* ── Recruitment Coverage Card (Phase 2) ── */
+
+.cbnexus-recruit-card {
+	border-left: 3px solid var(--cb-plum, #4a154b);
+}
+
+.cbnexus-recruit-gaps {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.cbnexus-recruit-gap-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--cb-border-soft, #f3f4f6);
+}
+
+.cbnexus-recruit-gap-row:last-child {
+	border-bottom: none;
+}
+
+.cbnexus-recruit-refer-link {
+	font-size: 12px;
+	color: var(--cb-plum, #4a154b);
+	text-decoration: none;
+	white-space: nowrap;
+	opacity: 0.7;
+	transition: opacity 0.15s;
+}
+
+.cbnexus-recruit-refer-link:hover {
+	opacity: 1;
+	text-decoration: underline;
+}
