@@ -143,6 +143,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_019_Add_Member_Categories',
 				'method' => 'up',
 			],
+			'020_seed_recruitment_categories' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/020-seed-recruitment-categories.php',
+				'class'  => 'CBNexus_Migration_020_Seed_Recruitment_Categories',
+				'method' => 'up',
+			],
 		];
 	}
 
