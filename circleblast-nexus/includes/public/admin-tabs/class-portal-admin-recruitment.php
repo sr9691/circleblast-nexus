@@ -161,6 +161,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 			</div>
 		</div>
 		<?php
+		self::render_recruitment_needs();
 	}
 
 	/**
@@ -671,5 +672,220 @@ final class CBNexus_Portal_Admin_Recruitment {
 				]);
 			}
 		}
+	}
+
+	// ═════════════════════════════════════════════════════════════════════
+	// Recruitment Needs (Categories)
+	// ═════════════════════════════════════════════════════════════════════
+
+	private static function render_recruitment_needs(): void {
+		global $wpdb;
+		$table      = $wpdb->prefix . 'cb_recruitment_categories';
+		$categories = $wpdb->get_results("SELECT * FROM {$table} ORDER BY sort_order ASC, priority DESC") ?: [];
+		$schedule   = get_option('cbnexus_recruit_blast_schedule', 'none');
+		$last_blast = get_option('cbnexus_last_recruit_blast', '');
+		$industries = CBNexus_Member_Service::get_industries();
+
+		$edit_id     = absint($_GET['edit_need'] ?? 0);
+		$editing_cat = $edit_id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $edit_id)) : null;
+		$p_colors    = ['high' => 'var(--cb-red)', 'medium' => 'var(--cb-gold)', 'low' => 'var(--cb-green)'];
+		?>
+
+		<div class="cbnexus-card" style="margin-top:20px;">
+			<div class="cbnexus-admin-header-row">
+				<h2>🎯 Recruitment Needs</h2>
+			</div>
+			<p class="cbnexus-admin-meta" style="margin-bottom:12px;">Define what types of members the group is looking for. Send this list to all members so they know who to refer.</p>
+
+			<!-- Categories Table -->
+			<div class="cbnexus-admin-table-wrap">
+				<table class="cbnexus-admin-table">
+					<thead><tr>
+						<th>Role / Category</th><th>Industry</th><th>Priority</th><th>Status</th><th>Actions</th>
+					</tr></thead>
+					<tbody>
+					<?php if (empty($categories)) : ?>
+						<tr><td colspan="5" class="cbnexus-admin-empty">No categories defined yet.</td></tr>
+					<?php else : foreach ($categories as $cat) : ?>
+						<tr<?php echo $cat->is_filled ? ' style="opacity:0.5;"' : ''; ?>>
+							<td>
+								<strong><?php echo esc_html($cat->title); ?></strong>
+								<?php if ($cat->description) : ?><br/><span class="cbnexus-admin-meta"><?php echo esc_html(wp_trim_words($cat->description, 15)); ?></span><?php endif; ?>
+							</td>
+							<td class="cbnexus-admin-meta"><?php echo esc_html($cat->industry ?: '—'); ?></td>
+							<td><span style="color:<?php echo esc_attr($p_colors[$cat->priority] ?? 'var(--cb-text-sec)'); ?>;font-weight:600;text-transform:uppercase;font-size:11px;"><?php echo esc_html($cat->priority); ?></span></td>
+							<td><?php echo $cat->is_filled ? '✅ Filled' : '🔍 Open'; ?></td>
+							<td class="cbnexus-admin-actions-cell">
+								<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('recruitment', ['edit_need' => $cat->id])); ?>" class="cbnexus-link">Edit</a>
+								<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('recruitment', ['cbnexus_portal_toggle_need' => $cat->id]), 'cbnexus_portal_need_' . $cat->id, '_panonce')); ?>" class="cbnexus-link"><?php echo $cat->is_filled ? 'Reopen' : 'Mark Filled'; ?></a>
+								<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('recruitment', ['cbnexus_portal_delete_need' => $cat->id]), 'cbnexus_portal_need_' . $cat->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-red" onclick="return confirm('Delete this category?');">Delete</a>
+							</td>
+						</tr>
+					<?php endforeach; endif; ?>
+					</tbody>
+				</table>
+			</div>
+
+			<!-- Send Blast -->
+			<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+				<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('recruitment', ['cbnexus_portal_send_needs_blast' => '1']), 'cbnexus_portal_needs_blast', '_panonce')); ?>" class="cbnexus-btn cbnexus-btn-accent" onclick="return confirm('Send recruitment needs to all active members?');">📧 Send to Members</a>
+				<?php if ($last_blast) : ?><span class="cbnexus-admin-meta">Last sent: <?php echo esc_html(date_i18n('M j, Y', strtotime($last_blast))); ?></span><?php endif; ?>
+				<form method="post" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+					<?php wp_nonce_field('cbnexus_portal_save_needs_schedule', '_panonce_schedule'); ?>
+					<label class="cbnexus-admin-meta" style="white-space:nowrap;">Auto-send:</label>
+					<select name="needs_schedule" class="cbnexus-input" style="width:auto;">
+						<option value="none" <?php selected($schedule, 'none'); ?>>Manual only</option>
+						<option value="weekly" <?php selected($schedule, 'weekly'); ?>>Weekly</option>
+						<option value="monthly" <?php selected($schedule, 'monthly'); ?>>Monthly</option>
+					</select>
+					<button type="submit" name="cbnexus_portal_save_needs_schedule" value="1" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm">Save</button>
+				</form>
+			</div>
+		</div>
+
+		<!-- Add / Edit Form -->
+		<div class="cbnexus-card" style="margin-top:12px;">
+			<h3><?php echo $editing_cat ? '✏️ Edit Category' : '➕ Add Category'; ?></h3>
+			<form method="post" style="max-width:600px;">
+				<?php if ($editing_cat) : ?>
+					<?php wp_nonce_field('cbnexus_portal_update_need', '_panonce'); ?>
+					<input type="hidden" name="need_id" value="<?php echo esc_attr($editing_cat->id); ?>" />
+				<?php else : ?>
+					<?php wp_nonce_field('cbnexus_portal_add_need', '_panonce'); ?>
+				<?php endif; ?>
+				<div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Title / Role *</label>
+						<input type="text" name="need_title" value="<?php echo esc_attr($editing_cat->title ?? ''); ?>" class="cbnexus-input" style="width:100%;" required placeholder="e.g. Financial Advisor, Healthcare Executive" />
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Description</label>
+						<textarea name="need_description" rows="2" class="cbnexus-input" style="width:100%;" placeholder="What qualities or background are we looking for?"><?php echo esc_textarea($editing_cat->description ?? ''); ?></textarea>
+					</div>
+					<div style="display:flex;gap:12px;">
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Industry</label>
+							<select name="need_industry" class="cbnexus-input">
+								<option value="">— Any —</option>
+								<?php foreach ($industries as $ind) : ?>
+									<option value="<?php echo esc_attr($ind); ?>" <?php selected($editing_cat->industry ?? '', $ind); ?>><?php echo esc_html($ind); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div style="flex:1;">
+							<label style="display:block;font-weight:600;margin-bottom:4px;">Priority</label>
+							<select name="need_priority" class="cbnexus-input">
+								<option value="high" <?php selected($editing_cat->priority ?? '', 'high'); ?>>🔴 High</option>
+								<option value="medium" <?php selected($editing_cat->priority ?? 'medium', 'medium'); ?>>🟡 Medium</option>
+								<option value="low" <?php selected($editing_cat->priority ?? '', 'low'); ?>>🟢 Low</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div style="margin-top:16px;display:flex;gap:8px;">
+					<button type="submit" name="<?php echo $editing_cat ? 'cbnexus_portal_update_need' : 'cbnexus_portal_add_need'; ?>" value="1" class="cbnexus-btn cbnexus-btn-primary"><?php echo $editing_cat ? 'Update' : 'Add Category'; ?></button>
+					<?php if ($editing_cat) : ?>
+						<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('recruitment')); ?>" class="cbnexus-btn cbnexus-btn-outline">Cancel</a>
+					<?php endif; ?>
+				</div>
+			</form>
+		</div>
+		<?php
+	}
+
+	// ─── Recruitment Needs Action Handlers ────────────────────────────
+
+	public static function handle_add_need(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce'] ?? ''), 'cbnexus_portal_add_need')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		global $wpdb;
+		$table    = $wpdb->prefix . 'cb_recruitment_categories';
+		$now      = gmdate('Y-m-d H:i:s');
+		$max_sort = (int) $wpdb->get_var("SELECT MAX(sort_order) FROM {$table}") + 1;
+
+		$wpdb->insert($table, [
+			'title'       => sanitize_text_field(wp_unslash($_POST['need_title'] ?? '')),
+			'description' => sanitize_textarea_field(wp_unslash($_POST['need_description'] ?? '')),
+			'industry'    => sanitize_text_field($_POST['need_industry'] ?? ''),
+			'priority'    => in_array($_POST['need_priority'] ?? '', ['high', 'medium', 'low'], true) ? $_POST['need_priority'] : 'medium',
+			'sort_order'  => $max_sort,
+			'created_by'  => get_current_user_id(),
+			'created_at'  => $now,
+			'updated_at'  => $now,
+		]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'need_added']));
+		exit;
+	}
+
+	public static function handle_update_need(): void {
+		$id = absint($_POST['need_id'] ?? 0);
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce'] ?? ''), 'cbnexus_portal_update_need')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		global $wpdb;
+		$wpdb->update($wpdb->prefix . 'cb_recruitment_categories', [
+			'title'       => sanitize_text_field(wp_unslash($_POST['need_title'] ?? '')),
+			'description' => sanitize_textarea_field(wp_unslash($_POST['need_description'] ?? '')),
+			'industry'    => sanitize_text_field($_POST['need_industry'] ?? ''),
+			'priority'    => in_array($_POST['need_priority'] ?? '', ['high', 'medium', 'low'], true) ? $_POST['need_priority'] : 'medium',
+			'updated_at'  => gmdate('Y-m-d H:i:s'),
+		], ['id' => $id]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'need_updated']));
+		exit;
+	}
+
+	public static function handle_toggle_need(): void {
+		$id = absint($_GET['cbnexus_portal_toggle_need'] ?? 0);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_need_' . $id)) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		global $wpdb;
+		$table   = $wpdb->prefix . 'cb_recruitment_categories';
+		$current = (int) $wpdb->get_var($wpdb->prepare("SELECT is_filled FROM {$table} WHERE id = %d", $id));
+		$wpdb->update($table, ['is_filled' => $current ? 0 : 1], ['id' => $id]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'need_toggled']));
+		exit;
+	}
+
+	public static function handle_delete_need(): void {
+		$id = absint($_GET['cbnexus_portal_delete_need'] ?? 0);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_need_' . $id)) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		global $wpdb;
+		$wpdb->delete($wpdb->prefix . 'cb_recruitment_categories', ['id' => $id]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'need_deleted']));
+		exit;
+	}
+
+	public static function handle_send_needs_blast(): void {
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_needs_blast')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		CBNexus_Admin_Recruitment_Categories::send_blast();
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'needs_blast_sent']));
+		exit;
+	}
+
+	public static function handle_save_needs_schedule(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_schedule'] ?? ''), 'cbnexus_portal_save_needs_schedule')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		$freq = sanitize_key($_POST['needs_schedule'] ?? 'none');
+		update_option('cbnexus_recruit_blast_schedule', $freq);
+
+		wp_clear_scheduled_hook('cbnexus_recruitment_blast');
+		if ($freq !== 'none') {
+			wp_schedule_event(time(), $freq, 'cbnexus_recruitment_blast');
+		}
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'needs_schedule_saved']));
+		exit;
 	}
 }

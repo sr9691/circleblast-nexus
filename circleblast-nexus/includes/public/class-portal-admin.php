@@ -76,6 +76,26 @@ final class CBNexus_Portal_Admin {
 			CBNexus_Portal_Admin_Recruitment::handle_save_candidate();
 		}
 
+		// ── Recruitment Needs ────────────────────────────────────────────
+		if (isset($_POST['cbnexus_portal_add_need'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_add_need();
+		}
+		if (isset($_POST['cbnexus_portal_update_need'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_update_need();
+		}
+		if (isset($_GET['cbnexus_portal_toggle_need'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_toggle_need();
+		}
+		if (isset($_GET['cbnexus_portal_delete_need'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_delete_need();
+		}
+		if (isset($_GET['cbnexus_portal_send_needs_blast'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_send_needs_blast();
+		}
+		if (isset($_POST['cbnexus_portal_save_needs_schedule'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_save_needs_schedule();
+		}
+
 		// ── Matching ─────────────────────────────────────────────────────
 		if (isset($_POST['cbnexus_portal_save_rules'])) {
 			CBNexus_Portal_Admin_Matching::handle_save_rules();
@@ -258,6 +278,12 @@ final class CBNexus_Portal_Admin {
 			'cron_saved'         => 'Cron schedules updated! Changes are now active.',
 			'sender_saved'       => 'Email sender settings saved.',
 			'apikeys_saved'      => 'API keys updated.',
+			'need_added'         => 'Recruitment need added.',
+			'need_updated'       => 'Recruitment need updated.',
+			'need_toggled'       => 'Recruitment need status updated.',
+			'need_deleted'       => 'Recruitment need deleted.',
+			'needs_blast_sent'   => 'Recruitment needs emailed to all active members.',
+			'needs_schedule_saved' => 'Recruitment needs schedule saved.',
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';
