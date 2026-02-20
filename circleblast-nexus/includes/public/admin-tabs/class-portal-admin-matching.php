@@ -123,4 +123,15 @@ final class CBNexus_Portal_Admin_Matching {
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('matching', ['pa_notice' => 'rules_saved']));
 		exit;
 	}
+
+	public static function handle_run_cycle(): void {
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_run_cycle')) { return; }
+		if (!current_user_can('cbnexus_manage_matching_rules')) { return; }
+
+		$result = CBNexus_Suggestion_Generator::run_cycle(true);
+
+		$notice = (!empty($result['skipped'])) ? 'cycle_skipped' : 'cycle_complete';
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('matching', ['pa_notice' => $notice]));
+		exit;
+	}
 }

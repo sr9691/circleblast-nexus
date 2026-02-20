@@ -21,8 +21,31 @@ final class CBNexus_Suggestion_Generator {
 
 	/**
 	 * Run a suggestion cycle.
+	 *
+	 * Includes a cooldown check: refuses to run if a cycle completed within
+	 * the last 24 hours (prevents accidental multi-fire from cron glitches,
+	 * plugin reactivation, or duplicate triggers).
+	 *
+	 * @param bool $force Skip the cooldown check (admin override).
+	 * @return array Results or empty if skipped.
 	 */
-	public static function run_cycle(): array {
+	public static function run_cycle(bool $force = false): array {
+		// Cooldown: refuse to run if a cycle completed within the last 24 hours.
+		if (!$force) {
+			$last = self::get_last_cycle();
+			if ($last && isset($last['timestamp'])) {
+				$elapsed = time() - strtotime($last['timestamp']);
+				if ($elapsed < DAY_IN_SECONDS) {
+					if (class_exists('CBNexus_Logger')) {
+						CBNexus_Logger::info('Suggestion cycle skipped — last cycle was ' . round($elapsed / 3600, 1) . 'h ago.', [
+							'last_cycle' => $last['timestamp'],
+						]);
+					}
+					return ['skipped' => true, 'reason' => 'cooldown', 'last_cycle' => $last['timestamp']];
+				}
+			}
+		}
+
 		$suggestions = CBNexus_Matching_Engine::generate_suggestions(0);
 		$generated   = 0;
 		$emailed     = 0;
@@ -110,7 +133,7 @@ final class CBNexus_Suggestion_Generator {
 		if (!isset($_GET['_wpnonce']) || !wp_verify_nonce(wp_unslash($_GET['_wpnonce']), 'cbnexus_run_suggestion_cycle')) { return; }
 		if (!current_user_can('cbnexus_manage_members')) { return; }
 
-		self::run_cycle();
+		self::run_cycle(true);
 
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-matching&cbnexus_notice=cycle_complete'));
 		exit;
