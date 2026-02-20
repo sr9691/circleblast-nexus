@@ -1769,6 +1769,117 @@
 	margin-top: 2px;
 }
 
+/* Info Button + Tooltip (used on stat cards & table headers) */
+.cbnexus-info-btn {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	background: none;
+	border: none;
+	color: var(--cb-text-ter);
+	font-size: 14px;
+	cursor: pointer;
+	padding: 0;
+	line-height: 1;
+	opacity: .45;
+	transition: opacity .2s;
+	z-index: 2;
+}
+.cbnexus-info-btn:hover { opacity: 1; }
+.cbnexus-info-btn--th {
+	position: static;
+	font-size: 12px;
+	vertical-align: middle;
+	margin-left: 2px;
+}
+.cbnexus-stat-card,
+.cbnexus-admin-stat { position: relative; }
+
+/* Tooltip popup */
+.cbnexus-info-btn[data-tooltip]:focus::after,
+.cbnexus-info-btn[data-tooltip]:hover::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	top: 100%;
+	right: 0;
+	margin-top: 6px;
+	background: var(--cb-text, #1e2a3a);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 1.45;
+	padding: 8px 12px;
+	border-radius: 8px;
+	white-space: normal;
+	width: max-content;
+	max-width: 220px;
+	z-index: 100;
+	pointer-events: none;
+	box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+/* Arrow */
+.cbnexus-info-btn[data-tooltip]:focus::before,
+.cbnexus-info-btn[data-tooltip]:hover::before {
+	content: '';
+	position: absolute;
+	top: 100%;
+	right: 4px;
+	border: 5px solid transparent;
+	border-bottom-color: var(--cb-text, #1e2a3a);
+	z-index: 101;
+	pointer-events: none;
+}
+
+/* Filterable admin stat cards */
+.cbnexus-admin-stat--filterable {
+	cursor: pointer;
+	transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+.cbnexus-admin-stat--filterable:hover {
+	border-color: var(--cb-accent);
+	box-shadow: 0 0 0 2px var(--cb-accent-soft);
+	transform: translateY(-1px);
+}
+.cbnexus-admin-stat--active {
+	border-color: var(--cb-accent) !important;
+	box-shadow: 0 0 0 3px var(--cb-accent-soft) !important;
+	background: var(--cb-accent-soft) !important;
+}
+.cbnexus-admin-stat--active .cbnexus-admin-stat-value {
+	color: var(--cb-accent);
+}
+
+/* Filter bar between cards and table */
+.cbnexus-filter-bar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 12px;
+	padding: 8px 14px;
+	background: var(--cb-accent-soft);
+	border-radius: var(--cb-radius-sm);
+	border: 1px solid var(--cb-accent);
+	font-size: 13px;
+	color: var(--cb-accent);
+	font-weight: 600;
+}
+.cbnexus-filter-label { flex: 1; }
+.cbnexus-btn-outline {
+	background: transparent;
+	border: 1px solid var(--cb-accent);
+	color: var(--cb-accent);
+	font-size: 12px;
+	padding: 4px 12px;
+	border-radius: var(--cb-radius-sm);
+	cursor: pointer;
+	font-weight: 600;
+	transition: background .2s;
+}
+.cbnexus-btn-outline:hover {
+	background: var(--cb-accent);
+	color: #fff;
+}
+
 /* Button row */
 .cbnexus-admin-button-row {
 	display: flex;
