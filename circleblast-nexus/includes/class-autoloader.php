@@ -91,6 +91,9 @@ final class CBNexus_Autoloader {
 		// Recruitment Categories
 		'CBNexus_Admin_Recruitment_Categories' => 'includes/admin/class-admin-recruitment-categories.php',
 
+		// Recruitment Coverage (Phase 1)
+		'CBNexus_Recruitment_Coverage_Service' => 'includes/recruitment/class-recruitment-coverage-service.php',
+
 		// Tokens (universal email action system)
 		'CBNexus_Token_Service' => 'includes/tokens/class-token-service.php',
 		'CBNexus_Token_Router'  => 'includes/tokens/class-token-router.php',

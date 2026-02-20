@@ -99,6 +99,19 @@ final class CBNexus_Portal_Admin_Recruitment {
 						<label>Notes</label>
 						<input type="text" name="notes" />
 					</div>
+					<div>
+						<label>Category</label>
+						<select name="category_id">
+							<option value="0">—</option>
+							<?php
+							global $wpdb;
+							$cat_table = $wpdb->prefix . 'cb_recruitment_categories';
+							$need_cats = $wpdb->get_results("SELECT id, title FROM {$cat_table} ORDER BY sort_order ASC, title ASC") ?: [];
+							foreach ($need_cats as $nc) : ?>
+								<option value="<?php echo esc_attr($nc->id); ?>"><?php echo esc_html($nc->title); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
 				</div>
 				<button type="submit" name="cbnexus_portal_add_candidate" value="1" class="cbnexus-btn cbnexus-btn-accent">Add Candidate</button>
 			</form>
@@ -111,6 +124,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 					<thead><tr>
 						<th>Candidate</th>
 						<th>Company</th>
+						<th>Category</th>
 						<th>Referred By</th>
 						<th>Stage</th>
 						<th>Notes</th>
@@ -119,7 +133,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 					</tr></thead>
 					<tbody>
 					<?php if (empty($candidates)) : ?>
-						<tr><td colspan="7" class="cbnexus-admin-empty">No candidates yet.</td></tr>
+						<tr><td colspan="8" class="cbnexus-admin-empty">No candidates yet.</td></tr>
 					<?php else : foreach ($candidates as $c) : ?>
 						<tr>
 							<td>
@@ -127,6 +141,17 @@ final class CBNexus_Portal_Admin_Recruitment {
 								<?php if ($c->email) : ?><div class="cbnexus-admin-meta"><?php echo esc_html($c->email); ?></div><?php endif; ?>
 							</td>
 							<td><?php echo esc_html($c->company ?: '—'); ?></td>
+							<td class="cbnexus-admin-meta"><?php
+								$cat_name_c = '—';
+								if (!empty($c->category_id)) {
+									global $wpdb;
+									$cat_name_c = $wpdb->get_var($wpdb->prepare(
+										"SELECT title FROM {$wpdb->prefix}cb_recruitment_categories WHERE id = %d",
+										$c->category_id
+									)) ?: '—';
+								}
+								echo esc_html($cat_name_c);
+							?></td>
 							<td><?php echo esc_html($c->referrer_name ?: '—'); ?></td>
 							<td>
 								<form method="post" action="" class="cbnexus-admin-stage-form">
@@ -231,6 +256,21 @@ final class CBNexus_Portal_Admin_Recruitment {
 						</div>
 					</div>
 					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Category</label>
+						<?php
+						global $wpdb;
+						$cat_table_edit = $wpdb->prefix . 'cb_recruitment_categories';
+						$need_cats_edit = $wpdb->get_results("SELECT id, title FROM {$cat_table_edit} ORDER BY sort_order ASC, title ASC") ?: [];
+						?>
+						<select name="category_id" class="cbnexus-input" style="width:100%;">
+							<option value="0">—</option>
+							<?php foreach ($need_cats_edit as $nc) : ?>
+								<option value="<?php echo esc_attr($nc->id); ?>" <?php selected((int) ($c->category_id ?? 0), (int) $nc->id); ?>><?php echo esc_html($nc->title); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<span class="cbnexus-admin-meta" style="display:block;margin-top:4px;">Which recruitment need is this candidate for?</span>
+					</div>
+					<div>
 						<label style="display:block;font-weight:600;margin-bottom:4px;">Notes</label>
 						<textarea name="notes" rows="3" class="cbnexus-input" style="width:100%;"><?php echo esc_textarea($c->notes); ?></textarea>
 					</div>
@@ -280,11 +320,12 @@ final class CBNexus_Portal_Admin_Recruitment {
 			'email'       => sanitize_email($_POST['email'] ?? ''),
 			'company'     => sanitize_text_field(wp_unslash($_POST['company'] ?? '')),
 			'industry'    => sanitize_text_field(wp_unslash($_POST['industry'] ?? '')),
+			'category_id' => absint($_POST['category_id'] ?? 0) ?: null,
 			'referrer_id' => absint($_POST['referrer_id'] ?? 0) ?: null,
 			'stage'       => $new_stage,
 			'notes'       => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
 			'updated_at'  => gmdate('Y-m-d H:i:s'),
-		], ['id' => $id], ['%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'], ['%d']);
+		], ['id' => $id], ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s'], ['%d']);
 
 		if ($old_stage !== $new_stage) {
 			$updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
@@ -309,12 +350,13 @@ final class CBNexus_Portal_Admin_Recruitment {
 			'email'       => sanitize_email($_POST['email'] ?? ''),
 			'company'     => sanitize_text_field($_POST['company'] ?? ''),
 			'industry'    => sanitize_text_field($_POST['industry'] ?? ''),
+			'category_id' => absint($_POST['category_id'] ?? 0) ?: null,
 			'referrer_id' => absint($_POST['referrer_id'] ?? 0) ?: null,
 			'stage'       => 'referral',
 			'notes'       => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
 			'created_at'  => $now,
 			'updated_at'  => $now,
-		], ['%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']);
+		], ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s']);
 
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'candidate_added']));
 		exit;
@@ -681,7 +723,6 @@ final class CBNexus_Portal_Admin_Recruitment {
 	private static function render_recruitment_needs(): void {
 		global $wpdb;
 		$table      = $wpdb->prefix . 'cb_recruitment_categories';
-		$categories = $wpdb->get_results("SELECT * FROM {$table} ORDER BY sort_order ASC, priority DESC") ?: [];
 		$schedule   = get_option('cbnexus_recruit_blast_schedule', 'none');
 		$last_blast = get_option('cbnexus_last_recruit_blast', '');
 		$industries = CBNexus_Member_Service::get_industries();
@@ -689,35 +730,102 @@ final class CBNexus_Portal_Admin_Recruitment {
 		$edit_id     = absint($_GET['edit_need'] ?? 0);
 		$editing_cat = $edit_id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $edit_id)) : null;
 		$p_colors    = ['high' => 'var(--cb-red)', 'medium' => 'var(--cb-gold)', 'low' => 'var(--cb-green)'];
+
+		// Use coverage service for computed status.
+		$categories = class_exists('CBNexus_Recruitment_Coverage_Service')
+			? CBNexus_Recruitment_Coverage_Service::get_full_coverage()
+			: [];
+		$summary = class_exists('CBNexus_Recruitment_Coverage_Service')
+			? CBNexus_Recruitment_Coverage_Service::get_summary()
+			: ['total' => 0, 'covered' => 0, 'partial' => 0, 'gaps' => 0, 'coverage_pct' => 0];
+
+		$status_icons = [
+			'covered' => '✅',
+			'partial' => '🟡',
+			'gap'     => '🔍',
+		];
+		$status_labels = [
+			'covered' => 'Filled',
+			'partial' => 'Partial',
+			'gap'     => 'Open',
+		];
+		$recruit_stage_labels = [
+			'referral'  => 'Referral',
+			'contacted' => 'Contacted',
+			'invited'   => 'Invited',
+			'visited'   => 'Visited',
+			'decision'  => 'Decision',
+		];
 		?>
 
 		<div class="cbnexus-card" style="margin-top:20px;">
 			<div class="cbnexus-admin-header-row">
 				<h2>🎯 Recruitment Needs</h2>
 			</div>
-			<p class="cbnexus-admin-meta" style="margin-bottom:12px;">Define what types of members the group is looking for. Send this list to all members so they know who to refer.</p>
+			<p class="cbnexus-admin-meta" style="margin-bottom:12px;">Define what types of members the group is looking for. Coverage is computed automatically based on member assignments.</p>
+
+			<?php if ($summary['total'] > 0) : ?>
+			<!-- Coverage Summary Bar -->
+			<div style="display:flex;gap:16px;align-items:center;padding:12px 16px;background:#f8f5fa;border-radius:10px;margin-bottom:16px;flex-wrap:wrap;">
+				<span style="font-weight:700;color:var(--cbnexus-plum,#4a154b);font-size:15px;"><?php echo esc_html($summary['coverage_pct']); ?>% Covered</span>
+				<span style="font-size:13px;color:#059669;">✅ <?php echo esc_html($summary['covered']); ?> Filled</span>
+				<?php if ($summary['partial'] > 0) : ?>
+					<span style="font-size:13px;color:#d97706;">🟡 <?php echo esc_html($summary['partial']); ?> Partial</span>
+				<?php endif; ?>
+				<span style="font-size:13px;color:#dc2626;">🔍 <?php echo esc_html($summary['gaps']); ?> Open</span>
+				<span style="font-size:13px;color:#6b7280;">of <?php echo esc_html($summary['total']); ?> total</span>
+			</div>
+			<?php endif; ?>
 
 			<!-- Categories Table -->
 			<div class="cbnexus-admin-table-wrap">
 				<table class="cbnexus-admin-table">
 					<thead><tr>
-						<th>Role / Category</th><th>Industry</th><th>Priority</th><th>Status</th><th>Actions</th>
+						<th>Role / Category</th><th>Industry</th><th>Priority</th><th>Status</th><th>Filled By</th><th>Pipeline</th><th>Actions</th>
 					</tr></thead>
 					<tbody>
 					<?php if (empty($categories)) : ?>
-						<tr><td colspan="5" class="cbnexus-admin-empty">No categories defined yet.</td></tr>
-					<?php else : foreach ($categories as $cat) : ?>
-						<tr<?php echo $cat->is_filled ? ' style="opacity:0.5;"' : ''; ?>>
+						<tr><td colspan="7" class="cbnexus-admin-empty">No categories defined yet.</td></tr>
+					<?php else : foreach ($categories as $cat) :
+						$is_covered = $cat->coverage_status === 'covered';
+					?>
+						<tr<?php echo $is_covered ? ' style="opacity:0.6;"' : ''; ?>>
 							<td>
 								<strong><?php echo esc_html($cat->title); ?></strong>
 								<?php if ($cat->description) : ?><br/><span class="cbnexus-admin-meta"><?php echo esc_html(wp_trim_words($cat->description, 15)); ?></span><?php endif; ?>
 							</td>
 							<td class="cbnexus-admin-meta"><?php echo esc_html($cat->industry ?: '—'); ?></td>
 							<td><span style="color:<?php echo esc_attr($p_colors[$cat->priority] ?? 'var(--cb-text-sec)'); ?>;font-weight:600;text-transform:uppercase;font-size:11px;"><?php echo esc_html($cat->priority); ?></span></td>
-							<td><?php echo $cat->is_filled ? '✅ Filled' : '🔍 Open'; ?></td>
+							<td>
+								<span style="white-space:nowrap;">
+									<?php echo esc_html($status_icons[$cat->coverage_status] ?? ''); ?>
+									<?php echo esc_html($status_labels[$cat->coverage_status] ?? ''); ?>
+								</span>
+								<div class="cbnexus-admin-meta" style="font-size:11px;"><?php echo esc_html($cat->member_count); ?> / <?php echo esc_html($cat->target_count); ?></div>
+							</td>
+							<td>
+								<?php if (!empty($cat->members)) : ?>
+									<?php foreach ($cat->members as $mem) : ?>
+										<span style="display:inline-block;padding:2px 8px;background:#f3eef6;border-radius:10px;font-size:12px;color:#5b2d6e;font-weight:500;margin:2px;"><?php echo esc_html($mem['display_name']); ?></span>
+									<?php endforeach; ?>
+								<?php else : ?>
+									<span class="cbnexus-admin-meta">—</span>
+								<?php endif; ?>
+							</td>
+							<td>
+								<?php if (!empty($cat->pipeline_candidates)) : ?>
+									<?php foreach ($cat->pipeline_candidates as $pc) : ?>
+										<div style="font-size:12px;margin-bottom:2px;">
+											<span style="display:inline-block;padding:1px 6px;background:#eff6ff;border-radius:8px;font-size:11px;color:#1d4ed8;"><?php echo esc_html($recruit_stage_labels[$pc->stage] ?? $pc->stage); ?></span>
+											<?php echo esc_html($pc->name); ?>
+										</div>
+									<?php endforeach; ?>
+								<?php else : ?>
+									<span class="cbnexus-admin-meta">—</span>
+								<?php endif; ?>
+							</td>
 							<td class="cbnexus-admin-actions-cell">
 								<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('recruitment', ['edit_need' => $cat->id])); ?>" class="cbnexus-link">Edit</a>
-								<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('recruitment', ['cbnexus_portal_toggle_need' => $cat->id]), 'cbnexus_portal_need_' . $cat->id, '_panonce')); ?>" class="cbnexus-link"><?php echo $cat->is_filled ? 'Reopen' : 'Mark Filled'; ?></a>
 								<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('recruitment', ['cbnexus_portal_delete_need' => $cat->id]), 'cbnexus_portal_need_' . $cat->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-red" onclick="return confirm('Delete this category?');">Delete</a>
 							</td>
 						</tr>
@@ -781,6 +889,11 @@ final class CBNexus_Portal_Admin_Recruitment {
 							</select>
 						</div>
 					</div>
+					<div style="width:120px;">
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Target Count</label>
+						<input type="number" name="need_target_count" min="1" max="10" value="<?php echo esc_attr($editing_cat->target_count ?? 1); ?>" class="cbnexus-input" style="width:100%;" />
+						<span class="cbnexus-admin-meta" style="display:block;margin-top:4px;">Members needed</span>
+					</div>
 				</div>
 				<div style="margin-top:16px;display:flex;gap:8px;">
 					<button type="submit" name="<?php echo $editing_cat ? 'cbnexus_portal_update_need' : 'cbnexus_portal_add_need'; ?>" value="1" class="cbnexus-btn cbnexus-btn-primary"><?php echo $editing_cat ? 'Update' : 'Add Category'; ?></button>
@@ -805,14 +918,15 @@ final class CBNexus_Portal_Admin_Recruitment {
 		$max_sort = (int) $wpdb->get_var("SELECT MAX(sort_order) FROM {$table}") + 1;
 
 		$wpdb->insert($table, [
-			'title'       => sanitize_text_field(wp_unslash($_POST['need_title'] ?? '')),
-			'description' => sanitize_textarea_field(wp_unslash($_POST['need_description'] ?? '')),
-			'industry'    => sanitize_text_field($_POST['need_industry'] ?? ''),
-			'priority'    => in_array($_POST['need_priority'] ?? '', ['high', 'medium', 'low'], true) ? $_POST['need_priority'] : 'medium',
-			'sort_order'  => $max_sort,
-			'created_by'  => get_current_user_id(),
-			'created_at'  => $now,
-			'updated_at'  => $now,
+			'title'        => sanitize_text_field(wp_unslash($_POST['need_title'] ?? '')),
+			'description'  => sanitize_textarea_field(wp_unslash($_POST['need_description'] ?? '')),
+			'industry'     => sanitize_text_field($_POST['need_industry'] ?? ''),
+			'priority'     => in_array($_POST['need_priority'] ?? '', ['high', 'medium', 'low'], true) ? $_POST['need_priority'] : 'medium',
+			'target_count' => max(1, absint($_POST['need_target_count'] ?? 1)),
+			'sort_order'   => $max_sort,
+			'created_by'   => get_current_user_id(),
+			'created_at'   => $now,
+			'updated_at'   => $now,
 		]);
 
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'need_added']));
@@ -826,11 +940,12 @@ final class CBNexus_Portal_Admin_Recruitment {
 
 		global $wpdb;
 		$wpdb->update($wpdb->prefix . 'cb_recruitment_categories', [
-			'title'       => sanitize_text_field(wp_unslash($_POST['need_title'] ?? '')),
-			'description' => sanitize_textarea_field(wp_unslash($_POST['need_description'] ?? '')),
-			'industry'    => sanitize_text_field($_POST['need_industry'] ?? ''),
-			'priority'    => in_array($_POST['need_priority'] ?? '', ['high', 'medium', 'low'], true) ? $_POST['need_priority'] : 'medium',
-			'updated_at'  => gmdate('Y-m-d H:i:s'),
+			'title'        => sanitize_text_field(wp_unslash($_POST['need_title'] ?? '')),
+			'description'  => sanitize_textarea_field(wp_unslash($_POST['need_description'] ?? '')),
+			'industry'     => sanitize_text_field($_POST['need_industry'] ?? ''),
+			'priority'     => in_array($_POST['need_priority'] ?? '', ['high', 'medium', 'low'], true) ? $_POST['need_priority'] : 'medium',
+			'target_count' => max(1, absint($_POST['need_target_count'] ?? 1)),
+			'updated_at'   => gmdate('Y-m-d H:i:s'),
 		], ['id' => $id]);
 
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'need_updated']));

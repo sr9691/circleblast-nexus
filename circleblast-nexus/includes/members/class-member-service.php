@@ -249,6 +249,16 @@ final class CBNexus_Member_Service {
 						$errors[] = sprintf('%s cannot have more than %d items.', $def['label'], $max);
 					}
 					break;
+
+				case 'category_select':
+					// Accepts a single category ID or empty.
+					// Validation is lightweight; existence check happens at the service layer.
+					if ($value !== '' && $value !== null && $value !== '0') {
+						if (!is_numeric($value) && !is_array($value)) {
+							$errors[] = sprintf('Invalid value for %s.', $def['label']);
+						}
+					}
+					break;
 			}
 
 			// Max length check for string/text fields.
@@ -346,6 +356,12 @@ final class CBNexus_Member_Service {
 					} else {
 						$sanitized[$key] = [];
 					}
+					break;
+
+				case 'category_select':
+					// Store as JSON array with a single category ID, or empty.
+					$cat_id = is_array($value) ? ($value[0] ?? 0) : (int) $value;
+					$sanitized[$key] = $cat_id > 0 ? wp_json_encode([$cat_id]) : '';
 					break;
 
 				case 'date':

@@ -65,13 +65,14 @@ final class CBNexus_Portal_Admin_Members {
 						<th>Name</th>
 						<th>Company</th>
 						<th>Industry</th>
+						<th>Category</th>
 						<th>Status</th>
 						<th>Joined</th>
 						<th>Actions</th>
 					</tr></thead>
 					<tbody>
 					<?php if (empty($members)) : ?>
-						<tr><td colspan="6" class="cbnexus-admin-empty">No members found.</td></tr>
+						<tr><td colspan="7" class="cbnexus-admin-empty">No members found.</td></tr>
 					<?php else : foreach ($members as $m) :
 						$uid    = $m['user_id'];
 						$status = $m['cb_member_status'] ?? 'active';
@@ -83,6 +84,21 @@ final class CBNexus_Portal_Admin_Members {
 							</td>
 							<td><?php echo esc_html($m['cb_company'] ?? '—'); ?></td>
 							<td><?php echo esc_html($m['cb_industry'] ?? '—'); ?></td>
+							<td class="cbnexus-admin-meta"><?php
+								$cat_ids = $m['cb_member_categories'] ?? [];
+								$cat_name = '—';
+								if (!empty($cat_ids)) {
+									$cat_id = is_array($cat_ids) ? (int) ($cat_ids[0] ?? 0) : 0;
+									if ($cat_id > 0) {
+										global $wpdb;
+										$cat_name = $wpdb->get_var($wpdb->prepare(
+											"SELECT title FROM {$wpdb->prefix}cb_recruitment_categories WHERE id = %d",
+											$cat_id
+										)) ?: '—';
+									}
+								}
+								echo esc_html($cat_name);
+							?></td>
 							<td><?php CBNexus_Portal_Admin::status_pill($status); ?></td>
 							<td class="cbnexus-admin-meta"><?php echo esc_html($m['cb_join_date'] ?? '—'); ?></td>
 							<td class="cbnexus-admin-actions-cell">
@@ -303,6 +319,31 @@ final class CBNexus_Portal_Admin_Members {
 					<div>
 						<label style="display:block;font-weight:600;margin-bottom:4px;">Ambassador (User ID)</label>
 						<input type="text" name="cb_ambassador_id" value="<?php echo esc_attr($v('cb_ambassador_id')); ?>" class="cbnexus-input" style="width:200px;" />
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;">Recruitment Category</label>
+						<?php
+						$current_cat = 0;
+						if ($profile) {
+							$cat_meta = $profile['cb_member_categories'] ?? [];
+							$current_cat = is_array($cat_meta) && !empty($cat_meta) ? (int) $cat_meta[0] : 0;
+						}
+						if ($flash_data && isset($flash_data['cb_member_categories'])) {
+							$current_cat = (int) $flash_data['cb_member_categories'];
+						}
+						global $wpdb;
+						$cat_table = $wpdb->prefix . 'cb_recruitment_categories';
+						$recruit_cats = $wpdb->get_results("SELECT id, title, industry FROM {$cat_table} ORDER BY sort_order ASC, title ASC") ?: [];
+						?>
+						<select name="cb_member_categories" class="cbnexus-input" style="width:100%;">
+							<option value="0">— None —</option>
+							<?php foreach ($recruit_cats as $rc) : ?>
+								<option value="<?php echo esc_attr($rc->id); ?>" <?php selected($current_cat, (int) $rc->id); ?>>
+									<?php echo esc_html($rc->title); ?><?php echo $rc->industry ? ' (' . esc_html($rc->industry) . ')' : ''; ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+						<span class="cbnexus-admin-meta" style="display:block;margin-top:4px;">Which recruitment need does this member fill?</span>
 					</div>
 					<div>
 						<label style="display:block;font-weight:600;margin-bottom:4px;">Admin Notes</label>

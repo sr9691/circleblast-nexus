@@ -34,6 +34,7 @@ final class CBNexus_Member_Repository {
 		'cb_onboarding_stage',
 		'cb_ambassador_id',
 		'cb_notes_admin',
+		'cb_member_categories',
 	];
 
 	/**
@@ -123,7 +124,7 @@ final class CBNexus_Member_Repository {
 			$value = get_user_meta($user_id, $key, true);
 
 			// Decode JSON arrays for tags fields.
-			if (in_array($key, ['cb_expertise', 'cb_looking_for', 'cb_can_help_with'], true)) {
+			if (in_array($key, ['cb_expertise', 'cb_looking_for', 'cb_can_help_with', 'cb_member_categories'], true)) {
 				$decoded = json_decode($value, true);
 				$value = is_array($decoded) ? $decoded : [];
 			}
