@@ -96,7 +96,8 @@ final class CBNexus_Autoloader {
 		'CBNexus_Token_Router'  => 'includes/tokens/class-token-router.php',
 
 		// REST API
-		'CBNexus_Members_API' => 'includes/api/class-members-api.php',
+		'CBNexus_Members_API'    => 'includes/api/class-members-api.php',
+		'CBNexus_Events_ICS_API' => 'includes/api/class-events-ics-api.php',
 	];
 
 	/**

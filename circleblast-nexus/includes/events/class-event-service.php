@@ -75,6 +75,7 @@ final class CBNexus_Event_Service {
 						'reminder_notes'   => $event->reminder_notes ?: '',
 						'registration_url' => $event->registration_url ?: '',
 						'description'      => wp_trim_words($event->description, 40),
+						'calendar_block'   => self::build_calendar_block($event),
 					], ['recipient_id' => (int) $m['user_id'], 'related_id' => (int) $event->id, 'related_type' => 'event_reminder']);
 				}
 			}
@@ -251,6 +252,102 @@ final class CBNexus_Event_Service {
 		return $sent;
 	}
 
+	// ─── Calendar Link Helpers ──────────────────────────────────────────
+
+	/**
+	 * Build a Google Calendar "Add Event" URL.
+	 */
+	public static function google_calendar_url(object $event): string {
+		$start = self::calendar_datetime($event->event_date, $event->event_time ?? '');
+		$end   = self::calendar_datetime(
+			$event->end_date ?: $event->event_date,
+			$event->end_time ?: ($event->event_time ? date('H:i', strtotime($event->event_time) + 3600) : '')
+		);
+
+		$params = [
+			'action'   => 'TEMPLATE',
+			'text'     => $event->title,
+			'dates'    => $start . '/' . $end,
+			'details'  => wp_strip_all_tags($event->description ?? ''),
+			'location' => $event->location ?? '',
+		];
+
+		return 'https://calendar.google.com/calendar/render?' . http_build_query($params);
+	}
+
+	/**
+	 * Build an Outlook.com calendar URL.
+	 */
+	public static function outlook_calendar_url(object $event): string {
+		$start = self::iso_datetime($event->event_date, $event->event_time ?? '');
+		$end   = self::iso_datetime(
+			$event->end_date ?: $event->event_date,
+			$event->end_time ?: ($event->event_time ? date('H:i', strtotime($event->event_time) + 3600) : '')
+		);
+
+		$params = [
+			'rru'      => 'addevent',
+			'startdt'  => $start,
+			'enddt'    => $end,
+			'subject'  => $event->title,
+			'body'     => wp_strip_all_tags($event->description ?? ''),
+			'location' => $event->location ?? '',
+			'path'     => '/calendar/action/compose',
+		];
+
+		return 'https://outlook.live.com/calendar/0/action/compose?' . http_build_query($params);
+	}
+
+	/**
+	 * Build a downloadable .ics data URI for Apple Calendar / other ICS clients.
+	 *
+	 * Uses a webcal-compatible URL served via a REST endpoint.
+	 */
+	public static function ics_download_url(int $event_id): string {
+		return rest_url('cbnexus/v1/events/' . $event_id . '/ics');
+	}
+
+	/**
+	 * Build the "Add to Calendar" HTML block for a single event.
+	 */
+	public static function build_calendar_block(object $event): string {
+		$google  = esc_url(self::google_calendar_url($event));
+		$outlook = esc_url(self::outlook_calendar_url($event));
+		$ics     = esc_url(self::ics_download_url((int) $event->id));
+
+		$link_style = 'display:inline-block;padding:6px 14px;font-size:13px;font-weight:600;'
+			. 'text-decoration:none;border-radius:5px;border:1px solid #d1d5db;color:#374151;background:#ffffff;';
+
+		return '<div style="margin:12px 0 4px;">'
+			. '<span style="font-size:13px;color:#6b7280;margin-right:8px;">📆 Add to calendar:</span>'
+			. '<a href="' . $google . '" target="_blank" style="' . $link_style . 'margin-right:6px;">Google</a>'
+			. '<a href="' . $outlook . '" target="_blank" style="' . $link_style . 'margin-right:6px;">Outlook</a>'
+			. '<a href="' . $ics . '" style="' . $link_style . '">iCal (.ics)</a>'
+			. '</div>';
+	}
+
+	/**
+	 * Format date+time for Google Calendar (YYYYMMDDTHHmmSSZ or YYYYMMDD for all-day).
+	 */
+	private static function calendar_datetime(string $date, string $time): string {
+		if (empty($time)) {
+			return gmdate('Ymd', strtotime($date));
+		}
+		$ts = strtotime($date . ' ' . $time);
+		return gmdate('Ymd\THis\Z', $ts);
+	}
+
+	/**
+	 * Format date+time as ISO 8601 for Outlook (or all-day fallback).
+	 */
+	private static function iso_datetime(string $date, string $time): string {
+		if (empty($time)) {
+			return gmdate('Y-m-d', strtotime($date));
+		}
+		$ts = strtotime($date . ' ' . $time);
+		return gmdate('Y-m-d\TH:i:s\Z', $ts);
+	}
+
 	// ─── Shared Helpers ─────────────────────────────────────────────────
 
 	/**
@@ -301,6 +398,7 @@ final class CBNexus_Event_Service {
 			if (!empty($e->registration_url)) {
 				$html .= '<p style="margin:8px 0 0;"><a href="' . esc_url($e->registration_url) . '" style="color:#5b2d6e;font-weight:600;font-size:14px;">Register →</a></p>';
 			}
+			$html .= self::build_calendar_block($e);
 			$html .= '</div>';
 		}
 		return $html;
