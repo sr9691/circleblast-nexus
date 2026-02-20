@@ -48,7 +48,7 @@ final class CBNexus_Email_Service {
 
 		$headers = [
 			'Content-Type: text/html; charset=UTF-8',
-			'From: CircleBlast <noreply@circleblast.org>',
+			self::get_from_header(),
 		];
 
 		$sent   = wp_mail($to_email, $subject, $html_body, $headers);
@@ -64,6 +64,32 @@ final class CBNexus_Email_Service {
 		}
 
 		return $sent;
+	}
+
+	/**
+	 * Build the From: header using saved settings (or defaults).
+	 */
+	public static function get_from_header(): string {
+		$settings = self::get_sender_settings();
+		return 'From: ' . $settings['from_name'] . ' <' . $settings['from_email'] . '>';
+	}
+
+	/**
+	 * Get the saved sender settings.
+	 */
+	public static function get_sender_settings(): array {
+		$saved = get_option('cbnexus_email_sender', []);
+		return [
+			'from_name'  => $saved['from_name']  ?? 'CircleBlast',
+			'from_email' => $saved['from_email'] ?? 'noreply@circleblast.org',
+		];
+	}
+
+	/**
+	 * Save sender settings.
+	 */
+	public static function save_sender_settings(array $data): void {
+		update_option('cbnexus_email_sender', $data, false);
 	}
 
 	/**

@@ -204,6 +204,31 @@ final class CBNexus_Portal_Admin_Settings {
 				</div>
 
 				<div>
+					<h3>Email Sender</h3>
+					<p class="cbnexus-admin-meta" style="margin:0 0 12px;">Configure the name and address used as the "From" on all outgoing emails.</p>
+					<form method="post">
+						<?php
+						wp_nonce_field('cbnexus_portal_save_email_sender', '_panonce_sender');
+						$sender = CBNexus_Email_Service::get_sender_settings();
+						?>
+						<table class="cbnexus-admin-kv-table">
+							<tr>
+								<td><label for="cbnexus_from_name"><strong>From Name</strong></label></td>
+								<td><input type="text" id="cbnexus_from_name" name="from_name" value="<?php echo esc_attr($sender['from_name']); ?>" class="cbnexus-input" style="width:100%;max-width:300px;" placeholder="CircleBlast" /></td>
+							</tr>
+							<tr>
+								<td><label for="cbnexus_from_email"><strong>From Email</strong></label></td>
+								<td><input type="email" id="cbnexus_from_email" name="from_email" value="<?php echo esc_attr($sender['from_email']); ?>" class="cbnexus-input" style="width:100%;max-width:300px;" placeholder="noreply@circleblast.org" /></td>
+							</tr>
+						</table>
+						<p class="cbnexus-admin-meta" style="margin:8px 0 0;">Emails will appear as: <strong><?php echo esc_html($sender['from_name']); ?> &lt;<?php echo esc_html($sender['from_email']); ?>&gt;</strong></p>
+						<div style="margin-top:12px;">
+							<button type="submit" name="cbnexus_portal_save_email_sender" value="1" class="cbnexus-btn cbnexus-btn-primary">💾 Save Email Sender</button>
+						</div>
+					</form>
+				</div>
+
+				<div>
 					<h3>API Keys</h3>
 					<table class="cbnexus-admin-kv-table">
 						<tr>
@@ -404,6 +429,29 @@ final class CBNexus_Portal_Admin_Settings {
 	/**
 	 * Handle saving cron schedules.
 	 */
+	/**
+	 * Handle saving email sender settings.
+	 */
+	public static function handle_save_email_sender(): void {
+		if (!isset($_POST['cbnexus_portal_save_email_sender'])) { return; }
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_sender'] ?? ''), 'cbnexus_portal_save_email_sender')) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		$from_name  = sanitize_text_field($_POST['from_name'] ?? '');
+		$from_email = sanitize_email($_POST['from_email'] ?? '');
+
+		if (empty($from_name)) { $from_name = 'CircleBlast'; }
+		if (empty($from_email)) { $from_email = 'noreply@circleblast.org'; }
+
+		CBNexus_Email_Service::save_sender_settings([
+			'from_name'  => $from_name,
+			'from_email' => $from_email,
+		]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('settings', ['pa_notice' => 'sender_saved']));
+		exit;
+	}
+
 	public static function handle_save_cron_schedules(): void {
 		if (!isset($_POST['cbnexus_portal_save_cron_schedules'])) { return; }
 		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_cron'] ?? ''), 'cbnexus_portal_save_cron_schedules')) { return; }

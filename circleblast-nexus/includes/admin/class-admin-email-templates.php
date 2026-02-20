@@ -100,7 +100,7 @@ final class CBNexus_Admin_Email_Templates {
 		$body    = self::replace_vars($tpl['body'], $vars);
 
 		$html = CBNexus_Email_Service::test_wrap($body, $subject);
-		$headers = ['Content-Type: text/html; charset=UTF-8', 'From: CircleBlast <noreply@circleblast.org>'];
+		$headers = ['Content-Type: text/html; charset=UTF-8', CBNexus_Email_Service::get_from_header()];
 		wp_mail($email, '[TEST] ' . $subject, $html, $headers);
 
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-email-templates&edit=' . $tpl_id . '&cbnexus_notice=test_sent'));
