@@ -124,6 +124,10 @@ final class CBNexus_Portal_Admin {
 		if (isset($_POST['cbnexus_portal_save_color_scheme'])) {
 			CBNexus_Portal_Admin_Settings::handle_save_color_scheme();
 		}
+
+		if (isset($_POST['cbnexus_portal_save_cron_schedules'])) {
+			CBNexus_Portal_Admin_Settings::handle_save_cron_schedules();
+		}
 	}
 
 	// =====================================================================
@@ -243,6 +247,7 @@ final class CBNexus_Portal_Admin {
 			'template_saved'     => 'Email template saved.',
 			'template_reset'     => 'Template reset to default.',
 			'scheme_saved'       => 'Color scheme updated! Changes are now live.',
+			'cron_saved'         => 'Cron schedules updated! Changes are now active.',
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';

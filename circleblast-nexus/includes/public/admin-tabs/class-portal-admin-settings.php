@@ -151,30 +151,46 @@ final class CBNexus_Portal_Admin_Settings {
 
 				<div>
 					<h3>Cron Jobs</h3>
-					<table class="cbnexus-admin-kv-table">
-						<?php
-						$crons = [
-							'cbnexus_log_cleanup'          => 'Log Cleanup',
-							'cbnexus_meeting_reminders'    => 'Meeting Reminders',
-							'cbnexus_suggestion_cycle'     => 'Suggestion Cycle',
-							'cbnexus_suggestion_reminders' => 'Suggestion Reminders',
-							'cbnexus_ai_extraction'        => 'AI Extraction',
-							'cbnexus_analytics_snapshot'   => 'Analytics Snapshot',
-							'cbnexus_monthly_report'       => 'Monthly Report',
-							'cbnexus_event_reminders'      => 'Event Reminders',
-							'cbnexus_events_digest'        => 'Events Digest',
-							'cbnexus_token_cleanup'        => 'Token Cleanup',
-						];
-						foreach ($crons as $hook => $label) :
-							$next = wp_next_scheduled($hook);
-							$next_str = $next ? date_i18n('M j, g:i a', $next) : 'Not scheduled';
-						?>
-							<tr>
-								<td><?php echo esc_html($label); ?></td>
-								<td class="cbnexus-admin-meta"><?php echo esc_html($next_str); ?></td>
-							</tr>
-						<?php endforeach; ?>
-					</table>
+					<p class="cbnexus-admin-meta" style="margin:0 0 12px;">Adjust how often each automated task runs. Changes take effect immediately.</p>
+					<form method="post">
+						<?php wp_nonce_field('cbnexus_portal_save_cron_schedules', '_panonce_cron'); ?>
+						<table class="cbnexus-admin-table cbnexus-admin-table-sm">
+							<thead><tr>
+								<th>Task</th>
+								<th>Frequency</th>
+								<th>Next Run</th>
+							</tr></thead>
+							<tbody>
+							<?php
+							$crons = self::get_cron_definitions();
+							$saved = get_option('cbnexus_cron_schedules', []);
+							$all_schedules = wp_get_schedules();
+							foreach ($crons as $hook => $def) :
+								$current_freq = $saved[$hook] ?? $def['default'];
+								$next = wp_next_scheduled($hook);
+								$next_str = $next ? date_i18n('M j, g:i a', $next) : 'Not scheduled';
+							?>
+								<tr>
+									<td>
+										<strong><?php echo esc_html($def['label']); ?></strong>
+										<div class="cbnexus-admin-meta"><?php echo esc_html($def['description']); ?></div>
+									</td>
+									<td>
+										<select name="cron_schedule[<?php echo esc_attr($hook); ?>]" class="cbnexus-input cbnexus-input-sm" style="min-width:130px;">
+											<?php foreach ($def['options'] as $val => $lbl) : ?>
+												<option value="<?php echo esc_attr($val); ?>" <?php selected($current_freq, $val); ?>><?php echo esc_html($lbl); ?></option>
+											<?php endforeach; ?>
+										</select>
+									</td>
+									<td class="cbnexus-admin-meta"><?php echo esc_html($next_str); ?></td>
+								</tr>
+							<?php endforeach; ?>
+							</tbody>
+						</table>
+						<div style="margin-top:12px;">
+							<button type="submit" name="cbnexus_portal_save_cron_schedules" value="1" class="cbnexus-btn cbnexus-btn-primary">💾 Save Cron Schedules</button>
+						</div>
+					</form>
 				</div>
 
 				<div>
@@ -288,6 +304,131 @@ final class CBNexus_Portal_Admin_Settings {
 		})();
 		</script>
 		<?php
+	}
+
+	/**
+	 * Cron job definitions: hook => label, description, default frequency, allowed options.
+	 */
+	private static function get_cron_definitions(): array {
+		$freq_daily_weekly_monthly = [
+			'daily'   => 'Daily',
+			'weekly'  => 'Weekly',
+			'monthly' => 'Monthly',
+		];
+		$freq_daily_weekly = [
+			'daily'  => 'Daily',
+			'weekly' => 'Weekly',
+		];
+		$freq_hourly_daily = [
+			'hourly' => 'Hourly',
+			'daily'  => 'Daily',
+		];
+
+		return [
+			'cbnexus_log_cleanup' => [
+				'label'       => 'Log Cleanup',
+				'description' => 'Removes plugin log entries older than 30 days.',
+				'default'     => 'daily',
+				'options'     => $freq_daily_weekly,
+			],
+			'cbnexus_meeting_reminders' => [
+				'label'       => 'Meeting Reminders',
+				'description' => 'Sends reminder emails for upcoming 1:1 meetings.',
+				'default'     => 'daily',
+				'options'     => $freq_hourly_daily,
+			],
+			'cbnexus_suggestion_cycle' => [
+				'label'       => 'Suggestion Cycle',
+				'description' => 'Runs the matching engine and sends new 1:1 suggestions.',
+				'default'     => 'monthly',
+				'options'     => $freq_daily_weekly_monthly,
+			],
+			'cbnexus_suggestion_reminders' => [
+				'label'       => 'Suggestion Reminders',
+				'description' => 'Sends follow-up reminders for unanswered suggestions.',
+				'default'     => 'weekly',
+				'options'     => $freq_daily_weekly,
+			],
+			'cbnexus_ai_extraction' => [
+				'label'       => 'AI Extraction',
+				'description' => 'Processes new CircleUp transcripts through the AI pipeline.',
+				'default'     => 'daily',
+				'options'     => $freq_hourly_daily,
+			],
+			'cbnexus_analytics_snapshot' => [
+				'label'       => 'Analytics Snapshot',
+				'description' => 'Captures club metrics for trend tracking.',
+				'default'     => 'daily',
+				'options'     => $freq_daily_weekly,
+			],
+			'cbnexus_monthly_report' => [
+				'label'       => 'Monthly Report',
+				'description' => 'Sends analytics summary email to admins.',
+				'default'     => 'monthly',
+				'options'     => $freq_daily_weekly_monthly,
+			],
+			'cbnexus_event_reminders' => [
+				'label'       => 'Event Reminders',
+				'description' => 'Sends reminders for upcoming events.',
+				'default'     => 'daily',
+				'options'     => $freq_hourly_daily,
+			],
+			'cbnexus_events_digest' => [
+				'label'       => 'Events Digest',
+				'description' => 'Sends a digest of upcoming events to members.',
+				'default'     => 'weekly',
+				'options'     => $freq_daily_weekly_monthly,
+			],
+			'cbnexus_token_cleanup' => [
+				'label'       => 'Token Cleanup',
+				'description' => 'Removes expired authentication tokens.',
+				'default'     => 'daily',
+				'options'     => $freq_daily_weekly,
+			],
+		];
+	}
+
+	/**
+	 * Handle saving cron schedules.
+	 */
+	public static function handle_save_cron_schedules(): void {
+		if (!isset($_POST['cbnexus_portal_save_cron_schedules'])) { return; }
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_cron'] ?? ''), 'cbnexus_portal_save_cron_schedules')) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		$defs    = self::get_cron_definitions();
+		$input   = $_POST['cron_schedule'] ?? [];
+		$saved   = get_option('cbnexus_cron_schedules', []);
+		$changed = false;
+
+		foreach ($defs as $hook => $def) {
+			$new_freq = sanitize_key($input[$hook] ?? $def['default']);
+
+			// Validate against allowed options.
+			if (!isset($def['options'][$new_freq])) {
+				$new_freq = $def['default'];
+			}
+
+			$old_freq = $saved[$hook] ?? $def['default'];
+
+			if ($new_freq !== $old_freq) {
+				// Unschedule the old event and reschedule with new frequency.
+				$ts = wp_next_scheduled($hook);
+				if ($ts) {
+					wp_unschedule_event($ts, $hook);
+				}
+				wp_schedule_event(time(), $new_freq, $hook);
+				$changed = true;
+			}
+
+			$saved[$hook] = $new_freq;
+		}
+
+		update_option('cbnexus_cron_schedules', $saved, false);
+
+		$notice = $changed ? 'cron_saved' : 'cron_saved';
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('settings', ['pa_notice' => $notice]));
+		exit;
 	}
 
 	public static function handle_save_color_scheme(): void {
