@@ -250,6 +250,238 @@ final class CBNexus_Recruitment_Coverage_Service {
 		return $map;
 	}
 
+	// ─── Monthly Focus Categories ────────────────────────────────────
+
+	/**
+	 * Get the current monthly focus categories.
+	 *
+	 * Returns the randomly-selected focus categories for this month's cycle.
+	 * Falls back to get_top_gaps() if no focus has been set yet or if
+	 * the stored focus is stale / empty.
+	 *
+	 * @param int $limit Max results (0 = use stored count).
+	 * @return array Array of category objects.
+	 */
+	public static function get_focus_categories(int $limit = 0): array {
+		$focus = get_option('cbnexus_recruitment_focus', []);
+
+		// If no focus stored, fall back to top gaps.
+		if (empty($focus) || empty($focus['category_ids'])) {
+			$settings = self::get_focus_settings();
+			return self::get_top_gaps($limit > 0 ? $limit : $settings['count']);
+		}
+
+		$all = self::get_full_coverage();
+		$ids = (array) $focus['category_ids'];
+
+		// Filter to only the focus IDs that are still gaps/partial.
+		$focused = [];
+		foreach ($all as $cat) {
+			if (in_array((int) $cat->id, $ids, true) && $cat->coverage_status !== self::STATUS_COVERED) {
+				$focused[] = $cat;
+			}
+		}
+
+		// If all focus categories got filled since rotation, fall back.
+		if (empty($focused)) {
+			$settings = self::get_focus_settings();
+			return self::get_top_gaps($limit > 0 ? $limit : $settings['count']);
+		}
+
+		return $limit > 0 ? array_slice($focused, 0, $limit) : $focused;
+	}
+
+	/**
+	 * Get focus settings (admin-configurable).
+	 *
+	 * @return array{count: int, coverage_threshold: int}
+	 */
+	public static function get_focus_settings(): array {
+		$saved = get_option('cbnexus_recruitment_focus_settings', []);
+		return [
+			'count'              => max(1, min(10, (int) ($saved['count'] ?? 3))),
+			'coverage_threshold' => max(50, min(100, (int) ($saved['coverage_threshold'] ?? 80))),
+		];
+	}
+
+	/**
+	 * Save focus settings.
+	 *
+	 * @param array $data
+	 */
+	public static function save_focus_settings(array $data): void {
+		update_option('cbnexus_recruitment_focus_settings', [
+			'count'              => max(1, min(10, (int) ($data['count'] ?? 3))),
+			'coverage_threshold' => max(50, min(100, (int) ($data['coverage_threshold'] ?? 80))),
+		], false);
+	}
+
+	/**
+	 * Get stored focus metadata (for display in admin).
+	 *
+	 * @return array{category_ids: int[], rotated_at: string, next_circleup: string}
+	 */
+	public static function get_focus_meta(): array {
+		$focus = get_option('cbnexus_recruitment_focus', []);
+		return [
+			'category_ids'  => $focus['category_ids'] ?? [],
+			'rotated_at'    => $focus['rotated_at'] ?? '',
+			'next_circleup' => $focus['next_circleup'] ?? '',
+		];
+	}
+
+	/**
+	 * Rotate focus categories (called by cron 2 days before CircleUp).
+	 *
+	 * Picks N random gap categories, avoiding recently-featured ones where
+	 * possible, and stores them. Skips rotation if coverage is above threshold.
+	 */
+	public static function rotate_focus(): void {
+		$settings  = self::get_focus_settings();
+		$summary   = self::get_summary();
+
+		// Stop sending focus if coverage exceeds threshold.
+		if ($summary['total'] > 0 && $summary['coverage_pct'] >= $settings['coverage_threshold']) {
+			// Clear focus — all pages will fall back to showing nothing or "all covered".
+			update_option('cbnexus_recruitment_focus', [
+				'category_ids'  => [],
+				'rotated_at'    => gmdate('Y-m-d H:i:s'),
+				'next_circleup' => self::compute_next_circleup_date(),
+				'skipped'       => true,
+				'skip_reason'   => sprintf('Coverage at %s%% (threshold: %s%%)', $summary['coverage_pct'], $settings['coverage_threshold']),
+			], false);
+
+			if (class_exists('CBNexus_Logger')) {
+				CBNexus_Logger::info('Recruitment focus rotation skipped — coverage above threshold.', [
+					'coverage_pct' => $summary['coverage_pct'],
+					'threshold'    => $settings['coverage_threshold'],
+				]);
+			}
+			return;
+		}
+
+		$all_gaps = array_filter(self::get_full_coverage(), function ($cat) {
+			return $cat->coverage_status !== self::STATUS_COVERED;
+		});
+
+		if (empty($all_gaps)) {
+			update_option('cbnexus_recruitment_focus', [
+				'category_ids'  => [],
+				'rotated_at'    => gmdate('Y-m-d H:i:s'),
+				'next_circleup' => self::compute_next_circleup_date(),
+				'skipped'       => true,
+				'skip_reason'   => 'No gap categories to rotate.',
+			], false);
+			return;
+		}
+
+		$count = min($settings['count'], count($all_gaps));
+
+		// Get previously-featured IDs to deprioritize them.
+		$prev_focus = get_option('cbnexus_recruitment_focus', []);
+		$prev_ids   = $prev_focus['category_ids'] ?? [];
+
+		// Split into not-recently-featured and recently-featured.
+		$fresh  = [];
+		$stale  = [];
+		foreach ($all_gaps as $cat) {
+			$cid = (int) $cat->id;
+			if (in_array($cid, $prev_ids, true)) {
+				$stale[] = $cat;
+			} else {
+				$fresh[] = $cat;
+			}
+		}
+
+		// Shuffle both pools randomly.
+		shuffle($fresh);
+		shuffle($stale);
+
+		// Pick from fresh first, then fill remainder from stale.
+		$pool     = array_merge($fresh, $stale);
+		$selected = array_slice($pool, 0, $count);
+		$ids      = array_map(function ($cat) { return (int) $cat->id; }, $selected);
+
+		update_option('cbnexus_recruitment_focus', [
+			'category_ids'  => $ids,
+			'rotated_at'    => gmdate('Y-m-d H:i:s'),
+			'next_circleup' => self::compute_next_circleup_date(),
+			'skipped'       => false,
+		], false);
+
+		if (class_exists('CBNexus_Logger')) {
+			CBNexus_Logger::info('Recruitment focus categories rotated.', [
+				'count'    => count($ids),
+				'ids'      => $ids,
+				'titles'   => array_map(function ($cat) { return $cat->title; }, $selected),
+			]);
+		}
+	}
+
+	/**
+	 * Compute the date of the next 4th Friday from today.
+	 *
+	 * @return string Y-m-d
+	 */
+	private static function compute_next_circleup_date(): string {
+		$now   = new \DateTime('now', new \DateTimeZone('UTC'));
+		$year  = (int) $now->format('Y');
+		$month = (int) $now->format('n');
+
+		// Try this month first.
+		$fourth_friday = self::nth_weekday_of_month(4, 5, $month, $year); // 5 = Friday
+		if ($fourth_friday > $now) {
+			return $fourth_friday->format('Y-m-d');
+		}
+
+		// Otherwise next month.
+		$month++;
+		if ($month > 12) {
+			$month = 1;
+			$year++;
+		}
+		return self::nth_weekday_of_month(4, 5, $month, $year)->format('Y-m-d');
+	}
+
+	/**
+	 * Get the Nth occurrence of a weekday in a given month.
+	 *
+	 * @param int $nth      Which occurrence (1-5).
+	 * @param int $weekday  ISO weekday (1=Mon, 5=Fri, 7=Sun).
+	 * @param int $month    Month number (1-12).
+	 * @param int $year     Year.
+	 * @return \DateTime
+	 */
+	private static function nth_weekday_of_month(int $nth, int $weekday, int $month, int $year): \DateTime {
+		$day_names = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
+		$name = $day_names[$weekday] ?? 'Friday';
+		$ordinals = [1 => 'first', 2 => 'second', 3 => 'third', 4 => 'fourth', 5 => 'fifth'];
+		$ord = $ordinals[$nth] ?? 'fourth';
+
+		$date = new \DateTime("{$ord} {$name} of {$year}-{$month}", new \DateTimeZone('UTC'));
+		return $date;
+	}
+
+	/**
+	 * Cron callback: rotate focus categories.
+	 *
+	 * Runs on the cron schedule (default: monthly, recommended: 4th Wednesday).
+	 * The cron frequency is configurable in Settings → Cron Jobs.
+	 */
+	public static function cron_rotate_focus(): void {
+		self::rotate_focus();
+	}
+
+	/**
+	 * Check if focus is currently active (has categories and wasn't skipped).
+	 *
+	 * @return bool
+	 */
+	public static function has_active_focus(): bool {
+		$focus = get_option('cbnexus_recruitment_focus', []);
+		return !empty($focus['category_ids']) && empty($focus['skipped']);
+	}
+
 	// ─── Email Prompt HTML ────────────────────────────────────────────
 
 	/**
@@ -289,7 +521,7 @@ final class CBNexus_Recruitment_Coverage_Service {
 	 * Returns empty string if no gaps exist.
 	 */
 	public static function get_footer_prompt_html(): string {
-		$gaps = self::get_top_gaps(3);
+		$gaps = self::get_focus_categories(3);
 		if (empty($gaps)) {
 			return '';
 		}
@@ -332,7 +564,7 @@ final class CBNexus_Recruitment_Coverage_Service {
 	 * Returns empty string if no gaps exist.
 	 */
 	public static function get_prominent_prompt_html(): string {
-		$gaps = self::get_top_gaps(3);
+		$gaps = self::get_focus_categories(3);
 		if (empty($gaps)) {
 			return '';
 		}

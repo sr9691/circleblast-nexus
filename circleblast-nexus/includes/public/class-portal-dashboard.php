@@ -180,7 +180,7 @@ final class CBNexus_Portal_Dashboard {
 			return;
 		}
 
-		$gaps      = CBNexus_Recruitment_Coverage_Service::get_top_gaps(5);
+		$gaps      = CBNexus_Recruitment_Coverage_Service::get_focus_categories(5);
 		$is_admin  = current_user_can('cbnexus_manage_members');
 		$admin_email = get_option('admin_email', '');
 		$portal_url  = CBNexus_Portal_Router::get_portal_url();
@@ -218,6 +218,9 @@ final class CBNexus_Portal_Dashboard {
 
 			<?php if (!empty($gaps)) : ?>
 				<!-- Open categories -->
+				<?php if (CBNexus_Recruitment_Coverage_Service::has_active_focus()) : ?>
+					<div style="font-size:11px;font-weight:600;color:var(--cb-text-ter,#9ca3af);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🔄 This Month's Focus</div>
+				<?php endif; ?>
 				<div class="cbnexus-recruit-gaps">
 					<?php foreach ($gaps as $gap) : ?>
 						<div class="cbnexus-recruit-gap-row">
@@ -242,11 +245,9 @@ final class CBNexus_Portal_Dashboard {
 					<?php endforeach; ?>
 				</div>
 
-				<?php if ($summary['gaps'] > 5) : ?>
-					<div style="margin-top:10px;">
-						<a href="<?php echo esc_url(add_query_arg('section', 'club', $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('See all open roles →', 'circleblast-nexus'); ?></a>
-					</div>
-				<?php endif; ?>
+				<div style="margin-top:10px;">
+					<a href="<?php echo esc_url(add_query_arg(['section' => 'club', 'coverage' => 'expanded'], $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('View all recruitment categories →', 'circleblast-nexus'); ?></a>
+				</div>
 
 			<?php else : ?>
 				<div style="padding:8px 0;font-size:14px;color:#059669;font-weight:500;">

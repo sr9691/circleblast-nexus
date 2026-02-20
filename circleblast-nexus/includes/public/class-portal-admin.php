@@ -95,6 +95,12 @@ final class CBNexus_Portal_Admin {
 		if (isset($_POST['cbnexus_portal_save_needs_schedule'])) {
 			CBNexus_Portal_Admin_Recruitment::handle_save_needs_schedule();
 		}
+		if (isset($_POST['cbnexus_portal_save_focus_settings'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_save_focus_settings();
+		}
+		if (isset($_GET['cbnexus_portal_rotate_focus'])) {
+			CBNexus_Portal_Admin_Recruitment::handle_rotate_focus();
+		}
 
 		// ── Matching ─────────────────────────────────────────────────────
 		if (isset($_POST['cbnexus_portal_save_rules'])) {
@@ -284,6 +290,8 @@ final class CBNexus_Portal_Admin {
 			'need_deleted'       => 'Recruitment need deleted.',
 			'needs_blast_sent'   => 'Recruitment needs emailed to all active members.',
 			'needs_schedule_saved' => 'Recruitment needs schedule saved.',
+			'focus_saved'          => 'Monthly focus settings saved.',
+			'focus_rotated'        => 'Recruitment focus categories rotated.',
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';

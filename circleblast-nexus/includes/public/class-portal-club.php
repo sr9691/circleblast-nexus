@@ -148,11 +148,17 @@ final class CBNexus_Portal_Club {
 		$pipeline = CBNexus_Recruitment_Coverage_Service::get_pipeline_summary();
 		$is_admin = current_user_can('cbnexus_manage_members');
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
+		$expanded = isset($_GET['coverage']) && $_GET['coverage'] === 'expanded';
+
+		// Get focus category IDs for highlighting.
+		$focus_meta = CBNexus_Recruitment_Coverage_Service::get_focus_meta();
+		$focus_ids  = $focus_meta['category_ids'] ?? [];
+		$has_focus  = CBNexus_Recruitment_Coverage_Service::has_active_focus();
 
 		$status_icons  = ['covered' => '🟢', 'partial' => '🟡', 'gap' => '🔴'];
 		$status_labels = ['covered' => 'Covered', 'partial' => 'Partial', 'gap' => 'Open'];
 		?>
-		<div class="cbnexus-card">
+		<div class="cbnexus-card" id="coverage-scorecard">
 			<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
 				<h3 style="margin:0;">🎯 <?php esc_html_e('Recruitment Coverage', 'circleblast-nexus'); ?></h3>
 				<?php if ($is_admin) : ?>
@@ -206,19 +212,37 @@ final class CBNexus_Portal_Club {
 			</div>
 			<?php endif; ?>
 
-			<!-- Category grid -->
-			<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+			<?php if ($has_focus && !empty($focus_ids)) : ?>
+			<!-- This Month's Focus -->
+			<div style="font-size:11px;font-weight:600;color:var(--cb-text-ter,#9ca3af);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🔄 This Month's Recruitment Focus</div>
+			<?php endif; ?>
+
+			<!-- Category grid — expanded shows all with descriptions, default is compact -->
+			<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(<?php echo $expanded ? '280px' : '220px'; ?>,1fr));gap:8px;">
 				<?php foreach ($all as $cat) :
-					$status = $cat->coverage_status ?? 'gap';
-					$icon   = $status_icons[$status] ?? '🔴';
-					$label  = $status_labels[$status] ?? 'Open';
+					$status    = $cat->coverage_status ?? 'gap';
+					$icon      = $status_icons[$status] ?? '🔴';
+					$label     = $status_labels[$status] ?? 'Open';
+					$is_focus  = in_array((int) $cat->id, $focus_ids, true);
+					$focus_border = ($is_focus && $status !== 'covered') ? 'border:2px solid #5b2d6e;' : 'border:1px solid var(--cb-border,#e5e7eb);';
 				?>
-					<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--cb-border,#e5e7eb);border-radius:8px;background:var(--cb-card,#fff);<?php echo $status === 'gap' ? 'border-style:dashed;opacity:0.75;' : ''; ?>">
-						<span style="font-size:12px;flex-shrink:0;"><?php echo $icon; ?></span>
+					<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;<?php echo $focus_border; ?>border-radius:8px;background:var(--cb-card,#fff);<?php echo $status === 'gap' ? 'border-style:dashed;opacity:0.75;' : ''; ?><?php echo ($is_focus && $status !== 'covered') ? 'opacity:1;background:#faf6fc;' : ''; ?>">
+						<span style="font-size:12px;flex-shrink:0;margin-top:2px;"><?php echo $icon; ?></span>
 						<div style="flex:1;min-width:0;">
-							<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo esc_html($cat->title); ?></div>
+							<div style="font-size:13px;font-weight:600;<?php echo !$expanded ? 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' : ''; ?>">
+								<?php echo esc_html($cat->title); ?>
+								<?php if ($is_focus && $status !== 'covered') : ?>
+									<span style="font-size:10px;padding:1px 5px;background:#5b2d6e;color:#fff;border-radius:6px;margin-left:4px;vertical-align:middle;">Focus</span>
+								<?php endif; ?>
+							</div>
+							<?php if ($expanded && $cat->description) : ?>
+								<div style="font-size:12px;color:var(--cb-text-sec);margin-top:2px;"><?php echo esc_html(wp_trim_words($cat->description, 20)); ?></div>
+							<?php endif; ?>
+							<?php if ($expanded && $cat->industry) : ?>
+								<span style="display:inline-block;font-size:10px;padding:1px 6px;background:#f3eef6;border-radius:8px;color:#5b2d6e;margin-top:3px;"><?php echo esc_html($cat->industry); ?></span>
+							<?php endif; ?>
 							<?php if ($status !== 'gap' && !empty($cat->members)) : ?>
-								<div style="font-size:11px;color:var(--cb-text-ter);">
+								<div style="font-size:11px;color:var(--cb-text-ter);margin-top:2px;">
 									<?php echo esc_html(implode(', ', array_column($cat->members, 'display_name'))); ?>
 								</div>
 							<?php elseif ($status === 'gap') : ?>
@@ -228,6 +252,12 @@ final class CBNexus_Portal_Club {
 					</div>
 				<?php endforeach; ?>
 			</div>
+
+			<?php if (!$expanded) : ?>
+			<div style="margin-top:10px;">
+				<a href="<?php echo esc_url(add_query_arg(['section' => 'club', 'coverage' => 'expanded'], $portal_url)); ?>#coverage-scorecard" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('Expand all categories →', 'circleblast-nexus'); ?></a>
+			</div>
+			<?php endif; ?>
 		</div>
 		<?php
 	}

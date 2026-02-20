@@ -533,6 +533,12 @@ final class CBNexus_Portal_Admin_Settings {
 				'default'     => 'daily',
 				'options'     => $freq_daily_weekly,
 			],
+			'cbnexus_recruitment_focus_rotate' => [
+				'label'       => 'Recruitment Focus Rotation',
+				'description' => 'Picks new focus categories 2 days before CircleUp (4th Wednesday). Runs monthly.',
+				'default'     => 'monthly',
+				'options'     => $freq_daily_weekly_monthly,
+			],
 		];
 	}
 

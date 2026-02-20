@@ -903,7 +903,136 @@ final class CBNexus_Portal_Admin_Recruitment {
 				</div>
 			</form>
 		</div>
+
+		<?php self::render_focus_settings(); ?>
 		<?php
+	}
+
+	// ─── Monthly Focus Settings ──────────────────────────────────────
+
+	/**
+	 * Render the Monthly Focus configuration card.
+	 */
+	private static function render_focus_settings(): void {
+		if (!class_exists('CBNexus_Recruitment_Coverage_Service')) {
+			return;
+		}
+
+		$settings   = CBNexus_Recruitment_Coverage_Service::get_focus_settings();
+		$focus_meta = CBNexus_Recruitment_Coverage_Service::get_focus_meta();
+		$focus_ids  = $focus_meta['category_ids'] ?? [];
+		$has_focus  = CBNexus_Recruitment_Coverage_Service::has_active_focus();
+		$next_run   = wp_next_scheduled('cbnexus_recruitment_focus_rotate');
+
+		// Get the current focus category titles for display.
+		$focus_titles = [];
+		if (!empty($focus_ids)) {
+			global $wpdb;
+			$placeholders = implode(',', array_fill(0, count($focus_ids), '%d'));
+			$rows = $wpdb->get_results($wpdb->prepare(
+				"SELECT id, title, priority FROM {$wpdb->prefix}cb_recruitment_categories WHERE id IN ({$placeholders}) ORDER BY FIELD(priority, 'high','medium','low')",
+				...$focus_ids
+			));
+			$focus_titles = $rows ?: [];
+		}
+
+		$p_dots = ['high' => '#dc2626', 'medium' => '#d97706', 'low' => '#059669'];
+		?>
+		<div class="cbnexus-card" style="margin-top:12px;">
+			<h3>🔄 Monthly Recruitment Focus</h3>
+			<p class="cbnexus-admin-meta" style="margin:0 0 14px;">
+				Each month, two days before the CircleUp meeting (4th Wednesday), a set of recruitment categories is randomly selected as the group's focus.
+				These focus categories replace the default "Who We're Looking For" content on the Home tab, Directory, Club Stats, and in email prompts.
+				Once coverage reaches the threshold below, focus rotation pauses automatically.
+			</p>
+
+			<?php if ($has_focus && !empty($focus_titles)) : ?>
+			<!-- Current Focus -->
+			<div style="margin-bottom:16px;padding:12px 16px;background:#faf6fc;border:1px solid #e9e3ed;border-radius:8px;">
+				<div style="font-size:12px;font-weight:600;color:#5b2d6e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Current Focus (since <?php echo esc_html(date_i18n('M j', strtotime($focus_meta['rotated_at']))); ?>)</div>
+				<div style="display:flex;gap:8px;flex-wrap:wrap;">
+					<?php foreach ($focus_titles as $ft) : ?>
+						<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#fff;border:1px solid #e9e3ed;border-radius:8px;font-size:13px;font-weight:500;">
+							<span style="width:7px;height:7px;border-radius:50%;background:<?php echo esc_attr($p_dots[$ft->priority] ?? '#d97706'); ?>;"></span>
+							<?php echo esc_html($ft->title); ?>
+						</span>
+					<?php endforeach; ?>
+				</div>
+				<?php if ($focus_meta['next_circleup']) : ?>
+					<div class="cbnexus-admin-meta" style="margin-top:8px;">Next CircleUp: <?php echo esc_html(date_i18n('l, M j', strtotime($focus_meta['next_circleup']))); ?></div>
+				<?php endif; ?>
+			</div>
+			<?php elseif (!empty($focus_meta['rotated_at']) && !empty($focus_meta['skipped'])) : ?>
+			<div style="margin-bottom:16px;padding:10px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">
+				✅ Focus rotation paused — coverage is above the threshold.
+			</div>
+			<?php else : ?>
+			<div style="margin-bottom:16px;padding:10px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#92400e;">
+				No focus categories selected yet. The cron job will pick them automatically, or you can trigger a rotation manually below.
+			</div>
+			<?php endif; ?>
+
+			<!-- Settings Form -->
+			<form method="post" style="max-width:500px;">
+				<?php wp_nonce_field('cbnexus_portal_save_focus_settings', '_panonce_focus'); ?>
+				<div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;font-size:13px;">Categories per month</label>
+						<input type="number" name="focus_count" min="1" max="10" value="<?php echo esc_attr($settings['count']); ?>" class="cbnexus-input" style="width:80px;" />
+						<span class="cbnexus-admin-meta" style="display:block;margin-top:3px;">How many categories to highlight each cycle</span>
+					</div>
+					<div>
+						<label style="display:block;font-weight:600;margin-bottom:4px;font-size:13px;">Coverage pause threshold</label>
+						<div style="display:flex;align-items:center;gap:4px;">
+							<input type="number" name="focus_threshold" min="50" max="100" step="5" value="<?php echo esc_attr($settings['coverage_threshold']); ?>" class="cbnexus-input" style="width:80px;" />
+							<span style="font-size:14px;font-weight:500;">%</span>
+						</div>
+						<span class="cbnexus-admin-meta" style="display:block;margin-top:3px;">Stop rotating when coverage reaches this level</span>
+					</div>
+				</div>
+				<div style="display:flex;gap:8px;align-items:center;">
+					<button type="submit" name="cbnexus_portal_save_focus_settings" value="1" class="cbnexus-btn cbnexus-btn-primary">Save Focus Settings</button>
+					<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('recruitment', ['cbnexus_portal_rotate_focus' => '1']), 'cbnexus_portal_rotate_focus', '_panonce')); ?>" class="cbnexus-btn cbnexus-btn-outline" onclick="return confirm('Rotate focus categories now? This will replace the current selection.');">🔄 Rotate Now</a>
+				</div>
+			</form>
+
+			<?php if ($next_run) : ?>
+			<div class="cbnexus-admin-meta" style="margin-top:10px;">
+				Next automatic rotation: <?php echo esc_html(date_i18n('l, M j · g:i a', $next_run)); ?>
+				· <a href="<?php echo esc_url(add_query_arg(['section' => 'manage', 'admin_tab' => 'settings'], CBNexus_Portal_Router::get_portal_url())); ?>" class="cbnexus-link">Adjust schedule →</a>
+			</div>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Handle saving focus settings.
+	 */
+	public static function handle_save_focus_settings(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_focus'] ?? ''), 'cbnexus_portal_save_focus_settings')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		CBNexus_Recruitment_Coverage_Service::save_focus_settings([
+			'count'              => absint($_POST['focus_count'] ?? 3),
+			'coverage_threshold' => absint($_POST['focus_threshold'] ?? 80),
+		]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'focus_saved']));
+		exit;
+	}
+
+	/**
+	 * Handle manual focus rotation.
+	 */
+	public static function handle_rotate_focus(): void {
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_rotate_focus')) { return; }
+		if (!current_user_can('cbnexus_manage_members')) { return; }
+
+		CBNexus_Recruitment_Coverage_Service::rotate_focus();
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'focus_rotated']));
+		exit;
 	}
 
 	// ─── Recruitment Needs Action Handlers ────────────────────────────

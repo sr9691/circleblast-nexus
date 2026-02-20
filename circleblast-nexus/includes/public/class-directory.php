@@ -50,9 +50,9 @@ final class CBNexus_Directory {
 		$cat_table = $wpdb->prefix . 'cb_recruitment_categories';
 		$recruit_cats = $wpdb->get_results("SELECT id, title FROM {$cat_table} ORDER BY sort_order ASC, title ASC") ?: [];
 
-		// Ghost cards for open categories.
+		// Ghost cards for focus categories (monthly rotation).
 		$gaps = class_exists('CBNexus_Recruitment_Coverage_Service')
-			? CBNexus_Recruitment_Coverage_Service::get_top_gaps(10)
+			? CBNexus_Recruitment_Coverage_Service::get_focus_categories(10)
 			: [];
 		$admin_email = get_option('admin_email', '');
 		$p_border_colors = ['high' => '#dc2626', 'medium' => '#d97706', 'low' => '#059669'];

@@ -104,6 +104,7 @@ add_action('cbnexus_monthly_report', ['CBNexus_Admin_Analytics', 'send_monthly_r
 add_action('cbnexus_event_reminders', ['CBNexus_Event_Service', 'send_reminders']);
 add_action('cbnexus_events_digest', ['CBNexus_Event_Service', 'send_digest']);
 add_action('cbnexus_token_cleanup', ['CBNexus_Token_Service', 'cleanup']);
+add_action('cbnexus_recruitment_focus_rotate', ['CBNexus_Recruitment_Coverage_Service', 'cron_rotate_focus']);
 
 /**
  * Initialize admin features when in admin context.
@@ -176,6 +177,7 @@ function cbnexus_activate(): void {
 		'cbnexus_event_reminders'      => 'daily',
 		'cbnexus_events_digest'        => 'weekly',
 		'cbnexus_token_cleanup'        => 'daily',
+		'cbnexus_recruitment_focus_rotate' => 'monthly',
 	];
 	foreach ($cron_defaults as $hook => $default_freq) {
 		$freq = $cron_overrides[$hook] ?? $default_freq;
@@ -205,6 +207,7 @@ function cbnexus_deactivate(): void {
 	wp_clear_scheduled_hook('cbnexus_events_digest');
 	wp_clear_scheduled_hook('cbnexus_token_cleanup');
 	wp_clear_scheduled_hook('cbnexus_recruitment_blast');
+	wp_clear_scheduled_hook('cbnexus_recruitment_focus_rotate');
 }
 
 register_deactivation_hook(__FILE__, 'cbnexus_deactivate');
