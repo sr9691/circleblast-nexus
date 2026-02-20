@@ -1,17 +1,18 @@
 /**
  * CircleBlast Nexus – Directory JS
- * ITER-0007: AJAX-powered search, filter, and view toggle.
+ * ITER-0007 + Phase 3: AJAX-powered search, filter (industry + category), and view toggle.
  */
 (function () {
 	'use strict';
 
-	var searchInput   = document.getElementById('cbnexus-dir-search');
+	var searchInput    = document.getElementById('cbnexus-dir-search');
 	var industrySelect = document.getElementById('cbnexus-dir-industry');
-	var statusSelect  = document.getElementById('cbnexus-dir-status');
-	var resultsEl     = document.getElementById('cbnexus-dir-results');
-	var countEl       = document.getElementById('cbnexus-dir-count');
-	var loadingEl     = document.getElementById('cbnexus-dir-loading');
-	var viewBtns      = document.querySelectorAll('.cbnexus-view-btn');
+	var categorySelect = document.getElementById('cbnexus-dir-category');
+	var statusSelect   = document.getElementById('cbnexus-dir-status');
+	var resultsEl      = document.getElementById('cbnexus-dir-results');
+	var countEl        = document.getElementById('cbnexus-dir-count');
+	var loadingEl      = document.getElementById('cbnexus-dir-loading');
+	var viewBtns       = document.querySelectorAll('.cbnexus-view-btn');
 
 	if (!searchInput || !resultsEl) return;
 
@@ -25,6 +26,7 @@
 
 	// Filter changes.
 	if (industrySelect) industrySelect.addEventListener('change', fetchMembers);
+	if (categorySelect) categorySelect.addEventListener('change', fetchMembers);
 	if (statusSelect) statusSelect.addEventListener('change', fetchMembers);
 
 	// View toggle.
@@ -45,6 +47,7 @@
 		data.append('nonce', cbnexusDir.nonce);
 		data.append('search', searchInput.value);
 		data.append('industry', industrySelect ? industrySelect.value : '');
+		data.append('category', categorySelect ? categorySelect.value : '');
 		data.append('status', statusSelect ? statusSelect.value : 'active');
 
 		loadingEl.style.display = 'block';

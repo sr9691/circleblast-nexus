@@ -44,8 +44,41 @@ final class CBNexus_Directory {
 		}
 
 		$industries = CBNexus_Member_Service::get_industries();
+
+		// Recruitment categories for filter dropdown.
+		global $wpdb;
+		$cat_table = $wpdb->prefix . 'cb_recruitment_categories';
+		$recruit_cats = $wpdb->get_results("SELECT id, title FROM {$cat_table} ORDER BY sort_order ASC, title ASC") ?: [];
+
+		// Ghost cards for open categories.
+		$gaps = class_exists('CBNexus_Recruitment_Coverage_Service')
+			? CBNexus_Recruitment_Coverage_Service::get_top_gaps(10)
+			: [];
+		$admin_email = get_option('admin_email', '');
+		$p_border_colors = ['high' => '#dc2626', 'medium' => '#d97706', 'low' => '#059669'];
 		?>
 		<div class="cbnexus-directory" id="cbnexus-directory">
+
+			<?php if (!empty($gaps)) : ?>
+			<!-- Ghost Cards: Open Recruitment Needs -->
+			<div class="cbnexus-dir-ghost-banner">
+				<div class="cbnexus-dir-ghost-scroll">
+					<?php foreach ($gaps as $gap) : ?>
+						<div class="cbnexus-ghost-card" style="border-color:<?php echo esc_attr($p_border_colors[$gap->priority] ?? '#d97706'); ?>;">
+							<div class="cbnexus-ghost-title"><?php echo esc_html($gap->title); ?></div>
+							<?php if ($gap->industry) : ?>
+								<span class="cbnexus-ghost-industry"><?php echo esc_html($gap->industry); ?></span>
+							<?php endif; ?>
+							<div class="cbnexus-ghost-cta"><?php esc_html_e("We're looking — know someone?", 'circleblast-nexus'); ?></div>
+							<?php if ($admin_email) : ?>
+								<a href="mailto:<?php echo esc_attr($admin_email); ?>?subject=<?php echo esc_attr('CircleBlast referral — ' . $gap->title); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm cbnexus-ghost-refer-btn"><?php esc_html_e('Refer Someone', 'circleblast-nexus'); ?></a>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
 			<div class="cbnexus-dir-controls">
 				<div class="cbnexus-dir-search">
 					<input type="text" id="cbnexus-dir-search" placeholder="<?php esc_attr_e('Search members...', 'circleblast-nexus'); ?>" />
@@ -57,6 +90,14 @@ final class CBNexus_Directory {
 							<option value="<?php echo esc_attr($ind); ?>"><?php echo esc_html($ind); ?></option>
 						<?php endforeach; ?>
 					</select>
+					<?php if (!empty($recruit_cats)) : ?>
+					<select id="cbnexus-dir-category">
+						<option value=""><?php esc_html_e('All Categories', 'circleblast-nexus'); ?></option>
+						<?php foreach ($recruit_cats as $rc) : ?>
+							<option value="<?php echo esc_attr($rc->id); ?>"><?php echo esc_html($rc->title); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<?php endif; ?>
 					<div class="cbnexus-dir-view-toggle">
 						<button type="button" class="cbnexus-view-btn active" data-view="grid" title="<?php esc_attr_e('Grid View', 'circleblast-nexus'); ?>">⊞</button>
 						<button type="button" class="cbnexus-view-btn" data-view="list" title="<?php esc_attr_e('List View', 'circleblast-nexus'); ?>">☰</button>
@@ -92,6 +133,7 @@ final class CBNexus_Directory {
 
 		$search   = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
 		$industry = isset($_POST['industry']) ? sanitize_text_field(wp_unslash($_POST['industry'])) : '';
+		$category = isset($_POST['category']) ? absint($_POST['category']) : 0;
 		$status   = isset($_POST['status']) ? sanitize_text_field(wp_unslash($_POST['status'])) : 'active';
 
 		if ($search !== '') {
@@ -107,8 +149,25 @@ final class CBNexus_Directory {
 			$members = array_values($members);
 		}
 
+		// Filter by recruitment category.
+		if ($category > 0) {
+			$members = array_filter($members, function ($m) use ($category) {
+				$cats = $m['cb_member_categories'] ?? [];
+				if (!is_array($cats)) { $cats = json_decode($cats, true) ?: []; }
+				return in_array($category, array_map('intval', $cats));
+			});
+			$members = array_values($members);
+		}
+
 		$html  = self::render_cards($members);
 		$count = count($members);
+
+		// If filtering by an unfilled category, show friendly empty state.
+		if ($count === 0 && $category > 0) {
+			$html = '<div class="cbnexus-dir-empty"><p>'
+				. esc_html__("No members fill this role yet — help us find the right person.", 'circleblast-nexus')
+				. '</p></div>';
+		}
 
 		wp_send_json_success([
 			'html'  => $html,
@@ -122,6 +181,9 @@ final class CBNexus_Directory {
 			return '<div class="cbnexus-dir-empty"><p>' . esc_html__('No members found matching your criteria.', 'circleblast-nexus') . '</p></div>';
 		}
 
+		// Build category ID → title map for pills.
+		$cat_map = self::get_category_map();
+
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
 		$html = '';
 
@@ -131,6 +193,8 @@ final class CBNexus_Directory {
 			$color       = self::get_avatar_color($m['user_id']);
 			$photo       = !empty($m['cb_photo_url']) ? $m['cb_photo_url'] : '';
 			$expertise   = is_array($m['cb_expertise']) ? $m['cb_expertise'] : [];
+			$member_cats = $m['cb_member_categories'] ?? [];
+			if (!is_array($member_cats)) { $member_cats = json_decode($member_cats, true) ?: []; }
 
 			$html .= '<div class="cbnexus-member-card" data-industry="' . esc_attr($m['cb_industry'] ?? '') . '">';
 
@@ -161,6 +225,18 @@ final class CBNexus_Directory {
 				}
 				if (count($expertise) > 3) {
 					$html .= '<span class="cbnexus-tag cbnexus-tag-more">+' . (count($expertise) - 3) . '</span>';
+				}
+				$html .= '</div>';
+			}
+
+			// Category pills
+			if (!empty($member_cats) && !empty($cat_map)) {
+				$html .= '<div class="cbnexus-member-tags" style="margin-top:4px;">';
+				foreach ($member_cats as $cat_id) {
+					$cat_id = (int) $cat_id;
+					if (isset($cat_map[$cat_id])) {
+						$html .= '<span class="cbnexus-tag cbnexus-tag-category">' . esc_html($cat_map[$cat_id]) . '</span>';
+					}
 				}
 				$html .= '</div>';
 			}
@@ -207,6 +283,9 @@ final class CBNexus_Directory {
 		$looking_for = is_array($member['cb_looking_for']) ? $member['cb_looking_for'] : [];
 		$can_help    = is_array($member['cb_can_help_with']) ? $member['cb_can_help_with'] : [];
 		$is_self     = ($member_id === ($viewer_profile['user_id'] ?? 0));
+		$member_cats = $member['cb_member_categories'] ?? [];
+		if (!is_array($member_cats)) { $member_cats = json_decode($member_cats, true) ?: []; }
+		$cat_map     = self::get_category_map();
 		?>
 		<div class="cbnexus-profile-page">
 			<a href="<?php echo esc_url($back_url); ?>" class="cbnexus-back-link">
@@ -225,9 +304,19 @@ final class CBNexus_Directory {
 					<div class="cbnexus-profile-header-info">
 						<h2><?php echo esc_html($member['display_name']); ?></h2>
 						<p class="cbnexus-profile-jobtitle"><?php echo esc_html($member['cb_title'] ?? ''); ?><?php if (!empty($member['cb_company'])) : ?> at <?php echo esc_html($member['cb_company']); ?><?php endif; ?></p>
-						<?php if (!empty($member['cb_industry'])) : ?>
-							<span class="cbnexus-tag"><?php echo esc_html($member['cb_industry']); ?></span>
-						<?php endif; ?>
+						<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+							<?php if (!empty($member['cb_industry'])) : ?>
+								<span class="cbnexus-tag"><?php echo esc_html($member['cb_industry']); ?></span>
+							<?php endif; ?>
+							<?php if (!empty($member_cats) && !empty($cat_map)) :
+								foreach ($member_cats as $cat_id) :
+									$cat_id = (int) $cat_id;
+									if (isset($cat_map[$cat_id])) : ?>
+										<span class="cbnexus-tag cbnexus-tag-category"><?php echo esc_html($cat_map[$cat_id]); ?></span>
+									<?php endif;
+								endforeach;
+							endif; ?>
+						</div>
 						<p class="cbnexus-profile-since"><?php printf(esc_html__('Member since %s', 'circleblast-nexus'), esc_html($member['cb_join_date'] ?? '—')); ?></p>
 					</div>
 					<div class="cbnexus-profile-header-actions">
@@ -282,6 +371,28 @@ final class CBNexus_Directory {
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Build a category ID → title map from cb_recruitment_categories.
+	 */
+	private static function get_category_map(): array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_recruitment_categories';
+
+		// Quick check that the table exists (avoids errors pre-migration).
+		if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") !== $table) {
+			return [];
+		}
+
+		$rows = $wpdb->get_results("SELECT id, title FROM {$table} ORDER BY sort_order ASC, title ASC");
+		$map  = [];
+		if ($rows) {
+			foreach ($rows as $r) {
+				$map[(int) $r->id] = $r->title;
+			}
+		}
+		return $map;
 	}
 
 	private static function get_initials(array $m): string {
