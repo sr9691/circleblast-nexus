@@ -2,51 +2,6 @@
    Directory Styles
    ══════════════════════════════════════════════════════════════ */
 
-.cbnexus-dir-controls {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	align-items: center;
-	margin-bottom: 14px;
-}
-
-.cbnexus-dir-search {
-	flex: 1;
-	min-width: 200px;
-}
-
-.cbnexus-dir-search input {
-	width: 100%;
-	padding: 11px 14px;
-	border: 1.5px solid var(--cb-border);
-	border-radius: var(--cb-radius-sm);
-	font-size: 14px;
-	background: var(--cb-card);
-	color: var(--cb-text);
-	transition: border-color .15s;
-	font-family: inherit;
-}
-
-.cbnexus-dir-search input:focus {
-	outline: none;
-	border-color: var(--cb-accent);
-}
-
-.cbnexus-dir-filters {
-	display: flex;
-	gap: 8px;
-}
-
-.cbnexus-dir-filters select {
-	padding: 10px 12px;
-	border: 1.5px solid var(--cb-border);
-	border-radius: var(--cb-radius-sm);
-	font-size: 14px;
-	background: var(--cb-card);
-	color: var(--cb-text);
-	font-family: inherit;
-}
-
 .cbnexus-dir-view-toggle {
 	display: flex;
 	border: 1.5px solid var(--cb-border);
