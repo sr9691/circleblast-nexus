@@ -70,6 +70,7 @@ final class CBNexus_Autoloader {
 
 		// Club Dashboard (ITER-0016)
 		'CBNexus_Portal_Club' => 'includes/public/class-portal-club.php',
+		'CBNexus_Club_Tips_Service' => 'includes/club/class-club-tips-service.php',
 
 		// Portal Admin & Super Admin (role-gated in-portal admin pages)
 		'CBNexus_Portal_Admin'       => 'includes/public/class-portal-admin.php',

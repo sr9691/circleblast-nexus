@@ -280,25 +280,44 @@ function cbnexus_run_seed(): void {
 		$results[] = "⏭ cb_circleup_items already has data";
 	}
 
-	// ─── 9. cb_analytics_snapshots (2 rows) ───────────────────────────
+	// ─── 9. cb_analytics_snapshots (historical data for sparklines) ──
 
 	$t = $wpdb->prefix . 'cb_analytics_snapshots';
 	if (cbnexus_seed_table_empty($t)) {
-		$wpdb->insert($t, [
-			'snapshot_date' => $last_week,
-			'scope'         => 'club',
-			'metric_key'    => 'total_members',
-			'metric_value'  => 2.00,
-			'created_at'    => $last_week . ' 23:59:00',
-		]);
-		$wpdb->insert($t, [
-			'snapshot_date' => $last_week,
-			'scope'         => 'club',
-			'metric_key'    => 'meetings_completed',
-			'metric_value'  => 1.00,
-			'created_at'    => $last_week . ' 23:59:00',
-		]);
-		$results[] = "✅ Seeded cb_analytics_snapshots (2 rows)";
+		// 6 months of snapshot history for sparkline charts and trend arrows.
+		$snapshot_data = [
+			// [months_ago, total_members, meetings_total, network_density, wins_total]
+			[5, 8,  5,  12, 3],
+			[4, 10, 12, 18, 5],
+			[3, 12, 20, 25, 8],
+			[2, 14, 30, 32, 12],
+			[1, 15, 38, 36, 15],
+			[0, 16, 44, 42, 18],
+		];
+
+		$snap_count = 0;
+		foreach ($snapshot_data as $row) {
+			$snap_date = gmdate('Y-m-d', strtotime("-{$row[0]} months"));
+			$snap_ts   = $snap_date . ' 23:59:00';
+			$metrics = [
+				'total_members'   => $row[1],
+				'meetings_total'  => $row[2],
+				'network_density' => $row[3],
+				'wins_total'      => $row[4],
+			];
+			foreach ($metrics as $key => $val) {
+				$wpdb->insert($t, [
+					'snapshot_date' => $snap_date,
+					'scope'         => 'club',
+					'member_id'     => 0,
+					'metric_key'    => $key,
+					'metric_value'  => $val,
+					'created_at'    => $snap_ts,
+				]);
+				$snap_count++;
+			}
+		}
+		$results[] = "✅ Seeded cb_analytics_snapshots ({$snap_count} rows, 6 months history)";
 	} else {
 		$results[] = "⏭ cb_analytics_snapshots already has data";
 	}

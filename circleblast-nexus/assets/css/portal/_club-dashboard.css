@@ -62,3 +62,91 @@
 .cbnexus-win-icon { font-size: 18px; display: block; margin-bottom: 4px; }
 .cbnexus-win-card p { margin: 0 0 6px; font-size: 14px; line-height: 1.6; }
 
+/* ── Trend Indicators ───────────────────────────────────────── */
+.cbnexus-trend {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	margin-top: 4px;
+	letter-spacing: 0.2px;
+}
+
+.cbnexus-trend--up { color: var(--cb-green, #3d8b4d); }
+.cbnexus-trend--down { color: var(--cb-red, #c44040); }
+
+/* ── Sparklines ─────────────────────────────────────────────── */
+.cbnexus-sparkline {
+	display: flex;
+	justify-content: center;
+	margin-top: 6px;
+}
+
+.cbnexus-sparkline svg {
+	display: block;
+}
+
+/* ── This Month Activity ────────────────────────────────────── */
+.cbnexus-month-activity {
+	margin-bottom: 14px;
+}
+
+.cbnexus-month-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 12px;
+}
+
+.cbnexus-month-stat {
+	text-align: center;
+	padding: 12px 8px;
+	background: var(--cb-bg-deep);
+	border-radius: 10px;
+}
+
+.cbnexus-month-num {
+	display: block;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--cb-text);
+	line-height: 1.2;
+}
+
+.cbnexus-month-label {
+	display: block;
+	font-size: 11px;
+	color: var(--cb-text-ter);
+	margin-top: 2px;
+}
+
+/* ── Tips & Focus ───────────────────────────────────────────── */
+.cbnexus-tip-row {
+	display: flex;
+	gap: 10px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--cb-border-soft);
+	align-items: flex-start;
+}
+
+.cbnexus-tip-row:last-child {
+	border-bottom: none;
+}
+
+.cbnexus-tip-icon {
+	font-size: 18px;
+	flex-shrink: 0;
+	line-height: 1.4;
+}
+
+.cbnexus-tip-body p {
+	margin: 0 0 4px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--cb-text-sec);
+}
+
+/* ── Responsive: month grid ─────────────────────────────────── */
+@media (max-width: 600px) {
+	.cbnexus-month-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}

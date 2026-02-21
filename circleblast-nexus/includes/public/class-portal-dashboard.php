@@ -122,6 +122,27 @@ final class CBNexus_Portal_Dashboard {
 			</div>
 			<?php endif; ?>
 
+			<!-- Personal Tips & Focus -->
+			<?php
+			$personal_tips = CBNexus_Club_Tips_Service::get_personal_tips($uid, 3);
+			if (!empty($personal_tips)) :
+			?>
+			<div class="cbnexus-card" style="border-left:3px solid var(--cb-gold);">
+				<h3 style="margin:0 0 10px;">💡 <?php esc_html_e('Tips for You', 'circleblast-nexus'); ?></h3>
+				<?php foreach ($personal_tips as $tip) : ?>
+					<div class="cbnexus-tip-row">
+						<span class="cbnexus-tip-icon"><?php echo esc_html($tip->icon); ?></span>
+						<div class="cbnexus-tip-body">
+							<p><?php echo esc_html($tip->text); ?></p>
+							<?php if ($tip->cta_label && $tip->cta_url) : ?>
+								<a href="<?php echo esc_url($tip->cta_url); ?>" class="cbnexus-link" style="font-size:12px;"><?php echo esc_html($tip->cta_label); ?> →</a>
+							<?php endif; ?>
+						</div>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+
 			<!-- Upcoming Events -->
 			<?php if (!empty($upcoming_events)) : ?>
 			<div class="cbnexus-card">
