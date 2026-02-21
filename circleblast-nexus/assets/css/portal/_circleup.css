@@ -1,68 +1,324 @@
 /* ══════════════════════════════════════════════════════════════
    CircleUp Archive Styles
+   v1.2.0 – Page header, timeline connector, collapsible Quick
+   Share, improved search bar, empty state, detail meta.
    ══════════════════════════════════════════════════════════════ */
 
-.cbnexus-cu-submit-card {
-	padding: 14px 18px;
+/* ── Page Header ─────────────────────────────────────────────── */
+
+.cbnexus-cu-header {
+	margin-bottom: 16px;
 }
 
-.cbnexus-cu-submit-card h3 { margin: 0 0 10px; }
+.cbnexus-cu-header h2 {
+	margin: 0 0 2px;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--cb-text);
+	letter-spacing: -0.3px;
+}
 
-.cbnexus-cu-submit-row {
+.cbnexus-cu-header p {
+	margin: 0;
+	font-size: 14px;
+}
+
+/* ── Toolbar (search + actions) ──────────────────────────────── */
+
+.cbnexus-cu-toolbar {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.cbnexus-cu-toolbar .cbnexus-btn {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+/* ── Search Bar ──────────────────────────────────────────────── */
+
+.cbnexus-cu-search-bar {
+	position: relative;
+	flex: 1;
+}
+
+.cbnexus-cu-search-icon {
+	position: absolute;
+	left: 14px;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 14px;
+	pointer-events: none;
+	opacity: 0.6;
+}
+
+.cbnexus-cu-search-bar input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 12px 14px 12px 40px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius);
+	font-size: 14px;
+	font-family: inherit;
+	background: var(--cb-card);
+	color: var(--cb-text);
+	transition: border-color 0.15s;
+}
+
+.cbnexus-cu-search-bar input:focus {
+	outline: none;
+	border-color: var(--cb-accent);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.cbnexus-cu-search-bar input::placeholder {
+	color: var(--cb-text-ter);
+}
+
+/* ── Quick Share (collapsible) ───────────────────────────────── */
+
+.cbnexus-cu-submit-card {
+	padding: 0;
+	margin-bottom: 20px;
+}
+
+.cbnexus-cu-submit-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 14px 18px;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-family: inherit;
+	color: var(--cb-text);
+	text-align: left;
+}
+
+.cbnexus-cu-submit-toggle:hover {
+	background: var(--cb-bg-deep);
+}
+
+.cbnexus-cu-submit-toggle-text {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cbnexus-cu-submit-chevron {
+	font-size: 20px;
+	font-weight: 600;
+	color: var(--cb-text-ter);
+	transition: transform 0.2s;
+}
+
+.cbnexus-cu-submit-toggle[aria-expanded="true"] .cbnexus-cu-submit-chevron {
+	transform: rotate(90deg);
+}
+
+.cbnexus-cu-submit-body {
+	padding: 0 18px 16px;
+}
+
+.cbnexus-cu-submit-body[hidden] {
+	display: none;
+}
+
+/* Type chip selector (replaces dropdown) */
+.cbnexus-cu-submit-type-row {
 	display: flex;
 	gap: 8px;
-	align-items: center;
+	margin-bottom: 8px;
 }
 
-.cbnexus-cu-submit-row select {
-	padding: 9px 12px;
+.cbnexus-cu-type-option input[type="radio"] {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.cbnexus-cu-type-chip {
+	display: inline-block;
+	padding: 6px 14px;
 	border: 1.5px solid var(--cb-border);
-	border-radius: var(--cb-radius-sm);
-	font-size: 14px;
+	border-radius: 20px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.15s;
 	background: var(--cb-card);
-	font-family: inherit;
+	color: var(--cb-text-sec);
 }
 
-.cbnexus-cu-submit-row input[type="text"] {
-	flex: 1;
+.cbnexus-cu-type-chip:hover {
+	border-color: var(--cb-text-ter);
+}
+
+.cbnexus-cu-type-option input[type="radio"]:checked + .cbnexus-cu-type-chip--win {
+	background: var(--cb-gold-soft);
+	color: var(--cb-gold-deep);
+	border-color: var(--cb-gold);
+}
+
+.cbnexus-cu-type-option input[type="radio"]:checked + .cbnexus-cu-type-chip--insight {
+	background: var(--cb-accent-soft);
+	color: var(--cb-accent);
+	border-color: var(--cb-accent);
+}
+
+.cbnexus-cu-type-option input[type="radio"]:checked + .cbnexus-cu-type-chip--opportunity {
+	background: #ecfdf5;
+	color: #059669;
+	border-color: #059669;
+}
+
+/* Hint text */
+.cbnexus-cu-submit-hint {
+	margin: 0 0 8px;
+	font-size: 13px;
+	color: var(--cb-text-ter);
+	font-style: italic;
+}
+
+/* Textarea */
+.cbnexus-cu-submit-body textarea {
+	width: 100%;
+	box-sizing: border-box;
 	padding: 11px 14px;
 	border: 1.5px solid var(--cb-border);
 	border-radius: var(--cb-radius-sm);
 	font-size: 14px;
+	font-family: inherit;
 	background: var(--cb-card);
 	color: var(--cb-text);
-	font-family: inherit;
+	resize: vertical;
+	min-height: 72px;
+	line-height: 1.5;
 }
 
-.cbnexus-cu-submit-row input[type="text"]:focus { outline: none; border-color: var(--cb-accent); }
-
-/* Timeline card */
-.cbnexus-cu-timeline-card {
-	cursor: pointer;
-	padding: 18px 20px;
+.cbnexus-cu-submit-body textarea:focus {
+	outline: none;
+	border-color: var(--cb-accent);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
-.cbnexus-cu-timeline-card:hover { box-shadow: var(--cb-shadow-md); }
-
-.cbnexus-cu-timeline-date {
+.cbnexus-cu-submit-footer {
 	display: flex;
+	justify-content: flex-end;
 	align-items: center;
-	gap: 10px;
-	margin-bottom: 8px;
+	gap: 12px;
+	margin-top: 10px;
+}
+
+.cbnexus-cu-submit-footer #cbnexus-cu-submit-msg {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+/* ── Empty State ─────────────────────────────────────────────── */
+
+.cbnexus-cu-empty {
+	text-align: center;
+	padding: 60px 20px;
+}
+
+.cbnexus-cu-empty-icon {
+	font-size: 40px;
+	margin-bottom: 12px;
+}
+
+.cbnexus-cu-empty h3 {
+	margin: 0 0 6px;
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--cb-text);
+}
+
+.cbnexus-cu-empty p {
+	margin: 0;
+	font-size: 14px;
+}
+
+/* ── Timeline ────────────────────────────────────────────────── */
+
+.cbnexus-cu-timeline {
+	position: relative;
+}
+
+.cbnexus-cu-timeline-card {
+	display: flex;
+	gap: 16px;
+	padding: 18px 20px;
+	background: var(--cb-card);
+	border: 1.5px solid var(--cb-border);
+	border-left: 3px solid var(--cb-gold);
+	border-radius: var(--cb-radius);
+	margin-bottom: 12px;
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.cbnexus-cu-timeline-card:hover {
+	box-shadow: var(--cb-shadow-md);
+	border-color: var(--cb-gold);
+}
+
+.cbnexus-cu-timeline-dot-col {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex-shrink: 0;
+	width: 14px;
+	padding-top: 3px;
 }
 
 .cbnexus-cu-timeline-dot {
-	width: 10px;
-	height: 10px;
-	border-radius: 5px;
+	width: 12px;
+	height: 12px;
+	border-radius: 6px;
 	background: var(--cb-gold);
 	flex-shrink: 0;
+	box-shadow: 0 0 0 3px var(--cb-gold-soft);
+}
+
+.cbnexus-cu-timeline-line {
+	width: 2px;
+	flex: 1;
+	background: var(--cb-border);
+	margin-top: 6px;
+	min-height: 20px;
+}
+
+/* Hide the line on the last card */
+.cbnexus-cu-timeline-card:last-child .cbnexus-cu-timeline-line {
+	display: none;
+}
+
+.cbnexus-cu-timeline-content {
+	flex: 1;
+	min-width: 0;
 }
 
 .cbnexus-cu-timeline-date-text {
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--cb-text-sec);
+	display: block;
+	margin-bottom: 4px;
+}
+
+.cbnexus-cu-timeline-title {
+	margin: 0 0 6px;
+	font-size: 17px;
+	font-weight: 700;
+	color: var(--cb-text);
+	letter-spacing: -0.2px;
 }
 
 .cbnexus-cu-summary {
@@ -76,6 +332,27 @@
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
+}
+
+/* ── Detail page ─────────────────────────────────────────────── */
+
+.cbnexus-cu-detail-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 14px;
+	color: var(--cb-text-sec);
+	margin-top: 4px;
+	flex-wrap: wrap;
+}
+
+.cbnexus-cu-attendee-pills {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--cb-border-soft);
 }
 
 .cbnexus-cu-items-list {
@@ -96,6 +373,8 @@
 
 .cbnexus-cu-attendees { font-size: 13px; color: var(--cb-text-sec); margin: 4px 0 0; }
 
+/* ── Action items table ──────────────────────────────────────── */
+
 .cbnexus-cu-actions-table {
 	width: 100%;
 	border-collapse: collapse;
@@ -115,3 +394,31 @@
 	font-size: 13px;
 }
 
+/* ── Responsive ──────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+	.cbnexus-cu-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.cbnexus-cu-toolbar .cbnexus-btn {
+		text-align: center;
+	}
+
+	.cbnexus-cu-submit-type-row {
+		flex-wrap: wrap;
+	}
+
+	.cbnexus-cu-timeline-dot-col {
+		display: none;
+	}
+
+	.cbnexus-cu-timeline-card {
+		border-left-width: 3px;
+	}
+
+	.cbnexus-cu-submit-toggle-text span:last-child {
+		display: none;
+	}
+}

@@ -5,6 +5,9 @@
  * ITER-0014 / UX Refresh: Member-facing archive matching demo.
  * Quick Share form with emoji type selector, timeline cards with
  * gold dots, pill badges for win/insight counts, back-link navigation.
+ *
+ * v1.2.0 – Page header, collapsible Quick Share, timeline connector,
+ *           attendee count on cards, grammar-safe pill labels.
  */
 
 defined('ABSPATH') || exit;
@@ -37,63 +40,119 @@ final class CBNexus_Portal_CircleUp {
 			return;
 		}
 
-		$meetings = CBNexus_CircleUp_Repository::get_meetings('published', 50);
+		$meetings   = CBNexus_CircleUp_Repository::get_meetings('published', 50);
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
+		$actions_url = add_query_arg(['section' => 'circleup', 'circleup_view' => 'actions'], $portal_url);
 		?>
 		<div class="cbnexus-circleup-archive" id="cbnexus-circleup">
-			<div class="cbnexus-dir-controls">
-				<div class="cbnexus-dir-search">
+
+			<!-- Page header -->
+			<div class="cbnexus-cu-header">
+				<h2><?php esc_html_e('CircleUp Archive', 'circleblast-nexus'); ?></h2>
+				<p class="cbnexus-text-muted"><?php esc_html_e('Wins, insights, and discussion highlights from every group meeting.', 'circleblast-nexus'); ?></p>
+			</div>
+
+			<!-- Search + Actions bar -->
+			<div class="cbnexus-cu-toolbar">
+				<div class="cbnexus-cu-search-bar">
+					<span class="cbnexus-cu-search-icon">🔍</span>
 					<input type="text" id="cbnexus-cu-search" placeholder="<?php esc_attr_e('Search wins, insights, discussions...', 'circleblast-nexus'); ?>" />
 				</div>
-				<a href="<?php echo esc_url(add_query_arg(['section' => 'circleup', 'circleup_view' => 'actions'], $portal_url)); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm"><?php esc_html_e('My Actions', 'circleblast-nexus'); ?></a>
+				<a href="<?php echo esc_url($actions_url); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm">✅ <?php esc_html_e('My Actions', 'circleblast-nexus'); ?></a>
 			</div>
-
 			<div id="cbnexus-cu-results" style="display:none;"></div>
 
+			<!-- Quick Share (collapsible) -->
 			<div class="cbnexus-card cbnexus-cu-submit-card">
-				<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-					<span style="font-size:16px;">💬</span>
-					<span style="font-weight:600;font-size:14px;"><?php esc_html_e('Quick Share', 'circleblast-nexus'); ?></span>
+				<button type="button" class="cbnexus-cu-submit-toggle" id="cbnexus-cu-toggle" aria-expanded="false">
+					<span class="cbnexus-cu-submit-toggle-text">
+						<span style="font-size:15px;">💬</span>
+						<span style="font-weight:600;font-size:14px;"><?php esc_html_e('Quick Share', 'circleblast-nexus'); ?></span>
+						<span class="cbnexus-text-muted" style="font-size:13px;font-weight:400;"><?php esc_html_e('— Share a win, insight, or opportunity', 'circleblast-nexus'); ?></span>
+					</span>
+					<span class="cbnexus-cu-submit-chevron" aria-hidden="true">›</span>
+				</button>
+				<div class="cbnexus-cu-submit-body" id="cbnexus-cu-submit-body" hidden>
+					<form id="cbnexus-cu-submit-form">
+						<div class="cbnexus-cu-submit-type-row">
+							<label class="cbnexus-cu-type-option">
+								<input type="radio" name="cu_type" value="win" checked />
+								<span class="cbnexus-cu-type-chip cbnexus-cu-type-chip--win">🏆 <?php esc_html_e('Win', 'circleblast-nexus'); ?></span>
+							</label>
+							<label class="cbnexus-cu-type-option">
+								<input type="radio" name="cu_type" value="insight" />
+								<span class="cbnexus-cu-type-chip cbnexus-cu-type-chip--insight">💡 <?php esc_html_e('Insight', 'circleblast-nexus'); ?></span>
+							</label>
+							<label class="cbnexus-cu-type-option">
+								<input type="radio" name="cu_type" value="opportunity" />
+								<span class="cbnexus-cu-type-chip cbnexus-cu-type-chip--opportunity">🤝 <?php esc_html_e('Opportunity', 'circleblast-nexus'); ?></span>
+							</label>
+						</div>
+						<p class="cbnexus-cu-submit-hint" id="cbnexus-cu-hint"><?php esc_html_e('e.g. "Closed a deal from a referral" or "Got promoted"', 'circleblast-nexus'); ?></p>
+						<textarea id="cbnexus-cu-content" rows="3" placeholder="<?php esc_attr_e('What happened?', 'circleblast-nexus'); ?>" required></textarea>
+						<div class="cbnexus-cu-submit-footer">
+							<div id="cbnexus-cu-submit-msg" style="display:none;"></div>
+							<button type="submit" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm"><?php esc_html_e('Share', 'circleblast-nexus'); ?></button>
+						</div>
+					</form>
 				</div>
-				<form id="cbnexus-cu-submit-form">
-					<div class="cbnexus-cu-submit-row">
-						<select id="cbnexus-cu-type">
-							<option value="win"><?php esc_html_e('Win 🏆', 'circleblast-nexus'); ?></option>
-							<option value="insight"><?php esc_html_e('Insight 💡', 'circleblast-nexus'); ?></option>
-							<option value="opportunity"><?php esc_html_e('Opportunity 🤝', 'circleblast-nexus'); ?></option>
-						</select>
-						<input type="text" id="cbnexus-cu-content" placeholder="<?php esc_attr_e('What happened?', 'circleblast-nexus'); ?>" required />
-						<button type="submit" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm"><?php esc_html_e('Share', 'circleblast-nexus'); ?></button>
-					</div>
-					<div id="cbnexus-cu-submit-msg" style="display:none;"></div>
-				</form>
 			</div>
 
+			<!-- Timeline -->
 			<?php if (empty($meetings)) : ?>
-				<div class="cbnexus-card"><p class="cbnexus-text-muted"><?php esc_html_e('No published CircleUp meetings yet.', 'circleblast-nexus'); ?></p></div>
-			<?php else : foreach ($meetings as $m) :
-				$items = CBNexus_CircleUp_Repository::get_items((int) $m->id);
-				$approved = array_filter($items, fn($i) => $i->status === 'approved');
-				$wins = count(array_filter($approved, fn($i) => $i->item_type === 'win'));
-				$insights = count(array_filter($approved, fn($i) => $i->item_type === 'insight'));
-				$detail_url = add_query_arg(['section' => 'circleup', 'circleup_id' => $m->id], $portal_url);
-			?>
-				<div class="cbnexus-card cbnexus-cu-timeline-card" style="cursor:pointer;" onclick="window.location.href='<?php echo esc_url($detail_url); ?>'">
-					<div class="cbnexus-cu-timeline-date">
-						<span class="cbnexus-cu-timeline-dot"></span>
-						<span class="cbnexus-cu-timeline-date-text"><?php echo esc_html(date_i18n('M j, Y', strtotime($m->meeting_date))); ?></span>
-					</div>
-					<h3 style="margin:0 0 6px;font-size:17px;font-weight:700;"><?php echo esc_html($m->title); ?></h3>
-					<?php if ($m->curated_summary) : ?>
-						<p class="cbnexus-cu-summary"><?php echo esc_html(wp_trim_words($m->curated_summary, 30)); ?>...</p>
-					<?php endif; ?>
-					<div class="cbnexus-cu-stats-row">
-						<?php if ($wins) : ?><span class="cbnexus-pill cbnexus-pill--gold-soft"><?php echo $wins; ?> <?php esc_html_e('wins', 'circleblast-nexus'); ?></span><?php endif; ?>
-						<?php if ($insights) : ?><span class="cbnexus-pill cbnexus-pill--accent-soft"><?php echo $insights; ?> <?php esc_html_e('insights', 'circleblast-nexus'); ?></span><?php endif; ?>
-						<?php if ($m->duration_minutes) : ?><span class="cbnexus-pill cbnexus-pill--muted"><?php echo esc_html($m->duration_minutes); ?> <?php esc_html_e('min', 'circleblast-nexus'); ?></span><?php endif; ?>
-					</div>
+				<div class="cbnexus-cu-empty">
+					<div class="cbnexus-cu-empty-icon">📢</div>
+					<h3><?php esc_html_e('No meetings yet', 'circleblast-nexus'); ?></h3>
+					<p class="cbnexus-text-muted"><?php esc_html_e('Published CircleUp meeting summaries will appear here.', 'circleblast-nexus'); ?></p>
 				</div>
-			<?php endforeach; endif; ?>
+			<?php else : ?>
+				<div class="cbnexus-cu-timeline">
+				<?php foreach ($meetings as $m) :
+					$items    = CBNexus_CircleUp_Repository::get_items((int) $m->id);
+					$approved = array_filter($items, fn($i) => $i->status === 'approved');
+					$wins     = count(array_filter($approved, fn($i) => $i->item_type === 'win'));
+					$insights = count(array_filter($approved, fn($i) => $i->item_type === 'insight'));
+					$attendees = CBNexus_CircleUp_Repository::get_attendees((int) $m->id);
+					$att_count = count($attendees);
+					$detail_url = add_query_arg(['section' => 'circleup', 'circleup_id' => $m->id], $portal_url);
+				?>
+					<a href="<?php echo esc_url($detail_url); ?>" class="cbnexus-cu-timeline-card">
+						<div class="cbnexus-cu-timeline-dot-col">
+							<span class="cbnexus-cu-timeline-dot"></span>
+							<span class="cbnexus-cu-timeline-line"></span>
+						</div>
+						<div class="cbnexus-cu-timeline-content">
+							<span class="cbnexus-cu-timeline-date-text"><?php echo esc_html(date_i18n('M j, Y', strtotime($m->meeting_date))); ?></span>
+							<h3 class="cbnexus-cu-timeline-title"><?php echo esc_html($m->title); ?></h3>
+							<?php if ($m->curated_summary) : ?>
+								<p class="cbnexus-cu-summary"><?php echo esc_html(wp_trim_words($m->curated_summary, 25)); ?></p>
+							<?php endif; ?>
+							<div class="cbnexus-cu-stats-row">
+								<?php if ($wins) : ?>
+									<span class="cbnexus-pill cbnexus-pill--gold-soft"><?php
+										/* translators: %d: number of wins */
+										echo esc_html(sprintf(_n('%d win', '%d wins', $wins, 'circleblast-nexus'), $wins));
+									?></span>
+								<?php endif; ?>
+								<?php if ($insights) : ?>
+									<span class="cbnexus-pill cbnexus-pill--accent-soft"><?php
+										echo esc_html(sprintf(_n('%d insight', '%d insights', $insights, 'circleblast-nexus'), $insights));
+									?></span>
+								<?php endif; ?>
+								<?php if ($att_count) : ?>
+									<span class="cbnexus-pill cbnexus-pill--muted"><?php
+										echo esc_html(sprintf(_n('%d attendee', '%d attendees', $att_count, 'circleblast-nexus'), $att_count));
+									?></span>
+								<?php endif; ?>
+								<?php if ($m->duration_minutes) : ?>
+									<span class="cbnexus-pill cbnexus-pill--muted"><?php echo esc_html($m->duration_minutes); ?> <?php esc_html_e('min', 'circleblast-nexus'); ?></span>
+								<?php endif; ?>
+							</div>
+						</div>
+					</a>
+				<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
 		</div>
 		<?php
 	}
@@ -109,6 +168,7 @@ final class CBNexus_Portal_CircleUp {
 		$back_url   = add_query_arg('section', 'circleup', $portal_url);
 		$items      = CBNexus_CircleUp_Repository::get_items($id);
 		$approved   = array_filter($items, fn($i) => $i->status === 'approved');
+		$attendees  = CBNexus_CircleUp_Repository::get_attendees($id);
 		$types      = ['win' => __('Wins', 'circleblast-nexus'), 'insight' => __('Insights', 'circleblast-nexus'), 'opportunity' => __('Opportunities', 'circleblast-nexus'), 'action' => __('Action Items', 'circleblast-nexus')];
 		$type_icons = ['win' => '🏆', 'insight' => '💡', 'opportunity' => '🤝', 'action' => '✅'];
 		?>
@@ -117,7 +177,20 @@ final class CBNexus_Portal_CircleUp {
 
 			<div class="cbnexus-card">
 				<h2 style="margin:0 0 4px;font-size:21px;letter-spacing:-0.3px;"><?php echo esc_html($meeting->title); ?></h2>
-				<span class="cbnexus-text-muted"><?php echo esc_html(date_i18n('F j, Y', strtotime($meeting->meeting_date))); ?><?php if ($meeting->duration_minutes) : ?> · <?php echo esc_html($meeting->duration_minutes); ?> <?php esc_html_e('minutes', 'circleblast-nexus'); ?><?php endif; ?></span>
+				<div class="cbnexus-cu-detail-meta">
+					<span><?php echo esc_html(date_i18n('F j, Y', strtotime($meeting->meeting_date))); ?></span>
+					<?php if ($meeting->duration_minutes) : ?><span>·</span><span><?php echo esc_html($meeting->duration_minutes); ?> <?php esc_html_e('minutes', 'circleblast-nexus'); ?></span><?php endif; ?>
+					<?php if (!empty($attendees)) : ?><span>·</span><span><?php
+						echo esc_html(sprintf(_n('%d attendee', '%d attendees', count($attendees), 'circleblast-nexus'), count($attendees)));
+					?></span><?php endif; ?>
+				</div>
+				<?php if (!empty($attendees)) : ?>
+					<div class="cbnexus-cu-attendee-pills">
+						<?php foreach ($attendees as $a) : ?>
+							<span class="cbnexus-pill cbnexus-pill--muted" style="font-size:12px;"><?php echo esc_html($a->display_name); ?></span>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
 			</div>
 
 			<?php if ($meeting->curated_summary) : ?>
