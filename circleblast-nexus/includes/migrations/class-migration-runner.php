@@ -148,6 +148,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_020_Seed_Recruitment_Categories',
 				'method' => 'up',
 			],
+			'021_create_feedback' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/021-create-feedback.php',
+				'class'  => 'CBNexus_Migration_021_Create_Feedback',
+				'method' => 'up',
+			],
 		];
 	}
 

@@ -26,6 +26,7 @@ require_once $tab_dir . 'class-portal-admin-analytics.php';
 require_once $tab_dir . 'class-portal-admin-emails.php';
 require_once $tab_dir . 'class-portal-admin-logs.php';
 require_once $tab_dir . 'class-portal-admin-settings.php';
+require_once $tab_dir . 'class-portal-admin-feedback.php';
 
 final class CBNexus_Portal_Admin {
 
@@ -41,6 +42,7 @@ final class CBNexus_Portal_Admin {
 		'emails'      => ['label' => 'Emails',        'icon' => '✉️',  'cap' => 'cbnexus_manage_plugin_settings'],
 		'help'        => ['label' => 'Help',          'icon' => '❓', 'cap' => 'cbnexus_manage_plugin_settings'],
 		'logs'        => ['label' => 'Logs',          'icon' => '📋', 'cap' => 'cbnexus_view_logs'],
+		'feedback'    => ['label' => 'Feedback',      'icon' => '📬', 'cap' => 'cbnexus_manage_plugin_settings'],
 		'settings'    => ['label' => 'Settings',      'icon' => '⚙️',  'cap' => 'cbnexus_manage_plugin_settings'],
 	];
 
@@ -186,6 +188,14 @@ final class CBNexus_Portal_Admin {
 		if (isset($_GET['cbnexus_portal_reset_tooltips'])) {
 			CBNexus_Portal_Help::handle_reset_tooltips();
 		}
+
+		// ── Feedback (super-admin) ──────────────────────────────────────
+		if (isset($_POST['cbnexus_portal_update_feedback'])) {
+			CBNexus_Portal_Admin_Feedback::handle_update_status();
+		}
+		if (isset($_GET['cbnexus_portal_delete_feedback'])) {
+			CBNexus_Portal_Admin_Feedback::handle_delete();
+		}
 	}
 
 	// =====================================================================
@@ -216,6 +226,7 @@ final class CBNexus_Portal_Admin {
 			case 'emails':      CBNexus_Portal_Admin_Emails::render(); break;
 			case 'help':        CBNexus_Portal_Help::render_editor(); break;
 			case 'logs':        CBNexus_Portal_Admin_Logs::render(); break;
+			case 'feedback':    CBNexus_Portal_Admin_Feedback::render(); break;
 			case 'settings':    CBNexus_Portal_Admin_Settings::render(); break;
 		}
 		echo '</div>';
@@ -255,14 +266,23 @@ final class CBNexus_Portal_Admin {
 			<?php endif; ?>
 
 			<?php if (!empty($super_tabs)) : ?>
+			<?php
+				$feedback_new_count = 0;
+				if (isset($super_tabs['feedback']) && class_exists('CBNexus_Feedback_Service')) {
+					$feedback_new_count = CBNexus_Feedback_Service::count_new();
+				}
+			?>
 			<div class="cbnexus-admin-tabs cbnexus-admin-tabs--super">
 				<?php foreach ($super_tabs as $slug => $tab) :
 					$is_active = $slug === $current;
 					$url = add_query_arg('admin_tab', $slug, $base_url);
 				?>
-					<a href="<?php echo esc_url($url); ?>" class="cbnexus-admin-tab <?php echo $is_active ? 'active' : ''; ?>" title="<?php echo esc_attr($tab['label']); ?>">
+					<a href="<?php echo esc_url($url); ?>" class="cbnexus-admin-tab <?php echo $is_active ? 'active' : ''; ?>" title="<?php echo esc_attr($tab['label']); ?>" style="position:relative;">
 						<span class="cbnexus-admin-tab-icon"><?php echo esc_html($tab['icon']); ?></span>
 						<span class="cbnexus-admin-tab-label"><?php echo esc_html($tab['label']); ?></span>
+						<?php if ($slug === 'feedback' && $feedback_new_count > 0) : ?>
+							<span class="cbnexus-nav-badge" style="position:absolute; top:-4px; right:-4px;"><?php echo esc_html($feedback_new_count); ?></span>
+						<?php endif; ?>
 					</a>
 				<?php endforeach; ?>
 			</div>

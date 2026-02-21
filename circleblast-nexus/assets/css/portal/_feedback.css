@@ -1,0 +1,219 @@
+/* ── Feedback Modal ──────────────────────────────────────────── */
+/* Modal overlay + panel for the "Send Feedback" form.           */
+/* Mirrors the referral modal patterns for visual consistency.   */
+
+/* Overlay */
+.cbnexus-feedback-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(30, 42, 58, 0.45);
+	z-index: 9998;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .25s ease;
+}
+.cbnexus-feedback-overlay.open {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Modal panel */
+.cbnexus-feedback-modal {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%) scale(0.96);
+	width: 480px;
+	max-width: calc(100vw - 32px);
+	max-height: calc(100vh - 64px);
+	overflow-y: auto;
+	background: var(--cb-card);
+	border-radius: var(--cb-radius);
+	box-shadow: var(--cb-shadow-lg);
+	z-index: 9999;
+	padding: 28px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .25s ease, transform .25s ease;
+}
+.cbnexus-feedback-modal.open {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translate(-50%, -50%) scale(1);
+}
+
+/* Header */
+.cbnexus-feedback-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 4px;
+}
+.cbnexus-feedback-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--cb-text);
+}
+.cbnexus-feedback-close {
+	width: 30px;
+	height: 30px;
+	border: none;
+	background: none;
+	font-size: 22px;
+	color: var(--cb-text-sec);
+	cursor: pointer;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background .15s, color .15s;
+}
+.cbnexus-feedback-close:hover {
+	background: var(--cb-bg-deep);
+	color: var(--cb-text);
+}
+
+/* Subtitle */
+.cbnexus-feedback-subtitle {
+	margin: 0 0 16px;
+	font-size: 13px;
+	color: var(--cb-text-sec);
+	line-height: 1.5;
+}
+
+/* Message area */
+.cbnexus-feedback-msg {
+	padding: 10px 14px;
+	border-radius: var(--cb-radius-sm);
+	font-size: 13px;
+	margin-bottom: 14px;
+}
+.cbnexus-feedback-msg-success {
+	background: var(--cb-green-soft);
+	color: var(--cb-green);
+	border: 1px solid var(--cb-green-border);
+}
+.cbnexus-feedback-msg-error {
+	background: var(--cb-red-soft);
+	color: var(--cb-red);
+	border: 1px solid var(--cb-red);
+}
+
+/* Form fields */
+.cbnexus-feedback-field {
+	margin-bottom: 14px;
+}
+.cbnexus-feedback-field label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cb-text);
+	margin-bottom: 5px;
+}
+.cbnexus-feedback-field input[type="text"],
+.cbnexus-feedback-field textarea {
+	width: 100%;
+	padding: 9px 12px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	font-family: inherit;
+	color: var(--cb-text);
+	background: var(--cb-card);
+	transition: border-color .15s;
+	resize: vertical;
+}
+.cbnexus-feedback-field input[type="text"]:focus,
+.cbnexus-feedback-field textarea:focus {
+	border-color: var(--cb-accent);
+	outline: none;
+	box-shadow: 0 0 0 3px var(--cb-accent-soft);
+}
+.cbnexus-feedback-field textarea {
+	min-height: 80px;
+}
+
+/* Type pills */
+.cbnexus-feedback-type-pills {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.cbnexus-feedback-pill {
+	display: inline-flex;
+	align-items: center;
+	cursor: pointer;
+	padding: 6px 12px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-pill);
+	background: var(--cb-card);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--cb-text-sec);
+	transition: all .15s;
+	user-select: none;
+}
+.cbnexus-feedback-pill input[type="radio"] {
+	display: none;
+}
+.cbnexus-feedback-pill:hover {
+	border-color: var(--cb-accent);
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+}
+.cbnexus-feedback-pill.active {
+	border-color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	color: var(--cb-accent);
+	font-weight: 600;
+}
+
+/* Submit row */
+.cbnexus-feedback-submit {
+	display: flex;
+	gap: 10px;
+	margin-top: 18px;
+}
+
+/* Header feedback icon button */
+.cbnexus-feedback-toggle {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: 2px solid var(--cb-border);
+	background: var(--cb-card);
+	color: var(--cb-text-sec);
+	font-size: 15px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: border-color .15s, background .15s, color .15s;
+	flex-shrink: 0;
+	padding: 0;
+	line-height: 1;
+	text-decoration: none;
+}
+.cbnexus-feedback-toggle:hover,
+.cbnexus-feedback-toggle:focus-visible {
+	border-color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	color: var(--cb-accent);
+	outline: none;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 500px) {
+	.cbnexus-feedback-modal {
+		width: calc(100vw - 16px);
+		padding: 20px;
+	}
+	.cbnexus-feedback-type-pills {
+		gap: 4px;
+	}
+	.cbnexus-feedback-pill {
+		padding: 5px 10px;
+		font-size: 12px;
+	}
+}

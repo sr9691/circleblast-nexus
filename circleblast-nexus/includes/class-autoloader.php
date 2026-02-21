@@ -107,6 +107,10 @@ final class CBNexus_Autoloader {
 
 		// Referral Form
 		'CBNexus_Referral_Form'  => 'includes/public/class-referral-form.php',
+
+		// Feedback
+		'CBNexus_Feedback_Service' => 'includes/feedback/class-feedback-service.php',
+		'CBNexus_Feedback_Form'    => 'includes/public/class-feedback-form.php',
 	];
 
 	/**

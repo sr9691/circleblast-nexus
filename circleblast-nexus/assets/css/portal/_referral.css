@@ -1,0 +1,171 @@
+/* ── Referral Modal ──────────────────────────────────────────── */
+/* Styles for the "Refer Someone" modal form.                    */
+/* Currently uses shared modal patterns from _components.css.    */
+/* Referral-specific overrides can be added here.                */
+
+/* Overlay */
+.cbnexus-referral-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(30, 42, 58, 0.45);
+	z-index: 9998;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .25s ease;
+}
+.cbnexus-referral-overlay.open {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Modal panel */
+.cbnexus-referral-modal {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%) scale(0.96);
+	width: 520px;
+	max-width: calc(100vw - 32px);
+	max-height: calc(100vh - 64px);
+	overflow-y: auto;
+	background: var(--cb-card);
+	border-radius: var(--cb-radius);
+	box-shadow: var(--cb-shadow-lg);
+	z-index: 9999;
+	padding: 28px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .25s ease, transform .25s ease;
+}
+.cbnexus-referral-modal.open {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translate(-50%, -50%) scale(1);
+}
+
+/* Header */
+.cbnexus-referral-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 4px;
+}
+.cbnexus-referral-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--cb-text);
+}
+.cbnexus-referral-close {
+	width: 30px;
+	height: 30px;
+	border: none;
+	background: none;
+	font-size: 22px;
+	color: var(--cb-text-sec);
+	cursor: pointer;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background .15s, color .15s;
+}
+.cbnexus-referral-close:hover {
+	background: var(--cb-bg-deep);
+	color: var(--cb-text);
+}
+
+/* Subtitle */
+.cbnexus-referral-subtitle {
+	margin: 0 0 16px;
+	font-size: 13px;
+	color: var(--cb-text-sec);
+	line-height: 1.5;
+}
+
+/* Category context */
+.cbnexus-referral-cat-context {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	padding: 3px 10px;
+	border-radius: var(--cb-radius-pill);
+	margin-bottom: 12px;
+}
+
+/* Message area */
+.cbnexus-referral-msg {
+	padding: 10px 14px;
+	border-radius: var(--cb-radius-sm);
+	font-size: 13px;
+	margin-bottom: 14px;
+}
+.cbnexus-referral-msg-success {
+	background: var(--cb-green-soft);
+	color: var(--cb-green);
+	border: 1px solid var(--cb-green-border);
+}
+.cbnexus-referral-msg-error {
+	background: var(--cb-red-soft);
+	color: var(--cb-red);
+	border: 1px solid var(--cb-red);
+}
+
+/* Form fields */
+.cbnexus-referral-field {
+	margin-bottom: 12px;
+}
+.cbnexus-referral-field label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cb-text);
+	margin-bottom: 5px;
+}
+.cbnexus-referral-field input,
+.cbnexus-referral-field select,
+.cbnexus-referral-field textarea {
+	width: 100%;
+	padding: 9px 12px;
+	border: 1.5px solid var(--cb-border);
+	border-radius: var(--cb-radius-sm);
+	font-size: 14px;
+	font-family: inherit;
+	color: var(--cb-text);
+	background: var(--cb-card);
+	transition: border-color .15s;
+}
+.cbnexus-referral-field input:focus,
+.cbnexus-referral-field select:focus,
+.cbnexus-referral-field textarea:focus {
+	border-color: var(--cb-accent);
+	outline: none;
+	box-shadow: 0 0 0 3px var(--cb-accent-soft);
+}
+
+/* Two-column rows */
+.cbnexus-referral-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+/* Submit row */
+.cbnexus-referral-submit {
+	display: flex;
+	gap: 10px;
+	margin-top: 18px;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+	.cbnexus-referral-modal {
+		width: calc(100vw - 16px);
+		padding: 20px;
+	}
+	.cbnexus-referral-row {
+		grid-template-columns: 1fr;
+	}
+}

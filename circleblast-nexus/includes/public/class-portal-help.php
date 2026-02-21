@@ -273,6 +273,7 @@ final class CBNexus_Portal_Help {
 			'directory'           => '👥 Directory',
 			'meetings'            => '🤝 Meetings',
 			'circleup'            => '📢 CircleUp Archive',
+			'actions'             => '✅ My Actions',
 			'events'              => '📅 Events',
 			'club'                => '📊 Club Stats',
 			'profile'             => '👤 Profile',
@@ -285,6 +286,7 @@ final class CBNexus_Portal_Help {
 			'manage.emails'       => '🛡️ Manage › Emails',
 			'manage.help'         => '🛡️ Manage › Help',
 			'manage.logs'         => '🛡️ Manage › Logs',
+			'manage.feedback'     => '🛡️ Manage › Feedback',
 			'manage.settings'     => '🛡️ Manage › Settings',
 		];
 	}
@@ -714,6 +716,17 @@ final class CBNexus_Portal_Help {
 				         . '<p>Click <strong>"My Action Items"</strong> to see tasks assigned to you across all meetings, with status tracking and due dates.</p>',
 			],
 
+			'actions' => [
+				'title' => __('My Action Items', 'circleblast-nexus'),
+				'body'  => '<p>Track all tasks assigned to you from CircleUp group meetings.</p>'
+				         . '<h3>Status Tracking</h3>'
+				         . '<p>Each action item shows its current status: <strong>Open</strong>, <strong>In Progress</strong>, or <strong>Done</strong>. Update the status as you work through your tasks.</p>'
+				         . '<h3>Due Dates</h3>'
+				         . '<p>Items with due dates are highlighted so you can prioritize what needs attention first. Overdue items appear at the top.</p>'
+				         . '<h3>Where Do These Come From?</h3>'
+				         . '<p>Action items are extracted from CircleUp meeting transcripts and assigned by the Archivist. If something looks incorrect, reach out to your group admin.</p>',
+			],
+
 			'events' => [
 				'title' => __('Events', 'circleblast-nexus'),
 				'body'  => '<p>See all upcoming group events and manage your RSVPs.</p>'
@@ -865,6 +878,19 @@ final class CBNexus_Portal_Help {
 				         . '<p>Configure the "From" name and address used on all outgoing emails.</p>'
 				         . '<h3>API Keys</h3>'
 				         . '<p>Manage keys for external integrations (Claude AI, Fireflies.ai). Keys set in <code>wp-config.php</code> take precedence and can\'t be edited here.</p>',
+			],
+
+			'manage.feedback' => [
+				'title' => __('Member Feedback', 'circleblast-nexus'),
+				'body'  => '<p>View and manage feedback submitted by members through the portal.</p>'
+				         . '<h3>Feedback Types</h3>'
+				         . '<p>Members can submit four types: <strong>General Feedback</strong>, <strong>Bug Reports</strong>, <strong>Feature Ideas</strong>, and <strong>Questions</strong>. Each type is indicated by an icon in the list.</p>'
+				         . '<h3>Status Workflow</h3>'
+				         . '<p>Each submission progresses through statuses: <strong>New</strong> → <strong>Reviewed</strong> → <strong>In Progress</strong> → <strong>Resolved</strong> (or <strong>Dismissed</strong>). Use the filter pills to view items by status.</p>'
+				         . '<h3>Admin Notes</h3>'
+				         . '<p>Click into any item to see the full message, update its status, and add internal admin notes (visible only to super admins, not to the submitter).</p>'
+				         . '<h3>Email Notifications</h3>'
+				         . '<p>All super admins receive an email notification whenever a member submits new feedback. The email includes a direct link to view it here.</p>',
 			],
 		];
 	}

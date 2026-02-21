@@ -187,6 +187,7 @@ final class CBNexus_Portal_Router {
 
 			<?php CBNexus_Portal_Help::render_drawer(); ?>
 			<?php CBNexus_Referral_Form::render_modal(); ?>
+			<?php CBNexus_Feedback_Form::render_modal(); ?>
 		</div>
 		<?php
 		return ob_get_clean();
@@ -242,6 +243,7 @@ final class CBNexus_Portal_Router {
 			</div>
 			<div class="cbnexus-portal-header-right">
 				<button type="button" id="cbnexus-help-toggle" class="cbnexus-help-toggle" aria-label="<?php esc_attr_e('Help for this page', 'circleblast-nexus'); ?>" title="<?php esc_attr_e('Help for this page', 'circleblast-nexus'); ?>">?</button>
+				<button type="button" class="cbnexus-feedback-toggle" data-feedback-open aria-label="<?php esc_attr_e('Send Feedback', 'circleblast-nexus'); ?>" title="<?php esc_attr_e('Send Feedback', 'circleblast-nexus'); ?>">✉</button>
 				<?php if ($is_admin) : ?>
 					<a href="<?php echo esc_url(add_query_arg('section', 'manage', $base_url)); ?>" class="cbnexus-header-link <?php echo $current === 'manage' ? 'active' : ''; ?>">
 						<span class="cbnexus-header-link-icon">🛡️</span> Manage
