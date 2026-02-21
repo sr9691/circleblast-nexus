@@ -224,18 +224,49 @@ final class CBNexus_Portal_Admin {
 	private static function render_tab_nav(string $current): void {
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
 		$base_url   = add_query_arg('section', 'manage', $portal_url);
+
+		/* Split tabs into admin vs super-admin rows */
+		$admin_caps  = ['cbnexus_manage_members', 'cbnexus_manage_matching_rules', 'cbnexus_manage_circleup'];
+		$admin_tabs  = [];
+		$super_tabs  = [];
+
+		foreach (self::$tabs as $slug => $tab) {
+			if (!current_user_can($tab['cap'])) { continue; }
+			if (in_array($tab['cap'], $admin_caps, true)) {
+				$admin_tabs[$slug] = $tab;
+			} else {
+				$super_tabs[$slug] = $tab;
+			}
+		}
 		?>
-		<div class="cbnexus-admin-tabs">
-			<?php foreach (self::$tabs as $slug => $tab) :
-				if (!current_user_can($tab['cap'])) { continue; }
-				$is_active = $slug === $current;
-				$url = add_query_arg('admin_tab', $slug, $base_url);
-			?>
-				<a href="<?php echo esc_url($url); ?>" class="cbnexus-admin-tab <?php echo $is_active ? 'active' : ''; ?>">
-					<span class="cbnexus-admin-tab-icon"><?php echo esc_html($tab['icon']); ?></span>
-					<?php echo esc_html($tab['label']); ?>
-				</a>
-			<?php endforeach; ?>
+		<div class="cbnexus-admin-tabs-wrap">
+			<?php if (!empty($admin_tabs)) : ?>
+			<div class="cbnexus-admin-tabs">
+				<?php foreach ($admin_tabs as $slug => $tab) :
+					$is_active = $slug === $current;
+					$url = add_query_arg('admin_tab', $slug, $base_url);
+				?>
+					<a href="<?php echo esc_url($url); ?>" class="cbnexus-admin-tab <?php echo $is_active ? 'active' : ''; ?>" title="<?php echo esc_attr($tab['label']); ?>">
+						<span class="cbnexus-admin-tab-icon"><?php echo esc_html($tab['icon']); ?></span>
+						<span class="cbnexus-admin-tab-label"><?php echo esc_html($tab['label']); ?></span>
+					</a>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+
+			<?php if (!empty($super_tabs)) : ?>
+			<div class="cbnexus-admin-tabs cbnexus-admin-tabs--super">
+				<?php foreach ($super_tabs as $slug => $tab) :
+					$is_active = $slug === $current;
+					$url = add_query_arg('admin_tab', $slug, $base_url);
+				?>
+					<a href="<?php echo esc_url($url); ?>" class="cbnexus-admin-tab <?php echo $is_active ? 'active' : ''; ?>" title="<?php echo esc_attr($tab['label']); ?>">
+						<span class="cbnexus-admin-tab-icon"><?php echo esc_html($tab['icon']); ?></span>
+						<span class="cbnexus-admin-tab-label"><?php echo esc_html($tab['label']); ?></span>
+					</a>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
 		</div>
 		<?php
 	}

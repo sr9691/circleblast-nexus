@@ -29,21 +29,39 @@ final class CBNexus_Portal_Dashboard {
 		$needs_notes = CBNexus_Meeting_Repository::get_needs_notes($uid);
 		$upcoming = self::get_upcoming($uid);
 		$recent_history = self::get_recent_history($uid, 5);
-		$actions = CBNexus_CircleUp_Repository::get_member_actions($uid);
+		$all_actions = CBNexus_CircleUp_Repository::get_member_actions($uid);
+		$open_actions = array_filter($all_actions, fn($a) => $a->status !== 'done');
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
 		$tips = CBNexus_Portal_Help::get_tooltips_for('dashboard');
+
+		/* Upcoming events (next 3 approved events) */
+		$upcoming_events = class_exists('CBNexus_Event_Repository') ? CBNexus_Event_Repository::get_upcoming(3) : [];
+
+		/* Time-aware greeting */
+		$hour = (int) current_time('G');
+		if ($hour < 12) {
+			$greeting = __('Good morning, %s ☀️', 'circleblast-nexus');
+		} elseif ($hour < 17) {
+			$greeting = __('Good afternoon, %s 👋', 'circleblast-nexus');
+		} else {
+			$greeting = __('Good evening, %s 🌙', 'circleblast-nexus');
+		}
 		?>
 		<div class="cbnexus-dashboard" id="cbnexus-dashboard">
 
 			<!-- Greeting -->
 			<div style="margin-bottom:20px;">
 				<h2 style="margin:0 0 2px;font-size:24px;font-weight:700;letter-spacing:-0.5px;">
-					<?php printf(esc_html__('Good afternoon, %s 👋', 'circleblast-nexus'), esc_html($name)); ?>
+					<?php printf(esc_html($greeting), esc_html($name)); ?>
 				</h2>
 				<p class="cbnexus-text-muted" style="margin:0;font-size:14px;"><?php esc_html_e("Here's what's happening in your circle", 'circleblast-nexus'); ?></p>
 			</div>
 
-			<!-- Quick Stats -->
+			<!-- My Engagement -->
+			<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+				<span style="font-size:16px;">📊</span>
+				<h3 style="margin:0;font-size:15px;font-weight:600;"><?php esc_html_e('My Engagement', 'circleblast-nexus'); ?></h3>
+			</div>
 			<div class="cbnexus-quick-stats">
 				<div class="cbnexus-stat-card">
 					<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tips['meetings']); ?>">ⓘ</button>
@@ -104,7 +122,25 @@ final class CBNexus_Portal_Dashboard {
 			</div>
 			<?php endif; ?>
 
-			<?php self::render_recruitment_card(); ?>
+			<!-- Upcoming Events -->
+			<?php if (!empty($upcoming_events)) : ?>
+			<div class="cbnexus-card">
+				<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+					<h3 style="margin:0;"><?php esc_html_e('Upcoming Events', 'circleblast-nexus'); ?></h3>
+					<a href="<?php echo esc_url(add_query_arg('section', 'events', $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('View all →', 'circleblast-nexus'); ?></a>
+				</div>
+				<?php foreach ($upcoming_events as $evt) : ?>
+					<div class="cbnexus-row">
+						<span style="font-size:15px;margin-right:4px;">📅</span>
+						<strong style="flex:1;"><?php echo esc_html($evt->title); ?></strong>
+						<span class="cbnexus-text-muted"><?php echo esc_html(date_i18n('M j', strtotime($evt->event_date))); ?><?php if (!empty($evt->event_time)) : ?> · <?php echo esc_html(date_i18n('g:i A', strtotime($evt->event_time))); ?><?php endif; ?></span>
+						<?php if (!empty($evt->location)) : ?>
+							<span class="cbnexus-pill cbnexus-pill--muted"><?php echo esc_html(wp_trim_words($evt->location, 3, '…')); ?></span>
+						<?php endif; ?>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
 
 			<!-- Two-column: Coming Up + Action Items -->
 			<div class="cbnexus-dash-cols">
@@ -128,13 +164,22 @@ final class CBNexus_Portal_Dashboard {
 				</div>
 
 				<div class="cbnexus-card">
-					<h3><?php esc_html_e('My Action Items', 'circleblast-nexus'); ?></h3>
-					<?php if (empty($actions)) : ?>
-						<p class="cbnexus-text-muted"><?php esc_html_e('No action items assigned to you.', 'circleblast-nexus'); ?></p>
-					<?php else : foreach (array_slice($actions, 0, 5) as $a) : ?>
+					<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+						<h3 style="margin:0;"><?php esc_html_e('My Action Items', 'circleblast-nexus'); ?></h3>
+						<?php if (!empty($open_actions)) : ?>
+							<a href="<?php echo esc_url(add_query_arg('section', 'actions', $portal_url)); ?>" class="cbnexus-link" style="font-size:13px;"><?php esc_html_e('View all →', 'circleblast-nexus'); ?></a>
+						<?php endif; ?>
+					</div>
+					<?php if (empty($open_actions)) : ?>
+						<p class="cbnexus-text-muted"><?php esc_html_e("No open action items. You're all caught up! ✨", 'circleblast-nexus'); ?></p>
+					<?php else : foreach (array_slice($open_actions, 0, 5) as $a) :
+						$is_overdue = $a->due_date && strtotime($a->due_date) < time();
+					?>
 						<div class="cbnexus-dash-action-row">
 							<div style="font-weight:500;"><?php echo esc_html(wp_trim_words($a->content, 12)); ?></div>
-							<?php if ($a->due_date) : ?><span class="cbnexus-text-muted"><?php printf(esc_html__('Due %s', 'circleblast-nexus'), esc_html($a->due_date)); ?></span><?php endif; ?>
+							<?php if ($a->due_date) : ?>
+								<span class="cbnexus-text-muted<?php echo $is_overdue ? ' cbnexus-dash-action-overdue' : ''; ?>"><?php printf(esc_html__('Due %s', 'circleblast-nexus'), esc_html(date_i18n('M j', strtotime($a->due_date)))); ?></span>
+							<?php endif; ?>
 						</div>
 					<?php endforeach; endif; ?>
 				</div>
@@ -166,6 +211,8 @@ final class CBNexus_Portal_Dashboard {
 					</div>
 				<?php endif; ?>
 			</div>
+
+			<?php self::render_recruitment_card(); ?>
 		</div>
 		<?php
 	}
@@ -265,28 +312,6 @@ final class CBNexus_Portal_Dashboard {
 					✅ <?php esc_html_e('All categories are covered!', 'circleblast-nexus'); ?>
 				</div>
 			<?php endif; ?>
-
-			<?php
-			// Admin enhancement: show covered categories with member names.
-			if ($is_admin) :
-				$all_cats = CBNexus_Recruitment_Coverage_Service::get_full_coverage();
-				$covered_cats = array_filter($all_cats, function ($c) {
-					return $c->coverage_status === 'covered' || $c->coverage_status === 'partial';
-				});
-				if (!empty($covered_cats)) :
-			?>
-				<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--cb-border,#e5e7eb);">
-					<div style="font-size:12px;font-weight:600;color:var(--cb-text-ter,#9ca3af);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;"><?php esc_html_e('Filled Roles', 'circleblast-nexus'); ?></div>
-					<?php foreach ($covered_cats as $cat) : ?>
-						<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-							<span style="font-size:13px;font-weight:500;min-width:120px;"><?php echo esc_html($cat->title); ?></span>
-							<?php foreach ($cat->members as $mem) : ?>
-								<span style="font-size:11px;padding:2px 8px;background:#f3eef6;border-radius:10px;color:#5b2d6e;"><?php echo esc_html($mem['display_name']); ?></span>
-							<?php endforeach; ?>
-						</div>
-					<?php endforeach; ?>
-				</div>
-			<?php endif; endif; ?>
 		</div>
 		<?php
 	}

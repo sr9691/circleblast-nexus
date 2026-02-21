@@ -133,7 +133,10 @@
 	padding: 12px 28px;
 	background: transparent;
 	overflow-x: auto;
+	overflow-y: hidden;
 	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;          /* Firefox */
+	-ms-overflow-style: none;       /* IE/Edge */
 	display: flex;
 	gap: 8px;
 	position: relative;
@@ -142,34 +145,44 @@
 	width: auto;
 }
 
-.cbnexus-portal-nav::-webkit-scrollbar { height: 4px; }
-.cbnexus-portal-nav::-webkit-scrollbar-thumb { background: var(--cb-border); border-radius: 4px; }
+.cbnexus-portal-nav::-webkit-scrollbar { display: none; }
 
 .cbnexus-portal-nav ul {
 	list-style: none;
 	margin: 0;
 	padding: 0;
 	display: flex;
-	gap: 8px;
+	gap: 6px;
+	flex-wrap: nowrap;
+	width: 100%;
+}
+
+.cbnexus-portal-nav li {
+	flex: 1 1 0;
+	min-width: 0;
 }
 
 .cbnexus-portal-nav li a {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 6px;
-	padding: 8px 16px;
-	border-radius: var(--cb-radius-pill);
+	justify-content: center;
+	gap: 2px;
+	padding: 8px 6px 6px;
+	border-radius: var(--cb-radius);
 	border: 2px solid transparent;
 	background: var(--cb-card);
 	color: var(--cb-text-sec);
-	font-size: 13px;
+	font-size: 11px;
 	font-weight: 500;
 	cursor: pointer;
 	white-space: nowrap;
 	transition: all .2s;
 	text-decoration: none;
-	flex-shrink: 0;
 	box-shadow: var(--cb-shadow);
+	min-width: 0;
+	width: 100%;
+	position: relative;
 }
 
 .cbnexus-portal-nav li a:hover {
@@ -186,7 +199,13 @@
 }
 
 .cbnexus-portal-nav li a .cbnexus-nav-icon {
-	font-size: 14px;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.cbnexus-portal-nav li a .cbnexus-nav-label {
+	font-size: 11px;
+	line-height: 1.2;
 }
 
 .cbnexus-portal-nav li a .dashicons {
@@ -199,16 +218,43 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 18px;
-	height: 18px;
-	padding: 0 5px;
-	border-radius: 9px;
+	min-width: 16px;
+	height: 16px;
+	padding: 0 4px;
+	border-radius: 8px;
 	background: var(--cb-accent);
 	color: #fff;
-	font-size: 11px;
+	font-size: 10px;
 	font-weight: 700;
 	line-height: 1;
-	margin-left: 2px;
+	position: absolute;
+	top: 2px;
+	right: 2px;
+}
+
+/* ── Icon-only at narrow widths ─────────────────────────────── */
+
+@media (max-width: 600px) {
+	.cbnexus-portal-nav {
+		padding: 10px 16px;
+	}
+
+	.cbnexus-portal-nav li a {
+		padding: 8px 10px;
+	}
+
+	.cbnexus-portal-nav li a .cbnexus-nav-label {
+		display: none;
+	}
+
+	.cbnexus-portal-nav li a .cbnexus-nav-icon {
+		font-size: 18px;
+	}
+
+	.cbnexus-nav-badge {
+		top: 0;
+		right: 0;
+	}
 }
 
 /* ── Layout (no sidebar — stacked) ───────────────────────────── */

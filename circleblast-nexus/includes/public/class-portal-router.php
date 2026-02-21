@@ -274,7 +274,7 @@ final class CBNexus_Portal_Router {
 					if (!empty($section['hidden'])) { continue; }
 				?>
 					<li class="<?php echo $slug === $current ? 'cbnexus-nav-active' : ''; ?>">
-						<a href="<?php echo esc_url(add_query_arg('section', $slug, $base_url)); ?>">
+						<a href="<?php echo esc_url(add_query_arg('section', $slug, $base_url)); ?>" title="<?php echo esc_attr($section['label']); ?>">
 							<span class="cbnexus-nav-icon"><?php echo esc_html($section['icon']); ?></span>
 							<span class="cbnexus-nav-label"><?php echo esc_html($section['label']); ?></span>
 							<?php if ($slug === 'actions' && $action_count > 0) : ?>

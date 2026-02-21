@@ -17,6 +17,7 @@ final class CBNexus_Portal_CircleUp {
 	public static function init(): void {
 		add_action('wp_ajax_cbnexus_circleup_search', [__CLASS__, 'ajax_search']);
 		add_action('wp_ajax_cbnexus_circleup_submit', [__CLASS__, 'ajax_submit']);
+		add_action('wp_ajax_cbnexus_action_update_status', [__CLASS__, 'ajax_action_update_status']);
 		add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_scripts']);
 	}
 
@@ -237,11 +238,28 @@ final class CBNexus_Portal_CircleUp {
 			'in_progress' => ['label' => 'In Progress', 'class' => 'cbnexus-status-blue'],
 			'done'        => ['label' => 'Done',        'class' => 'cbnexus-status-green'],
 		];
+
+		/* Transitions a member can make from each status */
+		$transitions = [
+			'draft'       => ['in_progress', 'done'],
+			'approved'    => ['in_progress', 'done'],
+			'pending'     => ['in_progress', 'done'],
+			'in_progress' => ['done'],
+			'done'        => ['approved'],  /* reopen */
+		];
+		$btn_meta = [
+			'in_progress' => ['label' => 'Start',    'icon' => '▶',  'class' => 'cbnexus-action-btn--blue'],
+			'done'        => ['label' => 'Done',     'icon' => '✓',  'class' => 'cbnexus-action-btn--green'],
+			'approved'    => ['label' => 'Reopen',   'icon' => '↩',  'class' => 'cbnexus-action-btn--gold'],
+		];
 		?>
-		<div class="cbnexus-circleup-archive">
+		<div class="cbnexus-circleup-archive" id="cbnexus-actions-page"
+			 data-nonce="<?php echo esc_attr(wp_create_nonce('cbnexus_action_update')); ?>"
+			 data-ajax="<?php echo esc_attr(admin_url('admin-ajax.php')); ?>">
+
 			<div class="cbnexus-cu-header">
 				<h2><?php esc_html_e('My Action Items', 'circleblast-nexus'); ?></h2>
-				<p class="cbnexus-text-muted"><?php printf(esc_html__('%d open · %d completed', 'circleblast-nexus'), count($open), count($done)); ?></p>
+				<p class="cbnexus-text-muted" id="cbnexus-actions-summary"><?php printf(esc_html__('%d open · %d completed', 'circleblast-nexus'), count($open), count($done)); ?></p>
 			</div>
 
 			<?php if (empty($actions)) : ?>
@@ -251,41 +269,70 @@ final class CBNexus_Portal_CircleUp {
 			<?php else : ?>
 
 				<?php if (!empty($open)) : ?>
-				<div class="cbnexus-card">
+				<div class="cbnexus-card" id="cbnexus-actions-open">
 					<h3><?php esc_html_e('Open', 'circleblast-nexus'); ?></h3>
-					<table class="cbnexus-cu-actions-table">
-						<thead><tr><th><?php esc_html_e('Action', 'circleblast-nexus'); ?></th><th><?php esc_html_e('From', 'circleblast-nexus'); ?></th><th><?php esc_html_e('Due', 'circleblast-nexus'); ?></th><th><?php esc_html_e('Status', 'circleblast-nexus'); ?></th></tr></thead>
-						<tbody>
+					<div class="cbnexus-actions-list">
 						<?php foreach ($open as $a) :
-							$pill = $status_pills[$a->status] ?? $status_pills['approved'];
+							$pill   = $status_pills[$a->status] ?? $status_pills['approved'];
+							$avail  = $transitions[$a->status] ?? ['done'];
 						?>
-							<tr>
-								<td><?php echo esc_html($a->content); ?></td>
-								<td class="cbnexus-text-muted"><?php echo esc_html($a->meeting_title); ?></td>
-								<td><?php echo $a->due_date ? esc_html(date_i18n('M j', strtotime($a->due_date))) : '—'; ?></td>
-								<td><span class="cbnexus-status-pill <?php echo esc_attr($pill['class']); ?>"><?php echo esc_html($pill['label']); ?></span></td>
-							</tr>
+						<div class="cbnexus-action-item" data-id="<?php echo esc_attr($a->id); ?>" data-status="<?php echo esc_attr($a->status); ?>">
+							<div class="cbnexus-action-item__body">
+								<div class="cbnexus-action-item__content"><?php echo esc_html($a->content); ?></div>
+								<div class="cbnexus-action-item__meta">
+									<span class="cbnexus-text-muted"><?php echo esc_html($a->meeting_title); ?></span>
+									<?php if ($a->due_date) : ?>
+										<span class="cbnexus-action-item__due<?php echo strtotime($a->due_date) < time() ? ' cbnexus-action-item__due--overdue' : ''; ?>">
+											<?php printf(esc_html__('Due %s', 'circleblast-nexus'), esc_html(date_i18n('M j', strtotime($a->due_date)))); ?>
+										</span>
+									<?php endif; ?>
+									<span class="cbnexus-status-pill <?php echo esc_attr($pill['class']); ?>"><?php echo esc_html($pill['label']); ?></span>
+								</div>
+							</div>
+							<div class="cbnexus-action-item__controls">
+								<?php foreach ($avail as $next) :
+									$bm = $btn_meta[$next];
+								?>
+									<button type="button"
+										class="cbnexus-action-btn <?php echo esc_attr($bm['class']); ?>"
+										data-to="<?php echo esc_attr($next); ?>"
+										title="<?php echo esc_attr($bm['label']); ?>">
+										<span class="cbnexus-action-btn__icon"><?php echo esc_html($bm['icon']); ?></span>
+										<span class="cbnexus-action-btn__label"><?php echo esc_html($bm['label']); ?></span>
+									</button>
+								<?php endforeach; ?>
+							</div>
+						</div>
 						<?php endforeach; ?>
-						</tbody>
-					</table>
+					</div>
 				</div>
 				<?php endif; ?>
 
 				<?php if (!empty($done)) : ?>
-				<div class="cbnexus-card">
+				<div class="cbnexus-card" id="cbnexus-actions-done">
 					<h3><?php esc_html_e('Completed', 'circleblast-nexus'); ?></h3>
-					<table class="cbnexus-cu-actions-table">
-						<thead><tr><th><?php esc_html_e('Action', 'circleblast-nexus'); ?></th><th><?php esc_html_e('From', 'circleblast-nexus'); ?></th><th><?php esc_html_e('Status', 'circleblast-nexus'); ?></th></tr></thead>
-						<tbody>
+					<div class="cbnexus-actions-list">
 						<?php foreach ($done as $a) : ?>
-							<tr style="opacity:0.6;">
-								<td><?php echo esc_html($a->content); ?></td>
-								<td class="cbnexus-text-muted"><?php echo esc_html($a->meeting_title); ?></td>
-								<td><span class="cbnexus-status-pill cbnexus-status-green"><?php esc_html_e('Done', 'circleblast-nexus'); ?></span></td>
-							</tr>
+						<div class="cbnexus-action-item cbnexus-action-item--done" data-id="<?php echo esc_attr($a->id); ?>" data-status="done">
+							<div class="cbnexus-action-item__body">
+								<div class="cbnexus-action-item__content"><?php echo esc_html($a->content); ?></div>
+								<div class="cbnexus-action-item__meta">
+									<span class="cbnexus-text-muted"><?php echo esc_html($a->meeting_title); ?></span>
+									<span class="cbnexus-status-pill cbnexus-status-green"><?php esc_html_e('Done', 'circleblast-nexus'); ?></span>
+								</div>
+							</div>
+							<div class="cbnexus-action-item__controls">
+								<button type="button"
+									class="cbnexus-action-btn cbnexus-action-btn--gold"
+									data-to="approved"
+									title="<?php esc_attr_e('Reopen', 'circleblast-nexus'); ?>">
+									<span class="cbnexus-action-btn__icon">↩</span>
+									<span class="cbnexus-action-btn__label"><?php esc_html_e('Reopen', 'circleblast-nexus'); ?></span>
+								</button>
+							</div>
+						</div>
 						<?php endforeach; ?>
-						</tbody>
-					</table>
+					</div>
 				</div>
 				<?php endif; ?>
 
@@ -373,5 +420,86 @@ final class CBNexus_Portal_CircleUp {
 		]]);
 
 		wp_send_json_success(['message' => __('Submitted! Thank you.', 'circleblast-nexus')]);
+	}
+
+	// ─── Action Status Update ──────────────────────────────────────
+
+	public static function ajax_action_update_status(): void {
+		check_ajax_referer('cbnexus_action_update', 'nonce');
+		$uid = get_current_user_id();
+		if (!$uid || !CBNexus_Member_Repository::is_member($uid)) {
+			wp_send_json_error(['message' => 'Access denied.'], 403);
+		}
+
+		$item_id    = absint($_POST['item_id'] ?? 0);
+		$new_status = sanitize_key($_POST['status'] ?? '');
+
+		if (!$item_id || !in_array($new_status, ['approved', 'in_progress', 'done'], true)) {
+			wp_send_json_error(['message' => 'Invalid request.']);
+		}
+
+		/* Verify the action item belongs to this member */
+		global $wpdb;
+		$item = $wpdb->get_row($wpdb->prepare(
+			"SELECT id, status, assigned_to FROM {$wpdb->prefix}cb_circleup_items WHERE id = %d AND item_type = 'action'",
+			$item_id
+		));
+
+		if (!$item || (int) $item->assigned_to !== $uid) {
+			wp_send_json_error(['message' => 'Action item not found.']);
+		}
+
+		/* Validate allowed transitions */
+		$allowed = [
+			'draft'       => ['in_progress', 'done'],
+			'approved'    => ['in_progress', 'done'],
+			'pending'     => ['in_progress', 'done'],
+			'in_progress' => ['done'],
+			'done'        => ['approved'],
+		];
+
+		$from = $item->status;
+		if (!in_array($new_status, $allowed[$from] ?? [], true)) {
+			wp_send_json_error(['message' => 'Invalid status transition.']);
+		}
+
+		$updated = CBNexus_CircleUp_Repository::update_item($item_id, ['status' => $new_status]);
+		if (!$updated) {
+			wp_send_json_error(['message' => 'Failed to update.']);
+		}
+
+		/* Return pill metadata so JS can update the UI */
+		$pills = [
+			'approved'    => ['label' => 'Open',        'class' => 'cbnexus-status-blue'],
+			'in_progress' => ['label' => 'In Progress', 'class' => 'cbnexus-status-blue'],
+			'done'        => ['label' => 'Done',        'class' => 'cbnexus-status-green'],
+		];
+		$pill = $pills[$new_status] ?? $pills['approved'];
+
+		/* Next transitions from the new status */
+		$next_transitions = $allowed[$new_status] ?? [];
+		$btn_meta = [
+			'in_progress' => ['label' => 'Start',  'icon' => "\u{25B6}", 'class' => 'cbnexus-action-btn--blue'],
+			'done'        => ['label' => 'Done',   'icon' => "\u{2713}", 'class' => 'cbnexus-action-btn--green'],
+			'approved'    => ['label' => 'Reopen', 'icon' => "\u{21A9}", 'class' => 'cbnexus-action-btn--gold'],
+		];
+		$buttons = [];
+		foreach ($next_transitions as $t) {
+			$buttons[] = $btn_meta[$t];
+		}
+
+		/* Updated counts */
+		$all_actions = CBNexus_CircleUp_Repository::get_member_actions($uid);
+		$open_count  = count(array_filter($all_actions, fn($a) => $a->status !== 'done'));
+		$done_count  = count(array_filter($all_actions, fn($a) => $a->status === 'done'));
+
+		wp_send_json_success([
+			'status'      => $new_status,
+			'pill'        => $pill,
+			'buttons'     => $buttons,
+			'is_done'     => $new_status === 'done',
+			'open_count'  => $open_count,
+			'done_count'  => $done_count,
+		]);
 	}
 }

@@ -111,4 +111,144 @@
 				.catch(function () { btn.disabled = false; });
 		});
 	}
+
+	// ── My Actions – status update buttons ─────────────────────────
+	var actionsPage = document.getElementById('cbnexus-actions-page');
+	if (actionsPage) {
+		var ajaxUrl = actionsPage.getAttribute('data-ajax');
+		var nonce   = actionsPage.getAttribute('data-nonce');
+
+		actionsPage.addEventListener('click', function (e) {
+			var btn = e.target.closest('.cbnexus-action-btn');
+			if (!btn) return;
+
+			var row    = btn.closest('.cbnexus-action-item');
+			var itemId = row.getAttribute('data-id');
+			var toStatus = btn.getAttribute('data-to');
+
+			btn.disabled = true;
+			btn.classList.add('cbnexus-action-btn--loading');
+
+			var data = new FormData();
+			data.append('action', 'cbnexus_action_update_status');
+			data.append('nonce', nonce);
+			data.append('item_id', itemId);
+			data.append('status', toStatus);
+
+			fetch(ajaxUrl, { method: 'POST', credentials: 'same-origin', body: data })
+				.then(function (r) { return r.json(); })
+				.then(function (json) {
+					if (!json.success) {
+						btn.disabled = false;
+						btn.classList.remove('cbnexus-action-btn--loading');
+						alert(json.data && json.data.message ? json.data.message : 'Error updating.');
+						return;
+					}
+
+					var d = json.data;
+
+					/* Update the status pill */
+					var pill = row.querySelector('.cbnexus-status-pill');
+					if (pill) {
+						pill.className = 'cbnexus-status-pill ' + d.pill['class'];
+						pill.textContent = d.pill.label;
+					}
+
+					/* Update data attribute */
+					row.setAttribute('data-status', d.status);
+
+					/* Rebuild the controls */
+					var controls = row.querySelector('.cbnexus-action-item__controls');
+					controls.innerHTML = '';
+					d.buttons.forEach(function (b) {
+						var newBtn = document.createElement('button');
+						newBtn.type = 'button';
+						newBtn.className = 'cbnexus-action-btn ' + b['class'];
+						newBtn.setAttribute('data-to', b.label === 'Start' ? 'in_progress' : (b.label === 'Done' ? 'done' : 'approved'));
+						newBtn.title = b.label;
+						newBtn.innerHTML = '<span class="cbnexus-action-btn__icon">' + b.icon + '</span>' +
+							'<span class="cbnexus-action-btn__label">' + b.label + '</span>';
+						controls.appendChild(newBtn);
+					});
+
+					/* Move row between Open / Done sections */
+					var openSection = document.getElementById('cbnexus-actions-open');
+					var doneSection = document.getElementById('cbnexus-actions-done');
+
+					if (d.is_done) {
+						row.classList.add('cbnexus-action-item--done');
+						/* Animate out of open list */
+						row.style.transition = 'opacity 0.3s, transform 0.3s';
+						row.style.opacity = '0';
+						row.style.transform = 'translateX(20px)';
+						setTimeout(function () {
+							row.style.opacity = '';
+							row.style.transform = '';
+							row.style.transition = '';
+							/* Move to done section, create if needed */
+							if (!doneSection) {
+								var card = document.createElement('div');
+								card.className = 'cbnexus-card';
+								card.id = 'cbnexus-actions-done';
+								card.innerHTML = '<h3>Completed</h3><div class="cbnexus-actions-list"></div>';
+								actionsPage.appendChild(card);
+								doneSection = card;
+							}
+							var doneList = doneSection.querySelector('.cbnexus-actions-list');
+							doneList.insertBefore(row, doneList.firstChild);
+							row.style.animation = 'cbnexus-fade-in 0.3s ease';
+							/* Hide open section if empty */
+							if (openSection) {
+								var remaining = openSection.querySelectorAll('.cbnexus-action-item');
+								if (remaining.length === 0) { openSection.style.display = 'none'; }
+							}
+						}, 300);
+					} else {
+						row.classList.remove('cbnexus-action-item--done');
+						/* Moving from done back to open */
+						row.style.transition = 'opacity 0.3s, transform 0.3s';
+						row.style.opacity = '0';
+						row.style.transform = 'translateX(-20px)';
+						setTimeout(function () {
+							row.style.opacity = '';
+							row.style.transform = '';
+							row.style.transition = '';
+							if (!openSection) {
+								var card = document.createElement('div');
+								card.className = 'cbnexus-card';
+								card.id = 'cbnexus-actions-open';
+								card.innerHTML = '<h3>Open</h3><div class="cbnexus-actions-list"></div>';
+								/* Insert before done section */
+								if (doneSection) {
+									actionsPage.insertBefore(card, doneSection);
+								} else {
+									actionsPage.appendChild(card);
+								}
+								openSection = card;
+								openSection.style.display = '';
+							}
+							openSection.style.display = '';
+							var openList = openSection.querySelector('.cbnexus-actions-list');
+							openList.appendChild(row);
+							row.style.animation = 'cbnexus-fade-in 0.3s ease';
+							/* Hide done section if empty */
+							if (doneSection) {
+								var remaining = doneSection.querySelectorAll('.cbnexus-action-item');
+								if (remaining.length === 0) { doneSection.style.display = 'none'; }
+							}
+						}, 300);
+					}
+
+					/* Update summary counts */
+					var summary = document.getElementById('cbnexus-actions-summary');
+					if (summary) {
+						summary.textContent = d.open_count + ' open \u00b7 ' + d.done_count + ' completed';
+					}
+				})
+				.catch(function () {
+					btn.disabled = false;
+					btn.classList.remove('cbnexus-action-btn--loading');
+				});
+		});
+	}
 })();

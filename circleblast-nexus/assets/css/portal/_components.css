@@ -368,6 +368,7 @@
 
 .cbnexus-dash-action-row:last-child { border-bottom: none; }
 .cbnexus-dash-action-row .cbnexus-text-muted { display: block; }
+.cbnexus-dash-action-overdue { color: #dc2626 !important; font-weight: 600; }
 
 /* ── Recruitment Coverage Card (Phase 2) ── */
 

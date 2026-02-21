@@ -422,3 +422,166 @@
 		display: none;
 	}
 }
+
+/* ── My Actions – Card Layout ───────────────────────────────── */
+
+.cbnexus-actions-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.cbnexus-action-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--cb-border-soft);
+}
+
+.cbnexus-action-item:last-child {
+	border-bottom: none;
+}
+
+.cbnexus-action-item--done {
+	opacity: 0.55;
+}
+
+.cbnexus-action-item--done:hover {
+	opacity: 0.8;
+}
+
+.cbnexus-action-item__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.cbnexus-action-item__content {
+	font-weight: 500;
+	font-size: 14px;
+	line-height: 1.5;
+	margin-bottom: 4px;
+}
+
+.cbnexus-action-item__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+}
+
+.cbnexus-action-item__due {
+	color: var(--cb-text-sec);
+	font-size: 12px;
+}
+
+.cbnexus-action-item__due--overdue {
+	color: #dc2626;
+	font-weight: 600;
+}
+
+.cbnexus-action-item__controls {
+	display: flex;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
+/* ── Action Buttons ─────────────────────────────────────────── */
+
+.cbnexus-action-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 12px;
+	border: 1px solid var(--cb-border);
+	border-radius: 8px;
+	background: var(--cb-bg);
+	font-size: 13px;
+	font-weight: 600;
+	font-family: inherit;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	white-space: nowrap;
+}
+
+.cbnexus-action-btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.cbnexus-action-btn:active {
+	transform: translateY(0);
+}
+
+.cbnexus-action-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.cbnexus-action-btn--loading {
+	opacity: 0.6;
+}
+
+.cbnexus-action-btn__icon {
+	font-size: 12px;
+}
+
+.cbnexus-action-btn--green {
+	background: var(--cb-green-soft);
+	border-color: var(--cb-green-border);
+	color: #166534;
+}
+
+.cbnexus-action-btn--green:hover {
+	background: #bbf7d0;
+}
+
+.cbnexus-action-btn--blue {
+	background: var(--cb-blue-soft, #eff6ff);
+	border-color: var(--cb-blue, #3b82f6);
+	color: var(--cb-blue, #2563eb);
+}
+
+.cbnexus-action-btn--blue:hover {
+	background: #dbeafe;
+}
+
+.cbnexus-action-btn--gold {
+	background: var(--cb-gold-soft);
+	border-color: var(--cb-gold-border);
+	color: var(--cb-gold-deep);
+}
+
+.cbnexus-action-btn--gold:hover {
+	background: #fef3c7;
+}
+
+@keyframes cbnexus-fade-in {
+	from { opacity: 0; transform: translateY(8px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── My Actions Responsive ──────────────────────────────────── */
+
+@media (max-width: 600px) {
+	.cbnexus-action-item {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	}
+
+	.cbnexus-action-item__controls {
+		width: 100%;
+	}
+
+	.cbnexus-action-btn {
+		flex: 1;
+		justify-content: center;
+	}
+
+	.cbnexus-action-btn__label {
+		display: inline;
+	}
+}

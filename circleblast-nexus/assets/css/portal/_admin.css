@@ -1,30 +1,52 @@
 /* ── Portal Admin & Super Admin Styles ───────────────────────── */
 
 /* Tab sub-navigation */
+.cbnexus-admin-tabs-wrap {
+	padding: 12px 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
 .cbnexus-admin-tabs {
 	display: flex;
 	gap: 6px;
-	padding: 12px 0 0;
 	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 	-webkit-overflow-scrolling: touch;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	width: 100%;
+}
+
+.cbnexus-admin-tabs::-webkit-scrollbar { display: none; }
+
+.cbnexus-admin-tabs--super {
+	padding-top: 6px;
+	border-top: 1px solid var(--cb-border-soft, var(--cb-border));
 }
 
 .cbnexus-admin-tab {
 	display: inline-flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 5px;
-	padding: 7px 14px;
-	border-radius: var(--cb-radius-pill);
+	justify-content: center;
+	gap: 2px;
+	padding: 8px 6px 6px;
+	border-radius: var(--cb-radius);
 	border: 1.5px solid var(--cb-border);
 	background: var(--cb-card);
 	color: var(--cb-text-sec);
-	font-size: 13px;
+	font-size: 11px;
 	font-weight: 500;
 	text-decoration: none;
 	cursor: pointer;
 	transition: all .2s;
 	white-space: nowrap;
+	position: relative;
+	flex: 1 1 0;
+	min-width: 0;
 }
 
 .cbnexus-admin-tab:hover {
@@ -41,7 +63,33 @@
 }
 
 .cbnexus-admin-tab-icon {
-	font-size: 14px;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.cbnexus-admin-tab-label {
+	font-size: 11px;
+	line-height: 1.2;
+}
+
+/* ── Icon-only at narrow widths ─────────────────────────────── */
+
+@media (max-width: 600px) {
+	.cbnexus-admin-tabs-wrap {
+		gap: 4px;
+	}
+
+	.cbnexus-admin-tab {
+		padding: 8px 10px;
+	}
+
+	.cbnexus-admin-tab-label {
+		display: none;
+	}
+
+	.cbnexus-admin-tab-icon {
+		font-size: 18px;
+	}
 }
 
 .cbnexus-admin-content {
