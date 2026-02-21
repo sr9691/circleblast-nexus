@@ -112,6 +112,15 @@ final class CBNexus_Portal_Router {
 		);
 		wp_localize_script('cbnexus-events', 'cbnexus_ajax_url', admin_url('admin-ajax.php'));
 		wp_add_inline_script('cbnexus-events', 'window.cbnexus_events_nonce = "' . wp_create_nonce('cbnexus_events') . '";', 'before');
+
+		// Help drawer toggle.
+		wp_enqueue_script(
+			'cbnexus-help',
+			CBNEXUS_PLUGIN_URL . 'assets/js/help.js',
+			[],
+			CBNEXUS_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -175,6 +184,8 @@ final class CBNexus_Portal_Router {
 					<?php self::render_section($current_section, $profile); ?>
 				</main>
 			</div>
+
+			<?php CBNexus_Portal_Help::render_drawer(); ?>
 		</div>
 		<?php
 		return ob_get_clean();
@@ -221,6 +232,7 @@ final class CBNexus_Portal_Router {
 				<h1 class="cbnexus-portal-subtitle"><?php esc_html_e('Member Portal', 'circleblast-nexus'); ?></h1>
 			</div>
 			<div class="cbnexus-portal-header-right">
+				<button type="button" id="cbnexus-help-toggle" class="cbnexus-help-toggle" aria-label="<?php esc_attr_e('Help for this page', 'circleblast-nexus'); ?>" title="<?php esc_attr_e('Help for this page', 'circleblast-nexus'); ?>">?</button>
 				<?php if ($is_admin) : ?>
 					<a href="<?php echo esc_url(add_query_arg('section', 'manage', $base_url)); ?>" class="cbnexus-header-link <?php echo $current === 'manage' ? 'active' : ''; ?>">
 						<span class="cbnexus-header-link-icon">🛡️</span> Manage

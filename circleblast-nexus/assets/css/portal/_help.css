@@ -1,0 +1,147 @@
+/* ── Help Drawer ──────────────────────────────────────────── */
+/* Context-sensitive help panel that slides in from the right. */
+/* Uses --cb-* theme variables to adapt to any color scheme.   */
+
+/* Toggle button in portal header */
+.cbnexus-help-toggle {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: 2px solid var(--cb-border);
+	background: var(--cb-card);
+	color: var(--cb-accent);
+	font-weight: 700;
+	font-size: 14px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: border-color .15s, background .15s, color .15s;
+	flex-shrink: 0;
+	padding: 0;
+	line-height: 1;
+}
+.cbnexus-help-toggle:hover,
+.cbnexus-help-toggle:focus-visible {
+	border-color: var(--cb-accent);
+	background: var(--cb-accent-soft);
+	outline: none;
+}
+
+/* Drawer panel */
+.cbnexus-help-drawer {
+	position: fixed;
+	top: 0;
+	right: 0;
+	width: 380px;
+	height: 100vh;
+	background: var(--cb-card);
+	box-shadow: var(--cb-shadow-lg);
+	transform: translateX(100%);
+	transition: transform .25s ease;
+	z-index: 10000;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+.cbnexus-help-drawer.open {
+	transform: translateX(0);
+}
+
+/* Drawer header */
+.cbnexus-help-drawer-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--cb-border-soft);
+	background: var(--cb-accent-soft);
+	flex-shrink: 0;
+}
+.cbnexus-help-drawer-header h3 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--cb-accent);
+	letter-spacing: -0.2px;
+}
+.cbnexus-help-close {
+	background: none;
+	border: none;
+	font-size: 22px;
+	color: var(--cb-text-ter);
+	cursor: pointer;
+	padding: 0 4px;
+	line-height: 1;
+	transition: color .15s;
+}
+.cbnexus-help-close:hover {
+	color: var(--cb-text);
+}
+
+/* Drawer body */
+.cbnexus-help-drawer-body {
+	padding: 20px;
+	overflow-y: auto;
+	flex: 1;
+	font-size: 14px;
+	line-height: 1.65;
+	color: var(--cb-text);
+}
+.cbnexus-help-drawer-body h3 {
+	margin: 18px 0 6px;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--cb-accent);
+	letter-spacing: -0.1px;
+}
+.cbnexus-help-drawer-body h3:first-child {
+	margin-top: 0;
+}
+.cbnexus-help-drawer-body p {
+	margin: 0 0 10px;
+}
+.cbnexus-help-drawer-body ul,
+.cbnexus-help-drawer-body ol {
+	padding-left: 20px;
+	margin: 6px 0 12px;
+}
+.cbnexus-help-drawer-body li {
+	margin-bottom: 5px;
+}
+.cbnexus-help-drawer-body strong {
+	color: var(--cb-text);
+}
+.cbnexus-help-drawer-body code {
+	font-size: 12px;
+	padding: 1px 5px;
+	background: var(--cb-bg-deep);
+	border-radius: 4px;
+	color: var(--cb-accent);
+}
+.cbnexus-help-drawer-body a {
+	color: var(--cb-accent);
+	text-decoration: underline;
+}
+
+/* Semi-transparent overlay */
+.cbnexus-help-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, .18);
+	z-index: 9999;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .25s ease;
+}
+.cbnexus-help-overlay.open {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+	.cbnexus-help-drawer {
+		width: 100%;
+	}
+}

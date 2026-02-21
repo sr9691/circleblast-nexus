@@ -12,6 +12,11 @@ defined('ABSPATH') || exit;
 
 final class CBNexus_Portal_Dashboard {
 
+	/** Info tooltips for each personal stat card (pulled from Help system). */
+	private static function stat_tooltips(): array {
+		return CBNexus_Portal_Help::get_tooltips_for('dashboard');
+	}
+
 	/**
 	 * Render the personal dashboard (called by portal router).
 	 */
@@ -26,6 +31,7 @@ final class CBNexus_Portal_Dashboard {
 		$recent_history = self::get_recent_history($uid, 5);
 		$actions = CBNexus_CircleUp_Repository::get_member_actions($uid);
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
+		$tips = CBNexus_Portal_Help::get_tooltips_for('dashboard');
 		?>
 		<div class="cbnexus-dashboard" id="cbnexus-dashboard">
 
@@ -40,22 +46,27 @@ final class CBNexus_Portal_Dashboard {
 			<!-- Quick Stats -->
 			<div class="cbnexus-quick-stats">
 				<div class="cbnexus-stat-card">
+					<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tips['meetings']); ?>">ⓘ</button>
 					<span class="cbnexus-stat-value"><?php echo esc_html($stats['meetings_completed']); ?></span>
 					<span class="cbnexus-stat-label"><?php esc_html_e('Meetings', 'circleblast-nexus'); ?></span>
 				</div>
 				<div class="cbnexus-stat-card">
+					<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tips['met']); ?>">ⓘ</button>
 					<span class="cbnexus-stat-value"><?php echo esc_html($stats['unique_members']); ?><span style="font-size:14px;color:var(--cb-text-ter);">/ <?php echo esc_html($stats['total_members']); ?></span></span>
 					<span class="cbnexus-stat-label"><?php esc_html_e('Met', 'circleblast-nexus'); ?></span>
 				</div>
 				<div class="cbnexus-stat-card cbnexus-stat-card--accent">
+					<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tips['circleups']); ?>">ⓘ</button>
 					<span class="cbnexus-stat-value"><?php echo esc_html($stats['circleup_attended']); ?></span>
 					<span class="cbnexus-stat-label"><?php esc_html_e('CircleUps', 'circleblast-nexus'); ?></span>
 				</div>
 				<div class="cbnexus-stat-card">
+					<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tips['notes']); ?>">ⓘ</button>
 					<span class="cbnexus-stat-value"><?php echo esc_html($stats['notes_rate']); ?>%</span>
 					<span class="cbnexus-stat-label"><?php esc_html_e('Notes', 'circleblast-nexus'); ?></span>
 				</div>
 				<div class="cbnexus-stat-card cbnexus-stat-card--gold">
+					<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tips['contributions']); ?>">ⓘ</button>
 					<span class="cbnexus-stat-value"><?php echo esc_html($stats['contributions']); ?></span>
 					<span class="cbnexus-stat-label"><?php esc_html_e('Contributions', 'circleblast-nexus'); ?></span>
 				</div>

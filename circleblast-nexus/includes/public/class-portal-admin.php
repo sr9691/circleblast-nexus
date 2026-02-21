@@ -39,6 +39,7 @@ final class CBNexus_Portal_Admin {
 		// Super-admin tabs (cb_super_admin only).
 		'analytics'   => ['label' => 'Analytics',     'icon' => '📊', 'cap' => 'cbnexus_export_data'],
 		'emails'      => ['label' => 'Emails',        'icon' => '✉️',  'cap' => 'cbnexus_manage_plugin_settings'],
+		'help'        => ['label' => 'Help',          'icon' => '❓', 'cap' => 'cbnexus_manage_plugin_settings'],
 		'logs'        => ['label' => 'Logs',          'icon' => '📋', 'cap' => 'cbnexus_view_logs'],
 		'settings'    => ['label' => 'Settings',      'icon' => '⚙️',  'cap' => 'cbnexus_manage_plugin_settings'],
 	];
@@ -162,6 +163,20 @@ final class CBNexus_Portal_Admin {
 		if (isset($_POST['cbnexus_portal_save_api_keys'])) {
 			CBNexus_Portal_Admin_Settings::handle_save_api_keys();
 		}
+
+		// ── Help Content (super-admin) ──────────────────────────────────
+		if (isset($_POST['cbnexus_portal_save_help_content'])) {
+			CBNexus_Portal_Help::handle_save_help_content();
+		}
+		if (isset($_GET['cbnexus_portal_reset_help'])) {
+			CBNexus_Portal_Help::handle_reset_help_content();
+		}
+		if (isset($_POST['cbnexus_portal_save_stat_tooltips'])) {
+			CBNexus_Portal_Help::handle_save_tooltips();
+		}
+		if (isset($_GET['cbnexus_portal_reset_tooltips'])) {
+			CBNexus_Portal_Help::handle_reset_tooltips();
+		}
 	}
 
 	// =====================================================================
@@ -190,6 +205,7 @@ final class CBNexus_Portal_Admin {
 			case 'events':      CBNexus_Portal_Admin_Events::render(); break;
 			case 'analytics':   CBNexus_Portal_Admin_Analytics::render(); break;
 			case 'emails':      CBNexus_Portal_Admin_Emails::render(); break;
+			case 'help':        CBNexus_Portal_Help::render_editor(); break;
 			case 'logs':        CBNexus_Portal_Admin_Logs::render(); break;
 			case 'settings':    CBNexus_Portal_Admin_Settings::render(); break;
 		}
@@ -244,11 +260,18 @@ final class CBNexus_Portal_Admin {
 	}
 
 	/**
-	 * Render a stat card.
+	 * Render a stat card with optional info tooltip.
+	 *
+	 * @param string $label Display label.
+	 * @param mixed  $value Display value.
+	 * @param string $tooltip Optional tooltip text (shown via ⓘ button).
 	 */
-	public static function stat_card(string $label, $value): void {
+	public static function stat_card(string $label, $value, string $tooltip = ''): void {
 		?>
 		<div class="cbnexus-admin-stat">
+			<?php if ($tooltip !== '') : ?>
+				<button type="button" class="cbnexus-info-btn" aria-label="Info" data-tooltip="<?php echo esc_attr($tooltip); ?>">ⓘ</button>
+			<?php endif; ?>
 			<div class="cbnexus-admin-stat-value"><?php echo esc_html($value); ?></div>
 			<div class="cbnexus-admin-stat-label"><?php echo esc_html($label); ?></div>
 		</div>
@@ -292,6 +315,10 @@ final class CBNexus_Portal_Admin {
 			'needs_schedule_saved' => 'Recruitment needs schedule saved.',
 			'focus_saved'          => 'Monthly focus settings saved.',
 			'focus_rotated'        => 'Recruitment focus categories rotated.',
+			'help_saved'           => 'Help content saved.',
+			'help_reset'           => 'Help content reset to default.',
+			'tooltips_saved'       => 'Stat tooltips saved.',
+			'tooltips_reset'       => 'All stat tooltips reset to defaults.',
 			'error'              => 'An error occurred.',
 		];
 		$msg = $messages[$notice] ?? '';
