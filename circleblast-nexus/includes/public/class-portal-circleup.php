@@ -230,18 +230,6 @@ final class CBNexus_Portal_CircleUp {
 		$open    = array_filter($actions, fn($a) => !in_array($a->status, ['done'], true));
 		$done    = array_filter($actions, fn($a) => $a->status === 'done');
 
-		// Debug: raw query to verify assigned_to values in DB.
-		global $wpdb;
-		$debug_rows = $wpdb->get_results($wpdb->prepare(
-			"SELECT id, assigned_to, status, item_type FROM {$wpdb->prefix}cb_circleup_items WHERE item_type = 'action' AND assigned_to IS NOT NULL LIMIT 20",
-		));
-		echo '<!-- DEBUG My Actions: uid=' . esc_html($uid) . ' actions_found=' . count($actions) . ' -->';
-		echo '<!-- DB action items with assigned_to: ';
-		foreach ($debug_rows as $dr) {
-			echo 'id=' . esc_html($dr->id) . ' assigned=' . esc_html($dr->assigned_to) . ' status=' . esc_html($dr->status) . ' | ';
-		}
-		echo ' -->';
-
 		$status_pills = [
 			'draft'       => ['label' => 'Draft',       'class' => 'cbnexus-status-gold'],
 			'approved'    => ['label' => 'Open',        'class' => 'cbnexus-status-blue'],
