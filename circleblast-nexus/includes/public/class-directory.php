@@ -77,7 +77,7 @@ final class CBNexus_Directory {
 							<?php endif; ?>
 							<div class="cbnexus-ghost-cta"><?php esc_html_e("We're looking — know someone?", 'circleblast-nexus'); ?></div>
 							<?php if ($admin_email) : ?>
-								<a href="mailto:<?php echo esc_attr($admin_email); ?>?subject=<?php echo esc_attr('CircleBlast referral — ' . $gap->title); ?>" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm cbnexus-ghost-refer-btn"><?php esc_html_e('Refer Someone', 'circleblast-nexus'); ?></a>
+								<a href="#" class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm cbnexus-ghost-refer-btn" data-referral-open data-referral-category="<?php echo esc_attr($gap->id); ?>" data-referral-category-title="<?php echo esc_attr($gap->title); ?>"><?php esc_html_e('Refer Someone', 'circleblast-nexus'); ?></a>
 							<?php endif; ?>
 						</div>
 					<?php endforeach; ?>

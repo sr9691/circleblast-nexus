@@ -102,6 +102,9 @@ final class CBNexus_Autoloader {
 		// REST API
 		'CBNexus_Members_API'    => 'includes/api/class-members-api.php',
 		'CBNexus_Events_ICS_API' => 'includes/api/class-events-ics-api.php',
+
+		// Referral Form
+		'CBNexus_Referral_Form'  => 'includes/public/class-referral-form.php',
 	];
 
 	/**

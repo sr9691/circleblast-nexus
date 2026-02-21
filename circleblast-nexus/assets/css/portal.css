@@ -26,6 +26,7 @@
 @import url('portal/_color-scheme.css');
 @import url('portal/_email-editor.css');
 @import url('portal/_help.css');
+@import url('portal/_referral.css');
 
 /* Responsive overrides (must load last) */
 @import url('portal/_responsive.css');

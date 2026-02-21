@@ -158,11 +158,15 @@ final class CBNexus_Admin_Recruitment_Categories {
 			$list_html .= '</div>';
 		}
 
+		$portal_url   = class_exists('CBNexus_Portal_Router') ? CBNexus_Portal_Router::get_portal_url() : home_url();
+		$referral_url = add_query_arg('referral', 'open', $portal_url);
+
 		foreach ($members as $m) {
 			CBNexus_Email_Service::send('recruitment_categories', $m['user_email'], [
 				'first_name'      => $m['first_name'],
 				'categories_list' => $list_html,
 				'count'           => count($categories),
+				'referral_url'    => $referral_url,
 			], ['recipient_id' => (int) $m['user_id'], 'related_type' => 'recruitment_blast']);
 		}
 

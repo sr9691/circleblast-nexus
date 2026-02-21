@@ -250,7 +250,7 @@ final class CBNexus_Portal_Dashboard {
 								</div>
 							</div>
 							<?php if ($admin_email) : ?>
-								<a href="mailto:<?php echo esc_attr($admin_email); ?>?subject=<?php echo esc_attr('CircleBlast referral — ' . $gap->title); ?>" class="cbnexus-recruit-refer-link"><?php esc_html_e('Know someone?', 'circleblast-nexus'); ?></a>
+								<a href="#" class="cbnexus-recruit-refer-link" data-referral-open data-referral-category="<?php echo esc_attr($gap->id); ?>" data-referral-category-title="<?php echo esc_attr($gap->title); ?>"><?php esc_html_e('Know someone?', 'circleblast-nexus'); ?></a>
 							<?php endif; ?>
 						</div>
 					<?php endforeach; ?>

@@ -549,8 +549,9 @@ final class CBNexus_Recruitment_Coverage_Service {
 		$html .= '</table>';
 
 		if ($admin_email) {
-			$mailto = 'mailto:' . esc_attr($admin_email) . '?subject=' . rawurlencode('CircleBlast referral');
-			$html .= '<p style="margin:10px 0 0;font-size:12px;color:#8b7a94;">Know someone who\'d be a great fit? <a href="' . $mailto . '" style="color:#5b2d6e;font-weight:600;text-decoration:none;">Send a referral &rarr;</a></p>';
+			$portal_url = class_exists('CBNexus_Portal_Router') ? CBNexus_Portal_Router::get_portal_url() : home_url();
+			$referral_url = add_query_arg('referral', 'open', $portal_url);
+			$html .= '<p style="margin:10px 0 0;font-size:12px;color:#8b7a94;">Know someone who\'d be a great fit? <a href="' . esc_url($referral_url) . '" style="color:#5b2d6e;font-weight:600;text-decoration:none;">Submit a referral &rarr;</a></p>';
 		}
 
 		$html .= '</td></tr></table></td></tr>';
@@ -608,9 +609,10 @@ final class CBNexus_Recruitment_Coverage_Service {
 
 		// CTA
 		if ($admin_email) {
-			$mailto = 'mailto:' . esc_attr($admin_email) . '?subject=' . rawurlencode('CircleBlast referral');
+			$portal_url = class_exists('CBNexus_Portal_Router') ? CBNexus_Portal_Router::get_portal_url() : home_url();
+			$referral_url = add_query_arg('referral', 'open', $portal_url);
 			$html .= '<p style="margin:16px 0 0;text-align:center;">';
-			$html .= '<a href="' . $mailto . '" style="display:inline-block;padding:10px 24px;background:#5b2d6e;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600;">Submit a Referral</a>';
+			$html .= '<a href="' . esc_url($referral_url) . '" style="display:inline-block;padding:10px 24px;background:#5b2d6e;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600;">Submit a Referral</a>';
 			$html .= '</p>';
 		}
 

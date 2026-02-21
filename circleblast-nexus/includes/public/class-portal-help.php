@@ -672,7 +672,7 @@ final class CBNexus_Portal_Help {
 				         . '<h3>Needs Your Attention</h3>'
 				         . '<p>Gold-highlighted items need your action — pending meeting requests to accept or decline, and completed meetings that still need notes. Acting on these promptly keeps the group connected.</p>'
 				         . '<h3>Who We\'re Looking For</h3>'
-				         . '<p>Open roles the group wants to fill. Know someone who\'d be a good fit? Click <strong>"Know someone?"</strong> to send a quick referral email to your admin.</p>'
+				         . '<p>Open roles the group wants to fill. Know someone who\'d be a good fit? Click <strong>"Know someone?"</strong> to open the referral form — just a name is all you need.</p>'
 				         . '<h3>Coming Up & Action Items</h3>'
 				         . '<p>Your upcoming 1:1 meetings and any tasks assigned to you from CircleUp group sessions.</p>',
 			],
@@ -685,7 +685,7 @@ final class CBNexus_Portal_Help {
 				         . '<h3>Request a 1:1</h3>'
 				         . '<p>Click <strong>"Request 1:1"</strong> on any member\'s card to send them a meeting request. They\'ll receive an email notification and can accept or decline.</p>'
 				         . '<h3>Ghost Cards</h3>'
-				         . '<p>Cards with dashed borders represent roles the group still needs to fill. If you know someone who\'d be a great fit, use the <strong>"Refer Someone"</strong> button to help us grow.</p>',
+				         . '<p>Cards with dashed borders represent roles the group still needs to fill. If you know someone who\'d be a great fit, use the <strong>"Refer Someone"</strong> button to submit a quick referral.</p>',
 			],
 
 			'meetings' => [

@@ -186,6 +186,7 @@ final class CBNexus_Portal_Router {
 			</div>
 
 			<?php CBNexus_Portal_Help::render_drawer(); ?>
+			<?php CBNexus_Referral_Form::render_modal(); ?>
 		</div>
 		<?php
 		return ob_get_clean();
