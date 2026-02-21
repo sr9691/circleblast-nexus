@@ -115,9 +115,15 @@
 	background: var(--cb-bg, #f3eef6); text-decoration: none; font-size: 16px;
 	transition: background .15s, transform .1s;
 }
+.cbnexus-contact-btn svg {
+	width: 15px; height: 15px;
+	fill: var(--cb-accent, #5b2d6e);
+	opacity: 0.6; transition: opacity .15s;
+}
 .cbnexus-contact-btn:hover {
 	background: var(--cb-accent, #5b2d6e)20; transform: scale(1.1);
 }
+.cbnexus-contact-btn:hover svg { opacity: 1; }
 .cbnexus-member-actions {
 	display: flex; justify-content: space-between; align-items: center;
 	margin-top: auto; padding-top: 10px;

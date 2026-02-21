@@ -664,12 +664,22 @@
 	border: 1px solid var(--cb-border);
 	text-decoration: none;
 	font-size: 14px;
-	transition: background .15s;
+	transition: background .15s, border-color .15s;
+}
+.cbnexus-contact-btn svg {
+	width: 15px;
+	height: 15px;
+	fill: var(--cb-accent, #5b2d6e);
+	opacity: 0.6;
+	transition: opacity .15s;
 }
 
 .cbnexus-contact-btn:hover {
 	background: var(--cb-accent-soft);
 	border-color: var(--cb-accent);
+}
+.cbnexus-contact-btn:hover svg {
+	opacity: 1;
 }
 
 /* ── Category tag accent ─────────────────────────────────────── */

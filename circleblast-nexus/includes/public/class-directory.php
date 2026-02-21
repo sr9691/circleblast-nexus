@@ -312,13 +312,13 @@ final class CBNexus_Directory {
 				// Member actions: quick contact + Request 1:1.
 				$html .= '<div class="cbnexus-quick-contact">';
 				if (!empty($m['user_email'])) {
-					$html .= '<a href="mailto:' . esc_attr($m['user_email']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['user_email']) . '">✉️</a>';
+					$html .= '<a href="mailto:' . esc_attr($m['user_email']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['user_email']) . '"><svg viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v.217l-10 6.118L2 6.217V6zm0 2.383V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8.383l-9.515 5.822a1 1 0 0 1-1.04-.03L2 8.383z"/></svg></a>';
 				}
 				if (!empty($m['cb_phone'])) {
-					$html .= '<a href="tel:' . esc_attr($m['cb_phone']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['cb_phone']) . '">📱</a>';
+					$html .= '<a href="tel:' . esc_attr($m['cb_phone']) . '" class="cbnexus-contact-btn" title="' . esc_attr($m['cb_phone']) . '"><svg viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.72 11.72 0 0 0 3.67.59 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.72 11.72 0 0 0 .59 3.67 1 1 0 0 1-.24 1.02l-2.23 2.1z"/></svg></a>';
 				}
 				if (!empty($m['cb_linkedin'])) {
-					$html .= '<a href="' . esc_url($m['cb_linkedin']) . '" target="_blank" rel="noopener" class="cbnexus-contact-btn" title="LinkedIn">💼</a>';
+					$html .= '<a href="' . esc_url($m['cb_linkedin']) . '" target="_blank" rel="noopener" class="cbnexus-contact-btn" title="LinkedIn"><svg viewBox="0 0 24 24"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg></a>';
 				}
 				$html .= '</div>';
 				if ((int) $uid !== $viewer_id) {
