@@ -166,6 +166,7 @@ final class CBNexus_Portal_Admin_Settings {
 							$crons = self::get_cron_definitions();
 							$saved_crons = get_option('cbnexus_cron_schedules', []);
 							foreach ($crons as $hook => $def) :
+								if ($def === null) { continue; }
 								$current_freq = $saved_crons[$hook] ?? $def['default'];
 								$is_disabled = ($current_freq === 'disabled');
 								$next = wp_next_scheduled($hook);
@@ -497,12 +498,12 @@ final class CBNexus_Portal_Admin_Settings {
 				'default'     => 'weekly',
 				'options'     => $freq_daily_weekly,
 			],
-			'cbnexus_ai_extraction' => [
+			'cbnexus_ai_extraction' => CBNexus_Portal_Admin_Archivist::has_ai() ? [
 				'label'       => 'AI Extraction',
 				'description' => 'Processes new CircleUp transcripts through the AI pipeline.',
 				'default'     => 'daily',
 				'options'     => $freq_hourly_daily,
-			],
+			] : null,
 			'cbnexus_analytics_snapshot' => [
 				'label'       => 'Analytics Snapshot',
 				'description' => 'Captures club metrics for trend tracking.',

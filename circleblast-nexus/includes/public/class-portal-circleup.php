@@ -42,7 +42,7 @@ final class CBNexus_Portal_CircleUp {
 
 		$meetings   = CBNexus_CircleUp_Repository::get_meetings('published', 50);
 		$portal_url = CBNexus_Portal_Router::get_portal_url();
-		$actions_url = add_query_arg(['section' => 'circleup', 'circleup_view' => 'actions'], $portal_url);
+		$actions_url = add_query_arg(['section' => 'actions'], $portal_url);
 		?>
 		<div class="cbnexus-circleup-archive" id="cbnexus-circleup">
 
@@ -221,34 +221,97 @@ final class CBNexus_Portal_CircleUp {
 		<?php
 	}
 
-	private static function render_action_items(array $profile): void {
-		$portal_url = CBNexus_Portal_Router::get_portal_url();
-		$back_url   = add_query_arg('section', 'circleup', $portal_url);
-		$actions    = CBNexus_CircleUp_Repository::get_member_actions($profile['user_id']);
+	/**
+	 * Render My Actions as a standalone portal section (top-level nav tab).
+	 */
+	public static function render_actions_page(array $profile): void {
+		$uid     = (int) $profile['user_id'];
+		$actions = CBNexus_CircleUp_Repository::get_member_actions($uid);
+		$open    = array_filter($actions, fn($a) => !in_array($a->status, ['done'], true));
+		$done    = array_filter($actions, fn($a) => $a->status === 'done');
+
+		// Debug: raw query to verify assigned_to values in DB.
+		global $wpdb;
+		$debug_rows = $wpdb->get_results($wpdb->prepare(
+			"SELECT id, assigned_to, status, item_type FROM {$wpdb->prefix}cb_circleup_items WHERE item_type = 'action' AND assigned_to IS NOT NULL LIMIT 20",
+		));
+		echo '<!-- DEBUG My Actions: uid=' . esc_html($uid) . ' actions_found=' . count($actions) . ' -->';
+		echo '<!-- DB action items with assigned_to: ';
+		foreach ($debug_rows as $dr) {
+			echo 'id=' . esc_html($dr->id) . ' assigned=' . esc_html($dr->assigned_to) . ' status=' . esc_html($dr->status) . ' | ';
+		}
+		echo ' -->';
+
+		$status_pills = [
+			'draft'       => ['label' => 'Draft',       'class' => 'cbnexus-status-gold'],
+			'approved'    => ['label' => 'Open',        'class' => 'cbnexus-status-blue'],
+			'pending'     => ['label' => 'Pending',     'class' => 'cbnexus-status-gold'],
+			'in_progress' => ['label' => 'In Progress', 'class' => 'cbnexus-status-blue'],
+			'done'        => ['label' => 'Done',        'class' => 'cbnexus-status-green'],
+		];
 		?>
-		<div class="cbnexus-cu-actions">
-			<a href="<?php echo esc_url($back_url); ?>" class="cbnexus-back-link">&larr; <?php esc_html_e('Back to Archive', 'circleblast-nexus'); ?></a>
-			<div class="cbnexus-card">
-				<h3><?php esc_html_e('My Action Items', 'circleblast-nexus'); ?></h3>
-				<?php if (empty($actions)) : ?>
+		<div class="cbnexus-circleup-archive">
+			<div class="cbnexus-cu-header">
+				<h2><?php esc_html_e('My Action Items', 'circleblast-nexus'); ?></h2>
+				<p class="cbnexus-text-muted"><?php printf(esc_html__('%d open · %d completed', 'circleblast-nexus'), count($open), count($done)); ?></p>
+			</div>
+
+			<?php if (empty($actions)) : ?>
+				<div class="cbnexus-card">
 					<p class="cbnexus-text-muted"><?php esc_html_e('No action items assigned to you.', 'circleblast-nexus'); ?></p>
-				<?php else : ?>
+				</div>
+			<?php else : ?>
+
+				<?php if (!empty($open)) : ?>
+				<div class="cbnexus-card">
+					<h3><?php esc_html_e('Open', 'circleblast-nexus'); ?></h3>
 					<table class="cbnexus-cu-actions-table">
 						<thead><tr><th><?php esc_html_e('Action', 'circleblast-nexus'); ?></th><th><?php esc_html_e('From', 'circleblast-nexus'); ?></th><th><?php esc_html_e('Due', 'circleblast-nexus'); ?></th><th><?php esc_html_e('Status', 'circleblast-nexus'); ?></th></tr></thead>
 						<tbody>
-						<?php foreach ($actions as $a) : ?>
+						<?php foreach ($open as $a) :
+							$pill = $status_pills[$a->status] ?? $status_pills['approved'];
+						?>
 							<tr>
 								<td><?php echo esc_html($a->content); ?></td>
-								<td><?php echo esc_html($a->meeting_title); ?> (<?php echo esc_html($a->meeting_date); ?>)</td>
-								<td><?php echo $a->due_date ? esc_html($a->due_date) : '—'; ?></td>
-								<td><?php echo esc_html(ucfirst($a->status)); ?></td>
+								<td class="cbnexus-text-muted"><?php echo esc_html($a->meeting_title); ?></td>
+								<td><?php echo $a->due_date ? esc_html(date_i18n('M j', strtotime($a->due_date))) : '—'; ?></td>
+								<td><span class="cbnexus-status-pill <?php echo esc_attr($pill['class']); ?>"><?php echo esc_html($pill['label']); ?></span></td>
 							</tr>
 						<?php endforeach; ?>
 						</tbody>
 					</table>
+				</div>
 				<?php endif; ?>
-			</div>
+
+				<?php if (!empty($done)) : ?>
+				<div class="cbnexus-card">
+					<h3><?php esc_html_e('Completed', 'circleblast-nexus'); ?></h3>
+					<table class="cbnexus-cu-actions-table">
+						<thead><tr><th><?php esc_html_e('Action', 'circleblast-nexus'); ?></th><th><?php esc_html_e('From', 'circleblast-nexus'); ?></th><th><?php esc_html_e('Status', 'circleblast-nexus'); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ($done as $a) : ?>
+							<tr style="opacity:0.6;">
+								<td><?php echo esc_html($a->content); ?></td>
+								<td class="cbnexus-text-muted"><?php echo esc_html($a->meeting_title); ?></td>
+								<td><span class="cbnexus-status-pill cbnexus-status-green"><?php esc_html_e('Done', 'circleblast-nexus'); ?></span></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+				<?php endif; ?>
+
+			<?php endif; ?>
 		</div>
+		<?php
+	}
+
+	private static function render_action_items(array $profile): void {
+		// Redirect to the dedicated actions tab.
+		$portal_url = CBNexus_Portal_Router::get_portal_url();
+		$actions_url = add_query_arg('section', 'actions', $portal_url);
+		?>
+		<script>window.location.href = '<?php echo esc_url($actions_url); ?>';</script>
 		<?php
 	}
 

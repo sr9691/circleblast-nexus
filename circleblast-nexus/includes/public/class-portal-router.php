@@ -50,6 +50,11 @@ final class CBNexus_Portal_Router {
 				'icon'     => '📢',
 				'callback' => ['CBNexus_Portal_CircleUp', 'render'],
 			],
+			'actions' => [
+				'label'    => __('My Actions', 'circleblast-nexus'),
+				'icon'     => '✅',
+				'callback' => ['CBNexus_Portal_CircleUp', 'render_actions_page'],
+			],
 			'events' => [
 				'label'    => __('Events', 'circleblast-nexus'),
 				'icon'     => '📅',
@@ -59,11 +64,6 @@ final class CBNexus_Portal_Router {
 				'label'    => __('Club', 'circleblast-nexus'),
 				'icon'     => '📊',
 				'callback' => ['CBNexus_Portal_Club', 'render'],
-			],
-			'profile' => [
-				'label'    => __('Profile', 'circleblast-nexus'),
-				'icon'     => '👤',
-				'callback' => ['CBNexus_Portal_Profile', 'render'],
 			],
 		];
 
@@ -201,6 +201,14 @@ final class CBNexus_Portal_Router {
 		$user = get_userdata($user_id);
 		if (!$user) { return; }
 
+		// Profile is always routable but not in nav (accessed via avatar).
+		self::$sections['profile'] = [
+			'label'    => __('Profile', 'circleblast-nexus'),
+			'icon'     => '👤',
+			'callback' => ['CBNexus_Portal_Profile', 'render'],
+			'hidden'   => true, // Excluded from nav rendering.
+		];
+
 		$is_admin = in_array('cb_admin', $user->roles, true) || in_array('cb_super_admin', $user->roles, true);
 
 		if ($is_admin) {
@@ -239,9 +247,9 @@ final class CBNexus_Portal_Router {
 						<span class="cbnexus-header-link-icon">🛡️</span> Manage
 					</a>
 				<?php endif; ?>
-				<div class="cbnexus-portal-avatar">
+				<a href="<?php echo esc_url(add_query_arg('section', 'profile', $base_url)); ?>" class="cbnexus-portal-avatar" title="<?php esc_attr_e('My Profile', 'circleblast-nexus'); ?>">
 					<span class="cbnexus-portal-avatar-initials"><?php echo esc_html($initials); ?></span>
-				</div>
+				</a>
 			</div>
 		</header>
 		<?php
@@ -252,17 +260,26 @@ final class CBNexus_Portal_Router {
 	 */
 	private static function render_nav(string $current): void {
 		$base_url = get_permalink();
+		$action_count = 0;
+		if (is_user_logged_in()) {
+			$action_count = CBNexus_CircleUp_Repository::count_open_actions(get_current_user_id());
+		}
 		?>
 		<nav class="cbnexus-portal-nav">
 			<ul>
 				<?php foreach (self::$sections as $slug => $section) :
 					// Manage section renders in the header, not the nav bar.
 					if ($slug === 'manage') { continue; }
+					// Hidden sections (like profile) are routable but not shown in nav.
+					if (!empty($section['hidden'])) { continue; }
 				?>
 					<li class="<?php echo $slug === $current ? 'cbnexus-nav-active' : ''; ?>">
 						<a href="<?php echo esc_url(add_query_arg('section', $slug, $base_url)); ?>">
 							<span class="cbnexus-nav-icon"><?php echo esc_html($section['icon']); ?></span>
 							<span class="cbnexus-nav-label"><?php echo esc_html($section['label']); ?></span>
+							<?php if ($slug === 'actions' && $action_count > 0) : ?>
+								<span class="cbnexus-nav-badge"><?php echo esc_html($action_count); ?></span>
+							<?php endif; ?>
 						</a>
 					</li>
 				<?php endforeach; ?>

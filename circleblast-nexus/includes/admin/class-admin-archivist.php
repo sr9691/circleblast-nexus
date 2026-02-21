@@ -1,127 +1,564 @@
 <?php
 /**
- * Admin Archivist
+ * Portal Admin – Meeting Notes Tab
  *
- * ITER-0013: Admin pages for managing CircleUp meetings. The Archivist
- * reviews AI-extracted items, edits curated summaries, and publishes
- * meeting notes with email distribution to all members.
+ * Manages CircleUp meeting records: create, edit summary/transcript/attendees,
+ * manage extracted items (approve/reject/edit/add), parse structured summaries,
+ * optionally run AI extraction, and publish with email distribution.
+ *
+ * AI-related features (Run AI Extraction button, AI-specific hints) are hidden
+ * when no Claude API key is configured.
  */
 
 defined('ABSPATH') || exit;
 
-final class CBNexus_Admin_Archivist {
+final class CBNexus_Portal_Admin_Archivist {
 
-	public static function init(): void {
-		add_action('admin_menu', [__CLASS__, 'register_menu']);
-		add_action('admin_init', [__CLASS__, 'handle_actions']);
+	/**
+	 * Check whether a Claude API key is configured (constant or DB).
+	 */
+	public static function has_ai(): bool {
+		if (defined('CBNEXUS_CLAUDE_API_KEY') && CBNEXUS_CLAUDE_API_KEY !== '') {
+			return true;
+		}
+		$db_keys = get_option('cbnexus_api_keys', []);
+		return !empty($db_keys['claude_api_key']);
 	}
 
-	public static function register_menu(): void {
-		add_menu_page(
-			__('CircleUp', 'circleblast-nexus'),
-			__('CircleUp', 'circleblast-nexus'),
-			'cbnexus_manage_members',
-			'cbnexus-circleup',
-			[__CLASS__, 'render_list_page'],
-			'dashicons-megaphone',
-			31
-		);
+	// ─── Render: List ─────────────────────────────────────────────────
 
-		add_submenu_page(
-			'cbnexus-circleup',
-			__('All Meetings', 'circleblast-nexus'),
-			__('All Meetings', 'circleblast-nexus'),
-			'cbnexus_manage_members',
-			'cbnexus-circleup',
-			[__CLASS__, 'render_list_page']
-		);
+	public static function render(): void {
+		if (!current_user_can('cbnexus_manage_circleup')) {
+			echo '<div class="cbnexus-card"><p>Permission denied.</p></div>';
+			return;
+		}
 
-		add_submenu_page(
-			'cbnexus-circleup',
-			__('Add Meeting', 'circleblast-nexus'),
-			__('Add Meeting', 'circleblast-nexus'),
-			'cbnexus_manage_members',
-			'cbnexus-circleup-add',
-			[__CLASS__, 'render_add_page']
-		);
+		// Sub-views.
+		if (isset($_GET['circleup_id'])) {
+			self::render_edit(absint($_GET['circleup_id']));
+			return;
+		}
+		if (isset($_GET['admin_action']) && $_GET['admin_action'] === 'new_circleup') {
+			self::render_add();
+			return;
+		}
+
+		$notice = sanitize_key($_GET['pa_notice'] ?? '');
+		CBNexus_Portal_Admin::render_notice($notice);
+
+		$meetings = CBNexus_CircleUp_Repository::get_meetings();
+		?>
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2>CircleUp Meetings</h2>
+				<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('archivist', ['admin_action' => 'new_circleup'])); ?>" class="cbnexus-btn cbnexus-btn-accent">+ Add Meeting</a>
+			</div>
+
+			<div class="cbnexus-admin-table-wrap">
+				<table class="cbnexus-admin-table">
+					<thead><tr>
+						<th>Date</th>
+						<th>Title</th>
+						<th>Status</th>
+						<th>Items</th>
+						<th>Actions</th>
+					</tr></thead>
+					<tbody>
+					<?php if (empty($meetings)) : ?>
+						<tr><td colspan="5" class="cbnexus-admin-empty">No CircleUp meetings yet.</td></tr>
+					<?php else : foreach ($meetings as $m) :
+						$items = CBNexus_CircleUp_Repository::get_items($m->id);
+						$item_count = count($items);
+					?>
+						<tr>
+							<td><?php echo esc_html(date_i18n('M j, Y', strtotime($m->meeting_date))); ?></td>
+							<td><strong><?php echo esc_html($m->title); ?></strong></td>
+							<td><?php CBNexus_Portal_Admin::status_pill($m->status); ?></td>
+							<td><?php echo esc_html($item_count); ?></td>
+							<td>
+								<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $m->id])); ?>" class="cbnexus-link">Review</a>
+							</td>
+						</tr>
+					<?php endforeach; endif; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<?php
 	}
 
-	// ─── Actions ───────────────────────────────────────────────────────
+	// ─── Render: Add ──────────────────────────────────────────────────
 
-	public static function handle_actions(): void {
-		if (isset($_POST['cbnexus_create_circleup'])) { self::handle_create(); }
-		if (isset($_POST['cbnexus_save_circleup'])) { self::handle_save(); }
-		if (isset($_GET['cbnexus_extract'])) { self::handle_extract(); }
-		if (isset($_GET['cbnexus_publish'])) { self::handle_publish(); }
+	private static function render_add(): void {
+		?>
+		<div class="cbnexus-card">
+			<h2>Add CircleUp Meeting</h2>
+			<form method="post" action="">
+				<?php wp_nonce_field('cbnexus_portal_create_circleup'); ?>
+				<div class="cbnexus-admin-form-stack">
+					<div>
+						<label>Title *</label>
+						<input type="text" name="title" required />
+					</div>
+					<div>
+						<label>Meeting Date *</label>
+						<input type="date" name="meeting_date" required value="<?php echo esc_attr(gmdate('Y-m-d')); ?>" />
+					</div>
+					<div>
+						<label>Duration (minutes)</label>
+						<input type="number" name="duration_minutes" value="60" />
+					</div>
+					<div>
+						<label>Transcript / Meeting Notes</label>
+						<textarea name="full_transcript" rows="8" placeholder="Paste meeting notes or transcript here… Action items and key insights will be automatically extracted when you save."></textarea>
+					</div>
+				</div>
+				<button type="submit" name="cbnexus_portal_create_circleup" value="1" class="cbnexus-btn cbnexus-btn-accent">Create Meeting</button>
+				<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('archivist')); ?>" class="cbnexus-btn">Cancel</a>
+			</form>
+		</div>
+		<?php
 	}
 
-	private static function handle_create(): void {
-		check_admin_referer('cbnexus_create_circleup');
-		if (!current_user_can('cbnexus_manage_members')) { wp_die('Permission denied.'); }
+	// ─── Render: Edit ─────────────────────────────────────────────────
+
+	private static function render_edit(int $id): void {
+		$meeting = CBNexus_CircleUp_Repository::get_meeting($id);
+		if (!$meeting) {
+			echo '<div class="cbnexus-card"><p>Meeting not found.</p></div>';
+			return;
+		}
+
+		$items    = CBNexus_CircleUp_Repository::get_items($id);
+		$members  = CBNexus_Member_Repository::get_all_members('active');
+		$attendees = CBNexus_CircleUp_Repository::get_attendees($id);
+		$attendee_ids = array_column($attendees, 'member_id');
+		$has_ai   = self::has_ai();
+
+		global $wpdb;
+		$invited_recruits = $wpdb->get_results(
+			"SELECT id, name, stage FROM {$wpdb->prefix}cb_candidates WHERE stage = 'invited' ORDER BY name ASC"
+		) ?: [];
+		$notice = sanitize_key($_GET['pa_notice'] ?? '');
+		$base = CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id]);
+		?>
+		<?php CBNexus_Portal_Admin::render_notice($notice); ?>
+
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h2><?php echo esc_html($meeting->title); ?></h2>
+				<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('archivist')); ?>" class="cbnexus-btn">← Back</a>
+			</div>
+			<div class="cbnexus-admin-meta"><?php echo esc_html(date_i18n('F j, Y', strtotime($meeting->meeting_date))); ?> · Status: <?php echo esc_html(ucfirst($meeting->status)); ?></div>
+		</div>
+
+		<!-- Summary & Attendees -->
+		<div class="cbnexus-card">
+			<form method="post" action="">
+				<?php wp_nonce_field('cbnexus_portal_save_circleup'); ?>
+				<input type="hidden" name="circleup_id" value="<?php echo esc_attr($id); ?>" />
+				<div class="cbnexus-admin-form-stack">
+					<div>
+						<label>Curated Summary</label>
+						<textarea name="curated_summary" rows="5"><?php echo esc_textarea($meeting->curated_summary ?: $meeting->ai_summary ?? ''); ?></textarea>
+					</div>
+					<div>
+						<label>Transcript / Meeting Notes</label>
+						<textarea name="full_transcript" rows="8" placeholder="Paste meeting notes or transcript here…"><?php echo esc_textarea($meeting->full_transcript ?? ''); ?></textarea>
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">
+							Paste your meeting notes here. When saved, the system will automatically extract action items and key insights from structured summaries.
+							<?php if ($has_ai) : ?>
+								You can also use "Run AI Extraction" below for deeper analysis of full transcripts.
+							<?php endif; ?>
+						</p>
+					</div>
+					<div>
+						<label>Attendees</label>
+						<div class="cbnexus-admin-checkbox-grid">
+							<?php foreach ($members as $m) : ?>
+								<label><input type="checkbox" name="attendees[]" value="<?php echo esc_attr($m['user_id']); ?>" <?php echo in_array((int) $m['user_id'], array_map('intval', $attendee_ids), true) ? 'checked' : ''; ?> /> <?php echo esc_html($m['display_name']); ?></label>
+							<?php endforeach; ?>
+						</div>
+					</div>
+					<?php if (!empty($invited_recruits)) : ?>
+					<div>
+						<label>Invited Recruits <span style="font-size:12px;color:#6b7280;font-weight:normal;">(pipeline stage: Invited)</span></label>
+						<div class="cbnexus-admin-checkbox-grid">
+							<?php foreach ($invited_recruits as $r) : ?>
+								<label style="color:#92400e;"><input type="checkbox" name="guest_recruit_ids[]" value="<?php echo esc_attr($r->id); ?>" /> <?php echo esc_html($r->name); ?> <span style="font-size:11px;color:#b45309;">★ Invited</span></label>
+							<?php endforeach; ?>
+						</div>
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Checking a recruit here will automatically move them to "Visited" stage and trigger their thank-you email.</p>
+					</div>
+					<?php endif; ?>
+					<div>
+						<label>Guest / Prospect Attendees</label>
+						<input type="text" name="guest_attendees" value="" class="cbnexus-input" style="width:100%;" placeholder="Enter guest names, comma-separated (matched against recruitment pipeline)" />
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Names matching candidates in the pipeline (stages: Referral–Invited) will automatically move to "Visited" and trigger a thank-you email.</p>
+					</div>
+				</div>
+				<button type="submit" name="cbnexus_portal_save_circleup" value="1" class="cbnexus-btn cbnexus-btn-accent">Save</button>
+			</form>
+		</div>
+
+		<!-- Meeting Items with Approve/Reject/Edit -->
+		<div class="cbnexus-card">
+			<div class="cbnexus-admin-header-row">
+				<h3 style="margin:0;">Meeting Items (<?php echo count($items); ?>)</h3>
+			</div>
+
+			<?php if (!empty($items)) : ?>
+				<form method="post" action="">
+					<?php wp_nonce_field('cbnexus_portal_update_items'); ?>
+					<input type="hidden" name="circleup_id" value="<?php echo esc_attr($id); ?>" />
+					<?php
+					$grouped = [];
+					foreach ($items as $item) { $grouped[$item->item_type][] = $item; }
+					$type_labels = ['action' => '✅ Action Items', 'win' => '🏆 Wins', 'insight' => '💡 Insights', 'opportunity' => '🤝 Opportunities'];
+					foreach (['action', 'win', 'insight', 'opportunity'] as $type) :
+						if (empty($grouped[$type])) { continue; }
+					?>
+						<h4 style="margin:16px 0 8px;"><?php echo esc_html($type_labels[$type]); ?> (<?php echo count($grouped[$type]); ?>)</h4>
+						<div class="cbnexus-admin-table-wrap">
+							<table class="cbnexus-admin-table cbnexus-admin-table-sm">
+								<thead><tr>
+									<th>Content</th>
+									<?php if ($type === 'action') : ?><th style="width:140px;">Assigned To</th><?php endif; ?>
+									<th style="width:100px;">Speaker</th>
+									<th style="width:110px;">Status</th>
+									<th style="width:50px;"></th>
+								</tr></thead>
+								<tbody>
+								<?php foreach ($grouped[$type] as $item) : ?>
+									<tr>
+										<td>
+											<input type="text" name="item_content[<?php echo esc_attr($item->id); ?>]" value="<?php echo esc_attr($item->content); ?>" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:13px;" />
+										</td>
+										<?php if ($type === 'action') : ?>
+										<td>
+											<select name="item_assigned[<?php echo esc_attr($item->id); ?>]" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-size:12px;">
+												<option value="">— Unassigned —</option>
+												<?php foreach ($members as $m) : ?>
+													<option value="<?php echo esc_attr($m['user_id']); ?>" <?php selected((int) ($item->assigned_to ?? 0), (int) $m['user_id']); ?>><?php echo esc_html($m['display_name']); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</td>
+										<?php endif; ?>
+										<td>
+											<select name="item_speaker[<?php echo esc_attr($item->id); ?>]" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-size:12px;">
+												<option value="">—</option>
+												<?php foreach ($members as $m) : ?>
+													<option value="<?php echo esc_attr($m['user_id']); ?>" <?php selected((int) ($item->speaker_id ?? 0), (int) $m['user_id']); ?>><?php echo esc_html($m['display_name']); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</td>
+										<td>
+											<select name="item_status[<?php echo esc_attr($item->id); ?>]" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-size:12px;">
+												<option value="draft" <?php selected($item->status, 'draft'); ?>>Draft</option>
+												<option value="approved" <?php selected($item->status, 'approved'); ?>>Approved</option>
+												<option value="rejected" <?php selected($item->status, 'rejected'); ?>>Rejected</option>
+											</select>
+										</td>
+										<td>
+											<label title="Delete this item" style="cursor:pointer;font-size:16px;color:#dc2626;">
+												<input type="checkbox" name="item_delete[]" value="<?php echo esc_attr($item->id); ?>" style="display:none;" onclick="this.parentElement.style.opacity=this.checked?'0.4':'1';" />
+												🗑
+											</label>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+								</tbody>
+							</table>
+						</div>
+					<?php endforeach; ?>
+
+					<div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+						<button type="submit" name="cbnexus_portal_update_items" value="1" class="cbnexus-btn cbnexus-btn-accent">Save Items</button>
+						<button type="button" onclick="if(confirm('Approve all draft items?')){document.querySelectorAll('select[name^=item_status]').forEach(s=>{if(s.value==='draft')s.value='approved'});}" class="cbnexus-btn">Approve All Drafts</button>
+					</div>
+				</form>
+			<?php else : ?>
+				<p class="cbnexus-text-muted" style="margin:12px 0 0;">No items yet. Add items manually below, or paste a structured meeting summary above and save to auto-extract items.</p>
+			<?php endif; ?>
+		</div>
+
+		<!-- Add Item Form -->
+		<div class="cbnexus-card">
+			<h3 style="margin:0 0 12px;">Add Item</h3>
+			<form method="post" action="">
+				<?php wp_nonce_field('cbnexus_portal_add_item'); ?>
+				<input type="hidden" name="circleup_id" value="<?php echo esc_attr($id); ?>" />
+				<div class="cbnexus-admin-form-stack">
+					<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+						<div>
+							<label>Type</label>
+							<select name="new_item_type" style="width:100%;">
+								<option value="action">✅ Action Item</option>
+								<option value="win">🏆 Win</option>
+								<option value="insight">💡 Insight</option>
+								<option value="opportunity">🤝 Opportunity</option>
+							</select>
+						</div>
+						<div>
+							<label>Speaker</label>
+							<select name="new_item_speaker" style="width:100%;">
+								<option value="">— None —</option>
+								<?php foreach ($members as $m) : ?>
+									<option value="<?php echo esc_attr($m['user_id']); ?>"><?php echo esc_html($m['display_name']); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					</div>
+					<div>
+						<label>Content *</label>
+						<textarea name="new_item_content" rows="2" required placeholder="Describe the item…"></textarea>
+					</div>
+					<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+						<div>
+							<label>Assigned To <span style="font-size:12px;color:#6b7280;font-weight:normal;">(for actions)</span></label>
+							<select name="new_item_assigned" style="width:100%;">
+								<option value="">— Unassigned —</option>
+								<?php foreach ($members as $m) : ?>
+									<option value="<?php echo esc_attr($m['user_id']); ?>"><?php echo esc_html($m['display_name']); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div>
+							<label>Due Date <span style="font-size:12px;color:#6b7280;font-weight:normal;">(optional)</span></label>
+							<input type="date" name="new_item_due_date" />
+						</div>
+					</div>
+				</div>
+				<button type="submit" name="cbnexus_portal_add_item" value="1" class="cbnexus-btn cbnexus-btn-accent" style="margin-top:8px;">+ Add Item</button>
+			</form>
+		</div>
+
+		<!-- Actions -->
+		<div class="cbnexus-card">
+			<h3>Actions</h3>
+			<div class="cbnexus-admin-button-row">
+				<?php if ($has_ai && $meeting->full_transcript) : ?>
+					<a href="<?php echo esc_url(wp_nonce_url(add_query_arg('cbnexus_portal_extract', $id, $base), 'cbnexus_portal_extract_' . $id, '_panonce')); ?>" class="cbnexus-btn" onclick="return confirm('Run AI extraction? This will replace existing items.');">🤖 Run AI Extraction</a>
+				<?php endif; ?>
+				<?php if ($meeting->full_transcript) : ?>
+					<a href="<?php echo esc_url(wp_nonce_url(add_query_arg('cbnexus_portal_parse', $id, $base), 'cbnexus_portal_parse_' . $id, '_panonce')); ?>" class="cbnexus-btn" onclick="return confirm('Parse summary for items? New items will be added without removing existing ones.');">📋 Parse Summary for Items</a>
+				<?php endif; ?>
+				<?php if ($meeting->status !== 'published' && current_user_can('cbnexus_publish_circleup')) : ?>
+					<a href="<?php echo esc_url(wp_nonce_url(add_query_arg('cbnexus_portal_publish', $id, $base), 'cbnexus_portal_publish_' . $id, '_panonce')); ?>" class="cbnexus-btn cbnexus-btn-accent" onclick="return confirm('Publish and email summary to all members?');">Publish &amp; Email</a>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	// ─── Action Handlers ────────────────────────────────────────────────
+
+	public static function handle_create_circleup(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_create_circleup')) { return; }
+		if (!current_user_can('cbnexus_manage_circleup')) { return; }
+
+		$transcript = wp_unslash($_POST['full_transcript'] ?? '');
 
 		$id = CBNexus_CircleUp_Repository::create_meeting([
-			'meeting_date'    => sanitize_text_field(wp_unslash($_POST['meeting_date'] ?? gmdate('Y-m-d'))),
-			'title'           => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
-			'full_transcript' => sanitize_textarea_field(wp_unslash($_POST['full_transcript'] ?? '')),
-			'status'          => 'draft',
+			'title'            => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
+			'meeting_date'     => sanitize_text_field(wp_unslash($_POST['meeting_date'] ?? '')),
+			'duration_minutes' => absint($_POST['duration_minutes'] ?? 60),
+			'full_transcript'  => $transcript,
+			'status'           => 'draft',
 		]);
 
-		wp_safe_redirect(admin_url('admin.php?page=cbnexus-circleup&cbnexus_notice=' . ($id ? 'created' : 'error')));
+		// Auto-parse if transcript looks structured.
+		if ($id && trim($transcript) !== '') {
+			self::auto_parse_summary($id, $transcript);
+		}
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'circleup_created']));
 		exit;
 	}
 
-	private static function handle_save(): void {
-		check_admin_referer('cbnexus_save_circleup');
-		if (!current_user_can('cbnexus_manage_members')) { wp_die('Permission denied.'); }
+	public static function handle_save_circleup(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_save_circleup')) { return; }
+		if (!current_user_can('cbnexus_manage_circleup')) { return; }
 
-		$id = absint($_POST['meeting_id'] ?? 0);
+		$id = absint($_POST['circleup_id'] ?? 0);
+		$transcript = wp_unslash($_POST['full_transcript'] ?? '');
+
+		// Check if the transcript content actually changed.
+		$existing = CBNexus_CircleUp_Repository::get_meeting($id);
+		$transcript_changed = $existing && ($existing->full_transcript ?? '') !== $transcript;
 
 		CBNexus_CircleUp_Repository::update_meeting($id, [
-			'title'           => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
-			'meeting_date'    => sanitize_text_field(wp_unslash($_POST['meeting_date'] ?? '')),
-			'curated_summary' => wp_kses_post(wp_unslash($_POST['curated_summary'] ?? '')),
+			'curated_summary' => wp_unslash($_POST['curated_summary'] ?? ''),
+			'full_transcript' => $transcript,
 		]);
 
-		// Update item statuses (approve/reject).
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- values sanitized below.
-		$item_statuses = isset($_POST['item_status']) && is_array($_POST['item_status'])
-			? array_map('sanitize_key', wp_unslash($_POST['item_status']))
-			: [];
-		foreach ($item_statuses as $item_id => $status) {
-			CBNexus_CircleUp_Repository::update_item(absint($item_id), [
-				'status' => $status,
+		// Sync attendees.
+		$attendee_ids = array_map('absint', (array) ($_POST['attendees'] ?? []));
+		global $wpdb;
+		$wpdb->delete($wpdb->prefix . 'cb_circleup_attendees', ['circleup_meeting_id' => $id], ['%d']);
+		foreach ($attendee_ids as $aid) {
+			if ($aid > 0) {
+				CBNexus_CircleUp_Repository::add_attendee($id, $aid, 'present');
+			}
+		}
+
+		// Guest attendees → match against recruitment pipeline.
+		$guest_raw = sanitize_text_field(wp_unslash($_POST['guest_attendees'] ?? ''));
+		if ($guest_raw !== '') {
+			CBNexus_Portal_Admin_Recruitment::match_guest_attendees_to_pipeline($guest_raw);
+		}
+
+		// Invited recruits checked as attending → transition to "visited".
+		$recruit_ids = array_map('absint', (array) ($_POST['guest_recruit_ids'] ?? []));
+		if (!empty($recruit_ids)) {
+			CBNexus_Portal_Admin_Recruitment::transition_checked_recruits_to_visited($recruit_ids);
+		}
+
+		// Auto-parse if transcript changed and meeting has no items yet.
+		$current_items = CBNexus_CircleUp_Repository::get_items($id);
+		if ($transcript_changed && trim($transcript) !== '' && empty($current_items)) {
+			self::auto_parse_summary($id, $transcript);
+		}
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'circleup_saved']));
+		exit;
+	}
+
+	/**
+	 * Handle manual "Parse Summary for Items" button click.
+	 */
+	public static function handle_parse(): void {
+		$id = absint($_GET['cbnexus_portal_parse']);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_parse_' . $id)) { return; }
+		if (!current_user_can('cbnexus_manage_circleup')) { return; }
+
+		$meeting = CBNexus_CircleUp_Repository::get_meeting($id);
+		if (!$meeting || empty($meeting->full_transcript)) {
+			wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'error']));
+			exit;
+		}
+
+		// Parse from transcript first, then also try curated summary.
+		$text = $meeting->full_transcript;
+		$result = CBNexus_Summary_Parser::parse($text, $id);
+
+		if (count($result['items']) < 2 && !empty($meeting->curated_summary)) {
+			$summary_result = CBNexus_Summary_Parser::parse($meeting->curated_summary, $id);
+			$result['items'] = array_merge($result['items'], $summary_result['items']);
+		}
+
+		if (!empty($result['items'])) {
+			CBNexus_CircleUp_Repository::insert_items($id, $result['items']);
+		}
+
+		if (empty($meeting->curated_summary) && !empty($result['summary'])) {
+			CBNexus_CircleUp_Repository::update_meeting($id, [
+				'curated_summary' => $result['summary'],
 			]);
 		}
 
-		// Update attendees.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- values sanitized below.
-		$attendees = isset($_POST['attendees']) && is_array($_POST['attendees'])
-			? array_map('absint', wp_unslash($_POST['attendees']))
-			: [];
-		foreach ($attendees as $member_id) {
-			CBNexus_CircleUp_Repository::add_attendee($id, $member_id);
+		$count = count($result['items']);
+		$notice = $count > 0 ? 'items_parsed' : 'no_items_parsed';
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => $notice]));
+		exit;
+	}
+
+	/**
+	 * Handle adding a single manual item.
+	 */
+	public static function handle_add_item(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_add_item')) { return; }
+		if (!current_user_can('cbnexus_manage_circleup')) { return; }
+
+		$id = absint($_POST['circleup_id'] ?? 0);
+		$content = sanitize_textarea_field(wp_unslash($_POST['new_item_content'] ?? ''));
+		if ($id === 0 || $content === '') {
+			wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'error']));
+			exit;
 		}
 
-		wp_safe_redirect(admin_url('admin.php?page=cbnexus-circleup&edit=' . $id . '&cbnexus_notice=saved'));
+		$type = sanitize_key($_POST['new_item_type'] ?? 'insight');
+		if (!in_array($type, ['win', 'insight', 'opportunity', 'action'], true)) {
+			$type = 'insight';
+		}
+
+		CBNexus_CircleUp_Repository::insert_items($id, [[
+			'item_type'   => $type,
+			'content'     => $content,
+			'speaker_id'  => absint($_POST['new_item_speaker'] ?? 0) ?: null,
+			'assigned_to' => absint($_POST['new_item_assigned'] ?? 0) ?: null,
+			'due_date'    => sanitize_text_field($_POST['new_item_due_date'] ?? '') ?: null,
+			'status'      => 'draft',
+		]]);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'item_added']));
 		exit;
 	}
 
-	private static function handle_extract(): void {
-		$id = absint($_GET['cbnexus_extract'] ?? 0);
-		if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'cbnexus_extract_' . $id)) { return; }
-		if (!current_user_can('cbnexus_manage_members')) { return; }
+	/**
+	 * Handle bulk update of items (content, status, speaker, assigned_to, delete).
+	 */
+	public static function handle_update_items(): void {
+		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_update_items')) { return; }
+		if (!current_user_can('cbnexus_manage_circleup')) { return; }
+
+		$id = absint($_POST['circleup_id'] ?? 0);
+
+		// Delete checked items.
+		$delete_ids = array_map('absint', (array) ($_POST['item_delete'] ?? []));
+		foreach ($delete_ids as $did) {
+			if ($did > 0) {
+				global $wpdb;
+				$wpdb->delete($wpdb->prefix . 'cb_circleup_items', ['id' => $did], ['%d']);
+			}
+		}
+
+		// Update remaining items.
+		$statuses  = is_array($_POST['item_status'] ?? null) ? array_map('sanitize_key', wp_unslash($_POST['item_status'])) : [];
+		$contents  = is_array($_POST['item_content'] ?? null) ? array_map(function ($v) { return sanitize_textarea_field(wp_unslash($v)); }, $_POST['item_content']) : [];
+		$speakers  = is_array($_POST['item_speaker'] ?? null) ? array_map('absint', wp_unslash($_POST['item_speaker'])) : [];
+		$assigned  = is_array($_POST['item_assigned'] ?? null) ? array_map('absint', wp_unslash($_POST['item_assigned'])) : [];
+
+		foreach ($statuses as $item_id => $status) {
+			$item_id = absint($item_id);
+			if ($item_id === 0 || in_array($item_id, $delete_ids, true)) { continue; }
+
+			$data = ['status' => $status];
+			if (isset($contents[$item_id]))  { $data['content']     = $contents[$item_id]; }
+			if (isset($speakers[$item_id]))  { $data['speaker_id']  = $speakers[$item_id] ?: null; }
+			if (isset($assigned[$item_id]))  { $data['assigned_to'] = $assigned[$item_id] ?: null; }
+
+			CBNexus_CircleUp_Repository::update_item($item_id, $data);
+		}
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'items_updated']));
+		exit;
+	}
+
+	public static function handle_extract(): void {
+		$id = absint($_GET['cbnexus_portal_extract']);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_extract_' . $id)) { return; }
+		if (!current_user_can('cbnexus_manage_circleup')) { return; }
 
 		$result = CBNexus_AI_Extractor::extract($id);
-		$notice = $result['success'] ? 'extracted' : 'extract_error';
 
-		wp_safe_redirect(admin_url('admin.php?page=cbnexus-circleup&edit=' . $id . '&cbnexus_notice=' . $notice));
+		if (!empty($result['success'])) {
+			$notice = 'extraction_done';
+		} else {
+			$notice = 'extraction_failed';
+			$errors = implode(' ', $result['errors'] ?? ['Unknown error.']);
+			set_transient('cbnexus_extract_error_' . $id, $errors, 60);
+		}
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => $notice]));
 		exit;
 	}
 
-	private static function handle_publish(): void {
-		$id = absint($_GET['cbnexus_publish'] ?? 0);
-		if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'cbnexus_publish_' . $id)) { return; }
-		if (!current_user_can('cbnexus_manage_members')) { return; }
+	public static function handle_publish(): void {
+		$id = absint($_GET['cbnexus_portal_publish']);
+		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_publish_' . $id)) { return; }
+		if (!current_user_can('cbnexus_publish_circleup')) { return; }
 
 		CBNexus_CircleUp_Repository::update_meeting($id, [
 			'status'       => 'published',
@@ -129,217 +566,14 @@ final class CBNexus_Admin_Archivist {
 			'published_at' => gmdate('Y-m-d H:i:s'),
 		]);
 
-		// Send summary email to all active members.
-		self::send_summary_email($id);
-
-		wp_safe_redirect(admin_url('admin.php?page=cbnexus-circleup&cbnexus_notice=published'));
-		exit;
-	}
-
-	// ─── Render: List ──────────────────────────────────────────────────
-
-	public static function render_list_page(): void {
-		if (!current_user_can('cbnexus_manage_members')) { wp_die('Permission denied.'); }
-
-		// Edit mode.
-		if (isset($_GET['edit'])) {
-			self::render_edit_page(absint($_GET['edit']));
-			return;
+		$meeting = CBNexus_CircleUp_Repository::get_meeting($id);
+		if (!$meeting) {
+			wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'error']));
+			exit;
 		}
 
-		$meetings = CBNexus_CircleUp_Repository::get_meetings('', 100);
-		$notice   = sanitize_key($_GET['cbnexus_notice'] ?? '');
-		$notices  = [
-			'created'   => __('CircleUp meeting created.', 'circleblast-nexus'),
-			'published' => __('Meeting published and summary emailed to all members.', 'circleblast-nexus'),
-			'error'     => __('An error occurred.', 'circleblast-nexus'),
-		];
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e('CircleUp Meetings', 'circleblast-nexus'); ?>
-				<a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-circleup-add')); ?>" class="page-title-action"><?php esc_html_e('Add New', 'circleblast-nexus'); ?></a>
-			</h1>
-
-			<?php if ($notice && isset($notices[$notice])) : ?>
-				<div class="notice notice-<?php echo $notice === 'error' ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html($notices[$notice]); ?></p></div>
-			<?php endif; ?>
-
-			<table class="wp-list-table widefat fixed striped">
-				<thead><tr>
-					<th style="width:100px;"><?php esc_html_e('Date', 'circleblast-nexus'); ?></th>
-					<th><?php esc_html_e('Title', 'circleblast-nexus'); ?></th>
-					<th style="width:80px;"><?php esc_html_e('Status', 'circleblast-nexus'); ?></th>
-					<th style="width:80px;"><?php esc_html_e('Items', 'circleblast-nexus'); ?></th>
-					<th style="width:120px;"><?php esc_html_e('Actions', 'circleblast-nexus'); ?></th>
-				</tr></thead>
-				<tbody>
-				<?php if (empty($meetings)) : ?>
-					<tr><td colspan="5"><?php esc_html_e('No CircleUp meetings yet.', 'circleblast-nexus'); ?></td></tr>
-				<?php else : foreach ($meetings as $m) :
-					$items = CBNexus_CircleUp_Repository::get_items((int) $m->id);
-					$status_label = ['draft' => 'Draft', 'review' => 'In Review', 'published' => 'Published'];
-				?>
-					<tr>
-						<td><?php echo esc_html($m->meeting_date); ?></td>
-						<td><a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-circleup&edit=' . $m->id)); ?>"><strong><?php echo esc_html($m->title); ?></strong></a></td>
-						<td><?php echo esc_html($status_label[$m->status] ?? ucfirst($m->status)); ?></td>
-						<td><?php echo esc_html(count($items)); ?></td>
-						<td>
-							<a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-circleup&edit=' . $m->id)); ?>"><?php esc_html_e('Edit', 'circleblast-nexus'); ?></a>
-							<?php if ($m->status !== 'published') : ?>
-								| <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=cbnexus-circleup&cbnexus_publish=' . $m->id), 'cbnexus_publish_' . $m->id)); ?>" onclick="return confirm('Publish and email all members?');"><?php esc_html_e('Publish', 'circleblast-nexus'); ?></a>
-							<?php endif; ?>
-						</td>
-					</tr>
-				<?php endforeach; endif; ?>
-				</tbody>
-			</table>
-		</div>
-		<?php
-	}
-
-	// ─── Render: Add ───────────────────────────────────────────────────
-
-	public static function render_add_page(): void {
-		if (!current_user_can('cbnexus_manage_members')) { wp_die('Permission denied.'); }
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e('Add CircleUp Meeting', 'circleblast-nexus'); ?></h1>
-			<form method="post" action="">
-				<?php wp_nonce_field('cbnexus_create_circleup'); ?>
-				<table class="form-table">
-					<tr><th><label for="title"><?php esc_html_e('Title', 'circleblast-nexus'); ?></label></th>
-						<td><input type="text" name="title" id="title" class="regular-text" required /></td></tr>
-					<tr><th><label for="meeting_date"><?php esc_html_e('Meeting Date', 'circleblast-nexus'); ?></label></th>
-						<td><input type="date" name="meeting_date" id="meeting_date" value="<?php echo esc_attr(gmdate('Y-m-d')); ?>" required /></td></tr>
-					<tr><th><label for="full_transcript"><?php esc_html_e('Transcript', 'circleblast-nexus'); ?></label></th>
-						<td><textarea name="full_transcript" id="full_transcript" rows="15" class="large-text" placeholder="<?php esc_attr_e('Paste transcript here, or leave empty to receive via Fireflies webhook...', 'circleblast-nexus'); ?>"></textarea></td></tr>
-				</table>
-				<?php submit_button(__('Create Meeting', 'circleblast-nexus'), 'primary', 'cbnexus_create_circleup'); ?>
-			</form>
-		</div>
-		<?php
-	}
-
-	// ─── Render: Edit / Review ─────────────────────────────────────────
-
-	private static function render_edit_page(int $id): void {
-		$meeting = CBNexus_CircleUp_Repository::get_meeting($id);
-		if (!$meeting) { echo '<div class="wrap"><p>Meeting not found.</p></div>'; return; }
-
-		$items     = CBNexus_CircleUp_Repository::get_items($id);
-		$attendees = CBNexus_CircleUp_Repository::get_attendees($id);
-		$members   = CBNexus_Member_Repository::get_all_members('active');
-		$notice    = sanitize_key($_GET['cbnexus_notice'] ?? '');
-		$notices   = [
-			'saved'         => __('Changes saved.', 'circleblast-nexus'),
-			'extracted'     => sprintf(__('AI extraction complete — %d items extracted.', 'circleblast-nexus'), count($items)),
-			'extract_error' => __('AI extraction failed. Check the logs and ensure CBNEXUS_CLAUDE_API_KEY is set.', 'circleblast-nexus'),
-		];
-		$types = ['win' => 'Wins', 'insight' => 'Insights', 'opportunity' => 'Opportunities', 'action' => 'Action Items'];
-		$attendee_ids = array_map(fn($a) => (int) $a->member_id, $attendees);
-		?>
-		<div class="wrap">
-			<h1><?php echo esc_html($meeting->title); ?>
-				<span style="font-size:14px;color:#666;margin-left:8px;"><?php echo esc_html($meeting->meeting_date); ?> — <?php echo esc_html(ucfirst($meeting->status)); ?></span>
-			</h1>
-
-			<?php if ($notice && isset($notices[$notice])) : ?>
-				<div class="notice notice-<?php echo str_contains($notice, 'error') ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html($notices[$notice]); ?></p></div>
-			<?php endif; ?>
-
-			<!-- Action Buttons -->
-			<div style="margin:12px 0;">
-				<?php if (!empty($meeting->full_transcript)) : ?>
-					<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=cbnexus-circleup&cbnexus_extract=' . $id), 'cbnexus_extract_' . $id)); ?>" class="button" onclick="return confirm('Run AI extraction? This will replace existing extracted items.');"><?php esc_html_e('Run AI Extraction', 'circleblast-nexus'); ?></a>
-				<?php endif; ?>
-				<?php if ($meeting->status !== 'published') : ?>
-					<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=cbnexus-circleup&cbnexus_publish=' . $id), 'cbnexus_publish_' . $id)); ?>" class="button button-primary" onclick="return confirm('Publish and email summary to all members?');"><?php esc_html_e('Publish & Email', 'circleblast-nexus'); ?></a>
-				<?php endif; ?>
-			</div>
-
-			<form method="post" action="">
-				<?php wp_nonce_field('cbnexus_save_circleup'); ?>
-				<input type="hidden" name="meeting_id" value="<?php echo esc_attr($id); ?>" />
-
-				<table class="form-table">
-					<tr><th><?php esc_html_e('Title', 'circleblast-nexus'); ?></th>
-						<td><input type="text" name="title" value="<?php echo esc_attr($meeting->title); ?>" class="regular-text" /></td></tr>
-					<tr><th><?php esc_html_e('Date', 'circleblast-nexus'); ?></th>
-						<td><input type="date" name="meeting_date" value="<?php echo esc_attr($meeting->meeting_date); ?>" /></td></tr>
-					<tr><th><?php esc_html_e('Curated Summary', 'circleblast-nexus'); ?></th>
-						<td><textarea name="curated_summary" rows="8" class="large-text"><?php echo esc_textarea($meeting->curated_summary ?: $meeting->ai_summary); ?></textarea>
-						<p class="description"><?php esc_html_e('Edit the AI-generated summary before publishing.', 'circleblast-nexus'); ?></p></td></tr>
-					<tr><th><?php esc_html_e('Attendees', 'circleblast-nexus'); ?></th>
-						<td>
-							<fieldset style="max-height:200px;overflow-y:auto;border:1px solid #ddd;padding:8px;border-radius:4px;">
-								<?php foreach ($members as $m) : ?>
-									<label style="display:block;margin:2px 0;"><input type="checkbox" name="attendees[]" value="<?php echo esc_attr($m['user_id']); ?>" <?php checked(in_array((int) $m['user_id'], $attendee_ids, true)); ?> /> <?php echo esc_html($m['display_name']); ?></label>
-								<?php endforeach; ?>
-							</fieldset>
-						</td></tr>
-				</table>
-
-				<!-- Extracted Items -->
-				<?php if (!empty($items)) : ?>
-					<h2><?php esc_html_e('Extracted Items', 'circleblast-nexus'); ?></h2>
-					<?php foreach ($types as $type => $label) :
-						$typed = array_filter($items, fn($i) => $i->item_type === $type);
-						if (empty($typed)) { continue; }
-					?>
-						<h3><?php echo esc_html($label); ?> (<?php echo count($typed); ?>)</h3>
-						<table class="widefat fixed striped" style="margin-bottom:16px;">
-							<thead><tr>
-								<th><?php esc_html_e('Content', 'circleblast-nexus'); ?></th>
-								<th style="width:120px;"><?php esc_html_e('Speaker', 'circleblast-nexus'); ?></th>
-								<?php if ($type === 'action') : ?><th style="width:120px;"><?php esc_html_e('Assigned To', 'circleblast-nexus'); ?></th><?php endif; ?>
-								<th style="width:120px;"><?php esc_html_e('Status', 'circleblast-nexus'); ?></th>
-							</tr></thead>
-							<tbody>
-							<?php foreach ($typed as $item) : ?>
-								<tr>
-									<td><?php echo esc_html($item->content); ?></td>
-									<td><?php echo esc_html($item->speaker_name ?: '—'); ?></td>
-									<?php if ($type === 'action') : ?><td><?php echo esc_html($item->assigned_to ? get_userdata($item->assigned_to)->display_name ?? '—' : '—'); ?></td><?php endif; ?>
-									<td>
-										<select name="item_status[<?php echo esc_attr($item->id); ?>]">
-											<option value="draft" <?php selected($item->status, 'draft'); ?>><?php esc_html_e('Draft', 'circleblast-nexus'); ?></option>
-											<option value="approved" <?php selected($item->status, 'approved'); ?>><?php esc_html_e('Approved', 'circleblast-nexus'); ?></option>
-											<option value="rejected" <?php selected($item->status, 'rejected'); ?>><?php esc_html_e('Rejected', 'circleblast-nexus'); ?></option>
-										</select>
-									</td>
-								</tr>
-							<?php endforeach; ?>
-							</tbody>
-						</table>
-					<?php endforeach; ?>
-				<?php elseif (!empty($meeting->full_transcript)) : ?>
-					<p><em><?php esc_html_e('No items extracted yet. Click "Run AI Extraction" above.', 'circleblast-nexus'); ?></em></p>
-				<?php endif; ?>
-
-				<?php submit_button(__('Save Changes', 'circleblast-nexus'), 'primary', 'cbnexus_save_circleup'); ?>
-			</form>
-
-			<!-- Transcript (collapsible) -->
-			<?php if (!empty($meeting->full_transcript)) : ?>
-				<details style="margin-top:20px;">
-					<summary style="cursor:pointer;font-weight:600;"><?php esc_html_e('Full Transcript', 'circleblast-nexus'); ?></summary>
-					<pre style="white-space:pre-wrap;background:#f8f8f8;padding:16px;border:1px solid #ddd;border-radius:4px;max-height:500px;overflow-y:auto;font-size:13px;"><?php echo esc_html($meeting->full_transcript); ?></pre>
-				</details>
-			<?php endif; ?>
-		</div>
-		<?php
-	}
-
-	// ─── Summary Email ─────────────────────────────────────────────────
-
-	private static function send_summary_email(int $meeting_id): void {
-		$meeting = CBNexus_CircleUp_Repository::get_meeting($meeting_id);
-		if (!$meeting) { return; }
-
-		$items    = CBNexus_CircleUp_Repository::get_items($meeting_id);
+		$items    = CBNexus_CircleUp_Repository::get_items($id);
 		$approved = array_filter($items, fn($i) => $i->status === 'approved');
-
 		$wins     = array_filter($approved, fn($i) => $i->item_type === 'win');
 		$insights = array_filter($approved, fn($i) => $i->item_type === 'insight');
 		$actions  = array_filter($approved, fn($i) => $i->item_type === 'action');
@@ -349,17 +583,14 @@ final class CBNexus_Admin_Archivist {
 			$summary_text = '<p style="font-size:15px;color:#333;line-height:1.6;">' . nl2br(esc_html(wp_trim_words($summary_text, 80))) . '</p>';
 		}
 
-		$members = CBNexus_Member_Repository::get_all_members('active');
-
-		foreach ($members as $m) {
+		$all_members = CBNexus_Member_Repository::get_all_members('active');
+		foreach ($all_members as $m) {
 			$uid = (int) $m['user_id'];
 
-			// Generate per-member token links (multi-use, 30-day).
-			$view_token    = CBNexus_Token_Service::generate($uid, 'view_circleup', ['meeting_id' => $meeting_id], 30, true);
-			$forward_token = CBNexus_Token_Service::generate($uid, 'forward_circleup', ['meeting_id' => $meeting_id], 30, true);
+			$view_token    = CBNexus_Token_Service::generate($uid, 'view_circleup', ['meeting_id' => $id], 30, true);
+			$forward_token = CBNexus_Token_Service::generate($uid, 'forward_circleup', ['meeting_id' => $id], 30, true);
 			$share_token   = CBNexus_Token_Service::generate($uid, 'quick_share', [], 30, true);
 
-			// Build action items block for items assigned to this member.
 			$my_actions = array_filter($actions, fn($i) => (int) ($i->assigned_to ?? 0) === $uid);
 			$action_items_block = '';
 			if (!empty($my_actions)) {
@@ -385,7 +616,34 @@ final class CBNexus_Admin_Archivist {
 				'forward_url'        => CBNexus_Token_Service::url($forward_token),
 				'quick_share_url'    => CBNexus_Token_Service::url($share_token),
 				'action_items_block' => $action_items_block,
-			], ['recipient_id' => $uid, 'related_id' => $meeting_id, 'related_type' => 'circleup_summary']);
+			], ['recipient_id' => $uid, 'related_id' => $id, 'related_type' => 'circleup_summary']);
+		}
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'published']));
+		exit;
+	}
+
+	// ─── Auto-Parse Helper ──────────────────────────────────────────────
+
+	/**
+	 * Automatically parse a structured summary and insert items if parseable.
+	 */
+	private static function auto_parse_summary(int $meeting_id, string $text): void {
+		if (!CBNexus_Summary_Parser::looks_parseable($text)) {
+			return;
+		}
+
+		$result = CBNexus_Summary_Parser::parse($text, $meeting_id);
+
+		if (!empty($result['items'])) {
+			CBNexus_CircleUp_Repository::insert_items($meeting_id, $result['items']);
+		}
+
+		$meeting = CBNexus_CircleUp_Repository::get_meeting($meeting_id);
+		if ($meeting && empty($meeting->curated_summary) && !empty($result['summary'])) {
+			CBNexus_CircleUp_Repository::update_meeting($meeting_id, [
+				'curated_summary' => $result['summary'],
+			]);
 		}
 	}
 }

@@ -145,25 +145,32 @@ final class CBNexus_CircleUp_Repository {
 	 */
 	public static function insert_items(int $meeting_id, array $items): int {
 		global $wpdb;
-		$now = gmdate('Y-m-d H:i:s');
+		$table = $wpdb->prefix . 'cb_circleup_items';
+		$now   = gmdate('Y-m-d H:i:s');
 		$count = 0;
 
 		foreach ($items as $item) {
-			$result = $wpdb->insert(
-				$wpdb->prefix . 'cb_circleup_items',
-				[
-					'circleup_meeting_id' => $meeting_id,
-					'item_type'           => sanitize_key($item['item_type'] ?? 'insight'),
-					'content'             => sanitize_textarea_field($item['content'] ?? ''),
-					'speaker_id'          => !empty($item['speaker_id']) ? absint($item['speaker_id']) : null,
-					'assigned_to'         => !empty($item['assigned_to']) ? absint($item['assigned_to']) : null,
-					'due_date'            => $item['due_date'] ?? null,
-					'status'              => $item['status'] ?? 'draft',
-					'created_at'          => $now,
-					'updated_at'          => $now,
-				],
-				['%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s']
-			);
+			$speaker_id  = !empty($item['speaker_id']) ? absint($item['speaker_id']) : null;
+			$assigned_to = !empty($item['assigned_to']) ? absint($item['assigned_to']) : null;
+			$due_date    = !empty($item['due_date']) ? sanitize_text_field($item['due_date']) : null;
+
+			// Build columns and values dynamically to handle NULLs properly.
+			$cols = [
+				'circleup_meeting_id' => [$meeting_id, '%d'],
+				'item_type'           => [sanitize_key($item['item_type'] ?? 'insight'), '%s'],
+				'content'             => [sanitize_textarea_field($item['content'] ?? ''), '%s'],
+				'status'              => [$item['status'] ?? 'draft', '%s'],
+				'created_at'          => [$now, '%s'],
+				'updated_at'          => [$now, '%s'],
+			];
+			if ($speaker_id !== null)  { $cols['speaker_id']  = [$speaker_id, '%d']; }
+			if ($assigned_to !== null) { $cols['assigned_to'] = [$assigned_to, '%d']; }
+			if ($due_date !== null)    { $cols['due_date']    = [$due_date, '%s']; }
+
+			$data    = array_combine(array_keys($cols), array_column(array_values($cols), 0));
+			$formats = array_column(array_values($cols), 1);
+
+			$result = $wpdb->insert($table, $data, $formats);
 			if ($result) { $count++; }
 		}
 
@@ -190,7 +197,44 @@ final class CBNexus_CircleUp_Repository {
 	public static function update_item(int $item_id, array $data): bool {
 		global $wpdb;
 		$data['updated_at'] = gmdate('Y-m-d H:i:s');
-		return $wpdb->update($wpdb->prefix . 'cb_circleup_items', $data, ['id' => $item_id]) !== false;
+
+		// For nullable int columns that are explicitly null, use a raw UPDATE
+		// because wpdb->update with %d converts null to 0.
+		$int_cols = ['speaker_id', 'assigned_to'];
+		$has_null_int = false;
+		foreach ($int_cols as $col) {
+			if (array_key_exists($col, $data) && $data[$col] === null) {
+				$has_null_int = true;
+				break;
+			}
+		}
+
+		if ($has_null_int) {
+			$sets = [];
+			$values = [];
+			foreach ($data as $key => $value) {
+				if (in_array($key, $int_cols, true) && $value === null) {
+					$sets[] = "`$key` = NULL";
+				} elseif (in_array($key, $int_cols, true)) {
+					$sets[] = "`$key` = %d";
+					$values[] = $value;
+				} else {
+					$sets[] = "`$key` = %s";
+					$values[] = $value;
+				}
+			}
+			$values[] = $item_id;
+			$sql = "UPDATE {$wpdb->prefix}cb_circleup_items SET " . implode(', ', $sets) . " WHERE id = %d";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Built dynamically with column whitelist.
+			return $wpdb->query($wpdb->prepare($sql, ...$values)) !== false;
+		}
+
+		// Standard path: no null ints.
+		$formats = [];
+		foreach ($data as $key => $value) {
+			$formats[] = in_array($key, $int_cols, true) ? '%d' : '%s';
+		}
+		return $wpdb->update($wpdb->prefix . 'cb_circleup_items', $data, ['id' => $item_id], $formats, ['%d']) !== false;
 	}
 
 	public static function delete_items_for_meeting(int $meeting_id): bool {
@@ -200,6 +244,7 @@ final class CBNexus_CircleUp_Repository {
 
 	/**
 	 * Get action items assigned to a member.
+	 * Returns all action items except rejected ones.
 	 */
 	public static function get_member_actions(int $member_id): array {
 		global $wpdb;
@@ -207,9 +252,21 @@ final class CBNexus_CircleUp_Repository {
 			"SELECT i.*, m.title as meeting_title, m.meeting_date
 			 FROM {$wpdb->prefix}cb_circleup_items i
 			 JOIN {$wpdb->prefix}cb_circleup_meetings m ON i.circleup_meeting_id = m.id
-			 WHERE i.assigned_to = %d AND i.item_type = 'action'
-			 ORDER BY i.due_date ASC, i.created_at DESC",
+			 WHERE i.assigned_to = %d AND i.item_type = 'action' AND i.status != 'rejected'
+			 ORDER BY FIELD(i.status, 'approved', 'in_progress', 'pending', 'draft', 'done') ASC, i.due_date ASC, i.created_at DESC",
 			$member_id
 		)) ?: [];
+	}
+
+	/**
+	 * Count open (non-done, non-rejected) action items assigned to a member.
+	 */
+	public static function count_open_actions(int $member_id): int {
+		global $wpdb;
+		return (int) $wpdb->get_var($wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_circleup_items
+			 WHERE assigned_to = %d AND item_type = 'action' AND status NOT IN ('done', 'rejected')",
+			$member_id
+		));
 	}
 }

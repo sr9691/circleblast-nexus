@@ -121,8 +121,17 @@ final class CBNexus_Portal_Admin {
 		if (isset($_GET['cbnexus_portal_extract'])) {
 			CBNexus_Portal_Admin_Archivist::handle_extract();
 		}
+		if (isset($_GET['cbnexus_portal_parse'])) {
+			CBNexus_Portal_Admin_Archivist::handle_parse();
+		}
 		if (isset($_GET['cbnexus_portal_publish'])) {
 			CBNexus_Portal_Admin_Archivist::handle_publish();
+		}
+		if (isset($_POST['cbnexus_portal_add_item'])) {
+			CBNexus_Portal_Admin_Archivist::handle_add_item();
+		}
+		if (isset($_POST['cbnexus_portal_update_items'])) {
+			CBNexus_Portal_Admin_Archivist::handle_update_items();
 		}
 
 		// ── Events ───────────────────────────────────────────────────────
@@ -296,6 +305,10 @@ final class CBNexus_Portal_Admin {
 			'circleup_created'   => 'CircleUp meeting created.',
 			'circleup_saved'     => 'Meeting details saved.',
 			'extraction_done'    => 'AI extraction complete.',
+			'items_parsed'       => 'Summary parsed — items added for review.',
+			'no_items_parsed'    => 'No structured items found in the summary. Try adding items manually.',
+			'item_added'         => 'Item added.',
+			'items_updated'      => 'Items updated.',
 			'published'          => 'Meeting published and summary emailed to all members.',
 			'event_updated'      => 'Event updated.',
 			'events_sent'        => 'Event notification sent to all active members.',

@@ -799,8 +799,8 @@ final class CBNexus_Portal_Help {
 				'body'  => '<p>Review and publish CircleUp group meeting summaries.</p>'
 				         . '<h3>Workflow</h3>'
 				         . '<ol>'
-				         . '<li><strong>Create</strong> — Add a new CircleUp meeting record (or it arrives automatically via Fireflies webhook).</li>'
-				         . '<li><strong>Extract</strong> — Run AI extraction to pull structured wins, insights, opportunities, and action items from the transcript.</li>'
+				         . '<li><strong>Create</strong> — Add a new CircleUp meeting record. Paste your meeting notes and action items will be extracted automatically.</li>'
+				         . '<li><strong>Extract</strong> — Parse structured summaries for items, or run AI extraction (if configured) for deeper analysis. You can also add items manually.</li>'
 				         . '<li><strong>Review</strong> — Edit the extracted items, assign speakers and action owners, approve or reject individual items.</li>'
 				         . '<li><strong>Publish</strong> — Publish the meeting summary. All active members receive an email recap.</li>'
 				         . '</ol>',
