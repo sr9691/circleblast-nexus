@@ -56,6 +56,8 @@ final class CBNexus_Portal_Admin_Events {
 									<?php if ($e->status === 'pending') : ?>
 										<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('events', ['cbnexus_portal_event_action' => 'approve', 'event_id' => $e->id]), 'cbnexus_portal_event_' . $e->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-green">Approve</a>
 										<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('events', ['cbnexus_portal_event_action' => 'deny', 'event_id' => $e->id]), 'cbnexus_portal_event_' . $e->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-red" onclick="return confirm('Deny this event? The organizer will be notified.');">Deny</a>
+									<?php elseif ($e->status === 'denied') : ?>
+										<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('events', ['cbnexus_portal_event_action' => 'approve', 'event_id' => $e->id]), 'cbnexus_portal_event_' . $e->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-green">Approve</a>
 									<?php endif; ?>
 									<?php if ($e->status !== 'cancelled') : ?>
 										<a href="<?php echo esc_url(wp_nonce_url(CBNexus_Portal_Admin::admin_url('events', ['cbnexus_portal_event_action' => 'cancel', 'event_id' => $e->id]), 'cbnexus_portal_event_' . $e->id, '_panonce')); ?>" class="cbnexus-link cbnexus-link-red">Cancel</a>

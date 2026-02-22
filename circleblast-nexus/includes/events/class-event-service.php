@@ -52,7 +52,7 @@ final class CBNexus_Event_Service {
 	 */
 	public static function approve(int $event_id, int $admin_id): bool {
 		$event = CBNexus_Event_Repository::get($event_id);
-		if (!$event || $event->status !== 'pending') { return false; }
+		if (!$event || !in_array($event->status, ['pending', 'denied'], true)) { return false; }
 
 		$updated = CBNexus_Event_Repository::update($event_id, [
 			'status'      => 'approved',
