@@ -31,6 +31,12 @@ final class CBNexus_Recruitment_Coverage_Service {
 	 * @return array
 	 */
 	public static function get_full_coverage(): array {
+		// Cache per request to avoid recomputing for summary/gaps/focus calls.
+		static $cached = null;
+		if ($cached !== null) {
+			return $cached;
+		}
+
 		global $wpdb;
 
 		$cat_table = $wpdb->prefix . 'cb_recruitment_categories';
@@ -69,6 +75,7 @@ final class CBNexus_Recruitment_Coverage_Service {
 			$results[] = $cat;
 		}
 
+		$cached = $results;
 		return $results;
 	}
 
@@ -493,7 +500,7 @@ final class CBNexus_Recruitment_Coverage_Service {
 		global $wpdb;
 		$table = $wpdb->prefix . 'cb_candidates';
 
-		if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") !== $table) {
+		if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) !== $table) {
 			return ['referral' => 0, 'contacted' => 0, 'invited' => 0, 'visited' => 0, 'decision' => 0, 'total' => 0];
 		}
 

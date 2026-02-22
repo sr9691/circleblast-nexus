@@ -77,6 +77,18 @@ final class CBNexus_Autoloader {
 		'CBNexus_Portal_Super_Admin' => 'includes/public/class-portal-super-admin.php',
 		'CBNexus_Portal_Help'        => 'includes/public/class-portal-help.php',
 
+		// Portal Admin Tabs (loaded by CBNexus_Portal_Admin)
+		'CBNexus_Portal_Admin_Members'     => 'includes/public/admin-tabs/class-portal-admin-members.php',
+		'CBNexus_Portal_Admin_Recruitment'  => 'includes/public/admin-tabs/class-portal-admin-recruitment.php',
+		'CBNexus_Portal_Admin_Matching'     => 'includes/public/admin-tabs/class-portal-admin-matching.php',
+		'CBNexus_Portal_Admin_Archivist'    => 'includes/public/admin-tabs/class-portal-admin-archivist.php',
+		'CBNexus_Portal_Admin_Events'       => 'includes/public/admin-tabs/class-portal-admin-events.php',
+		'CBNexus_Portal_Admin_Analytics'    => 'includes/public/admin-tabs/class-portal-admin-analytics.php',
+		'CBNexus_Portal_Admin_Emails'       => 'includes/public/admin-tabs/class-portal-admin-emails.php',
+		'CBNexus_Portal_Admin_Logs'         => 'includes/public/admin-tabs/class-portal-admin-logs.php',
+		'CBNexus_Portal_Admin_Settings'     => 'includes/public/admin-tabs/class-portal-admin-settings.php',
+		'CBNexus_Portal_Admin_Feedback'     => 'includes/public/admin-tabs/class-portal-admin-feedback.php',
+
 		// Admin Analytics & Recruitment (ITER-0017)
 		'CBNexus_Admin_Analytics'   => 'includes/admin/class-admin-analytics.php',
 		'CBNexus_Admin_Recruitment' => 'includes/admin/class-admin-recruitment.php',

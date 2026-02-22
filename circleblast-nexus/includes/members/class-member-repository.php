@@ -158,6 +158,14 @@ final class CBNexus_Member_Repository {
 		}
 
 		$users = get_users($args);
+
+		// Prime the user meta cache for all users in a single query.
+		// This prevents N individual meta queries in the loop below.
+		$user_ids = array_map(function ($u) { return $u->ID; }, $users);
+		if (!empty($user_ids)) {
+			update_meta_cache('user', $user_ids);
+		}
+
 		$profiles = [];
 
 		foreach ($users as $user) {

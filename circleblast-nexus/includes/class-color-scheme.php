@@ -157,6 +157,12 @@ final class CBNexus_Color_Scheme {
 	/**
 	 * Get colors specifically for email templates.
 	 */
+	/**
+	 * Get simplified color palette for HTML email templates.
+	 *
+	 * Note: Safe for WP-Cron context — get_option() is always available,
+	 * and all values have hardcoded fallbacks.
+	 */
 	public static function get_email_colors(): array {
 		$s = self::get_scheme();
 		return [

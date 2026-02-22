@@ -112,7 +112,18 @@ final class CBNexus_Suggestion_Generator {
 		));
 
 		foreach ($meetings ?: [] as $m) {
+			// Get responses already submitted for this meeting.
+			$existing_responses = $wpdb->get_col($wpdb->prepare(
+				"SELECT responder_id FROM {$wpdb->prefix}cb_meeting_responses
+				 WHERE meeting_id = %d AND response IN ('accepted', 'declined')",
+				(int) $m->id
+			));
+			$responded_ids = array_map('intval', $existing_responses ?: []);
+
 			foreach ([(int) $m->member_a_id, (int) $m->member_b_id] as $uid) {
+				// Skip members who already responded.
+				if (in_array($uid, $responded_ids, true)) { continue; }
+
 				// Check email preference.
 				$pref = get_user_meta($uid, 'cb_email_reminders', true);
 				if ($pref === 'no') { continue; }

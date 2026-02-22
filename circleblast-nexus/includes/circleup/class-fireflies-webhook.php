@@ -101,8 +101,10 @@ final class CBNexus_Fireflies_Webhook {
 			$expected = $db_keys['fireflies_secret'] ?? '';
 		}
 		if ($expected === '') {
-			// No secret configured — accept all (dev mode).
-			return true;
+			// No secret configured — reject for security. Configure
+			// CBNEXUS_FIREFLIES_SECRET in wp-config.php to enable.
+			CBNexus_Logger::warning('Fireflies webhook rejected: no secret configured. Set CBNEXUS_FIREFLIES_SECRET in wp-config.php.');
+			return false;
 		}
 
 		// Check Authorization: Bearer <secret>

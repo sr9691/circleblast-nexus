@@ -69,11 +69,29 @@ final class CBNexus_Meeting_Repository {
 		global $wpdb;
 		$data['updated_at'] = gmdate('Y-m-d H:i:s');
 
+		// Build format array matching the data columns.
+		$format_map = [
+			'member_a_id'  => '%d',
+			'member_b_id'  => '%d',
+			'status'       => '%s',
+			'suggested_at' => '%s',
+			'scheduled_at' => '%s',
+			'completed_at' => '%s',
+			'score'        => '%f',
+			'source'       => '%s',
+			'notes_status' => '%s',
+			'updated_at'   => '%s',
+		];
+		$formats = [];
+		foreach (array_keys($data) as $key) {
+			$formats[] = $format_map[$key] ?? '%s';
+		}
+
 		$result = $wpdb->update(
 			$wpdb->prefix . 'cb_meetings',
 			$data,
 			['id' => $meeting_id],
-			null,
+			$formats,
 			['%d']
 		);
 

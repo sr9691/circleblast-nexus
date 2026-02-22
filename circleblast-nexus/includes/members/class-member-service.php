@@ -360,7 +360,15 @@ final class CBNexus_Member_Service {
 
 				case 'category_select':
 					// Store as JSON array with a single category ID, or empty.
-					$cat_id = is_array($value) ? ($value[0] ?? 0) : (int) $value;
+					// Handle arrays, JSON strings, or plain integers.
+					if (is_array($value)) {
+						$cat_id = (int) ($value[0] ?? 0);
+					} elseif (is_string($value) && strpos($value, '[') === 0) {
+						$decoded = json_decode($value, true);
+						$cat_id = is_array($decoded) ? (int) ($decoded[0] ?? 0) : 0;
+					} else {
+						$cat_id = (int) $value;
+					}
 					$sanitized[$key] = $cat_id > 0 ? wp_json_encode([$cat_id]) : '';
 					break;
 

@@ -245,13 +245,17 @@ final class CBNexus_Matching_Engine {
 		$pairs = [];
 		$count = count($members);
 
+		// Batch-load all active meeting pairs in a single query instead of N² individual checks.
+		$active_pairs = self::get_all_active_meeting_pairs();
+
 		for ($i = 0; $i < $count; $i++) {
 			for ($j = $i + 1; $j < $count; $j++) {
 				$a = $members[$i];
 				$b = $members[$j];
 
-				// Skip if they already have an active meeting.
-				if (CBNexus_Meeting_Repository::has_active_meeting((int) $a['user_id'], (int) $b['user_id'])) {
+				// Skip if they already have an active meeting (O(1) hash lookup).
+				$pair_key = min((int) $a['user_id'], (int) $b['user_id']) . ':' . max((int) $a['user_id'], (int) $b['user_id']);
+				if (isset($active_pairs[$pair_key])) {
 					continue;
 				}
 
@@ -309,5 +313,28 @@ final class CBNexus_Matching_Engine {
 		}
 
 		return $selected;
+	}
+
+	/**
+	 * Load all active meeting pairs in a single query.
+	 * Returns a hash map with keys like "min_id:max_id" for O(1) lookup.
+	 *
+	 * @return array<string, true>
+	 */
+	private static function get_all_active_meeting_pairs(): array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'cb_meetings';
+
+		$rows = $wpdb->get_results(
+			"SELECT member_a_id, member_b_id FROM {$table}
+			 WHERE status NOT IN ('closed', 'declined', 'cancelled')"
+		);
+
+		$pairs = [];
+		foreach ($rows ?: [] as $row) {
+			$key = min((int) $row->member_a_id, (int) $row->member_b_id) . ':' . max((int) $row->member_a_id, (int) $row->member_b_id);
+			$pairs[$key] = true;
+		}
+		return $pairs;
 	}
 }

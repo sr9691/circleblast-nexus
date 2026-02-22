@@ -184,6 +184,12 @@ final class CBNexus_Token_Router {
 	// ─── POST Handlers ─────────────────────────────────────────────────
 
 	private static function handle_post(string $raw_token): void {
+		// CSRF protection — verify nonce on all token form submissions.
+		if (!isset($_POST['_cbnexus_token_nonce']) || !wp_verify_nonce($_POST['_cbnexus_token_nonce'], 'cbnexus_token_form')) {
+			self::render_page('Security Check Failed', '<p>This form submission could not be verified. Please try again.</p>');
+			exit;
+		}
+
 		$action = sanitize_key($_POST['cbnexus_token_action'] ?? '');
 
 		// Re-peek to get user context (multi-use tokens survive).
@@ -232,6 +238,7 @@ final class CBNexus_Token_Router {
 		$form = '
 		<p>How was your 1:1 with <strong>' . esc_html($other_name) . '</strong>?</p>
 		<form method="post" style="max-width:500px;">
+			<input type="hidden" name="_cbnexus_token_nonce" value="' . wp_create_nonce('cbnexus_token_form') . '" />
 			<input type="hidden" name="cbnexus_token" value="' . esc_attr($token) . '" />
 			<input type="hidden" name="cbnexus_token_action" value="submit_notes" />
 
@@ -302,6 +309,7 @@ final class CBNexus_Token_Router {
 			' . ($item->due_date ? '<p style="margin:4px 0 0;font-size:13px;color:#666;">Due: ' . esc_html($item->due_date) . '</p>' : '') . '
 		</div>
 		<form method="post" style="max-width:500px;">
+			<input type="hidden" name="_cbnexus_token_nonce" value="' . wp_create_nonce('cbnexus_token_form') . '" />
 			<input type="hidden" name="cbnexus_token" value="' . esc_attr($token) . '" />
 			<input type="hidden" name="cbnexus_token_action" value="update_action" />
 
@@ -379,6 +387,7 @@ final class CBNexus_Token_Router {
 		$form = '
 		<p>Forward the notes from <strong>' . esc_html($title) . '</strong> to someone outside the group.</p>
 		<form method="post" style="max-width:500px;">
+			<input type="hidden" name="_cbnexus_token_nonce" value="' . wp_create_nonce('cbnexus_token_form') . '" />
 			<input type="hidden" name="cbnexus_token" value="' . esc_attr($token) . '" />
 			<input type="hidden" name="cbnexus_token_action" value="forward_circleup" />
 
@@ -428,6 +437,7 @@ final class CBNexus_Token_Router {
 		$form = '
 		<p>Share a win, insight, or opportunity with the group.</p>
 		<form method="post" style="max-width:500px;">
+			<input type="hidden" name="_cbnexus_token_nonce" value="' . wp_create_nonce('cbnexus_token_form') . '" />
 			<input type="hidden" name="cbnexus_token" value="' . esc_attr($token) . '" />
 			<input type="hidden" name="cbnexus_token_action" value="quick_share" />
 
@@ -608,6 +618,7 @@ final class CBNexus_Token_Router {
 		$form = '
 		<p>Update your email preferences below.</p>
 		<form method="post" style="max-width:500px;">
+			<input type="hidden" name="_cbnexus_token_nonce" value="' . wp_create_nonce('cbnexus_token_form') . '" />
 			<input type="hidden" name="cbnexus_token" value="' . esc_attr($token) . '" />
 			<input type="hidden" name="cbnexus_token_action" value="manage_preferences" />
 

@@ -366,26 +366,27 @@ final class CBNexus_Email_Service {
 		$recipient_id = isset($options['recipient_id']) ? (int) $options['recipient_id'] : null;
 		$related_id   = isset($options['related_id']) ? (int) $options['related_id'] : null;
 
+		// Build data array, excluding null integer columns so wpdb doesn't cast them to 0.
 		$data = [
-			'recipient_id'    => $recipient_id,
 			'recipient_email' => substr($to_email, 0, 200),
 			'template_id'     => substr($template_id, 0, 50),
 			'subject'         => substr($subject, 0, 255),
 			'status'          => substr($status, 0, 20),
-			'related_id'      => $related_id,
 			'related_type'    => isset($options['related_type']) ? substr($options['related_type'], 0, 50) : null,
 			'error_message'   => $error,
 			'sent_at_gmt'     => gmdate('Y-m-d H:i:s'),
 		];
+		$format = ['%s', '%s', '%s', '%s', '%s', '%s', '%s'];
 
-		// Build format array dynamically — %d for non-null ints, omit for nulls
-		// so wpdb produces SQL NULL instead of casting null to 0.
-		$format = [
-			$recipient_id !== null ? '%d' : '%s', // recipient_id — null passed as %s produces NULL
-			'%s', '%s', '%s', '%s',
-			$related_id !== null ? '%d' : '%s', // related_id
-			'%s', '%s', '%s',
-		];
+		// Only include nullable integer columns when they have a value.
+		if ($recipient_id !== null) {
+			$data['recipient_id'] = (int) $recipient_id;
+			$format[] = '%d';
+		}
+		if ($related_id !== null) {
+			$data['related_id'] = (int) $related_id;
+			$format[] = '%d';
+		}
 
 		$wpdb->insert($table, $data, $format);
 	}

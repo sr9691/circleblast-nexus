@@ -32,11 +32,7 @@ final class CBNexus_AI_Extractor {
 
 		$api_key = defined('CBNEXUS_CLAUDE_API_KEY') ? CBNEXUS_CLAUDE_API_KEY : '';
 		if ($api_key === '') {
-			$db_keys = get_option('cbnexus_api_keys', []);
-			$api_key = $db_keys['claude_api_key'] ?? '';
-		}
-		if ($api_key === '') {
-			return ['success' => false, 'errors' => ['Claude API key not configured. Set it in Settings → API Keys or define CBNEXUS_CLAUDE_API_KEY in wp-config.php.']];
+			return ['success' => false, 'errors' => ['Claude API key not configured. Define CBNEXUS_CLAUDE_API_KEY in wp-config.php (never store API keys in the database).']];
 		}
 
 		// Build the member name map for speaker attribution.

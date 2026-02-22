@@ -321,6 +321,11 @@ final class CBNexus_Portal_Router {
 	 * @return string Portal page URL or home URL as fallback.
 	 */
 	public static function get_portal_url(): string {
+		static $cached_url = null;
+		if ($cached_url !== null) {
+			return $cached_url;
+		}
+
 		global $wpdb;
 
 		$page_id = $wpdb->get_var(
@@ -331,7 +336,8 @@ final class CBNexus_Portal_Router {
 			 LIMIT 1"
 		);
 
-		return $page_id ? get_permalink($page_id) : home_url();
+		$cached_url = $page_id ? get_permalink($page_id) : home_url();
+		return $cached_url;
 	}
 
 	/**
