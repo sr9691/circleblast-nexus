@@ -295,8 +295,10 @@ final class CBNexus_Portal_Club {
 		$p_colors = ['high' => '#ef4444', 'medium' => '#f59e0b', 'low' => '#10b981'];
 		?>
 		<style>
-			.cbnexus-present-wrap{position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,<?php echo esc_attr($accent); ?> 0%,<?php echo esc_attr(self::darken_hex($accent,20)); ?> 50%,<?php echo esc_attr(self::darken_hex($accent,35)); ?> 100%);color:#fff;overflow-y:auto;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif}
-			.cbnexus-present-inner{max-width:960px;margin:0 auto;padding:48px 32px}
+			.cbnexus-present-wrap{position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,<?php echo esc_attr($accent); ?> 0%,<?php echo esc_attr(self::darken_hex($accent,20)); ?> 50%,<?php echo esc_attr(self::darken_hex($accent,35)); ?> 100%);color:#fff;overflow:hidden;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif}
+			.cbnexus-present-inner{max-width:960px;margin:0 auto;padding:0 32px;height:100vh;position:relative}
+			.cbnexus-present-section{position:absolute;inset:0;padding:48px 0;display:flex;flex-direction:column;justify-content:center;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s ease;overflow-y:auto}
+			.cbnexus-present-section--active{opacity:1;visibility:visible}
 			.cbnexus-present-exit{position:fixed;top:16px;right:20px;z-index:100000;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:14px;padding:8px 18px;border-radius:10px;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .2s}
 			.cbnexus-present-exit:hover{background:rgba(255,255,255,.22);color:#fff}
 			.cbnexus-present-nav-hint{position:fixed;bottom:20px;right:20px;z-index:100000;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:12px;padding:6px 14px;border-radius:8px;pointer-events:none}
@@ -330,20 +332,23 @@ final class CBNexus_Portal_Club {
 			.cbnexus-present-gap-card{background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.15);border-radius:10px;padding:12px 16px;flex:1;min-width:180px}
 			.cbnexus-present-gap-title{font-size:16px;font-weight:600}
 			.cbnexus-present-gap-meta{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
-			.cbnexus-present-section{transition:opacity .3s ease}
 			.cbnexus-present-month{display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin:16px 0 0}
 			.cbnexus-present-month-num{display:block;font-size:28px;font-weight:700;color:<?php echo esc_attr($secondary); ?>}
 			.cbnexus-present-month-label{font-size:13px;color:rgba(255,255,255,.45)}
-			.cbnexus-present-qrwrap{text-align:center;margin-top:48px;padding-top:32px;border-top:1px solid rgba(255,255,255,.1)}
-			.cbnexus-present-qrbox{width:120px;height:120px;margin:0 auto 8px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;overflow:hidden}
-			.cbnexus-present-qrbox img{width:100%;height:100%;object-fit:contain}
-			.cbnexus-present-qrlabel{color:rgba(255,255,255,.4);font-size:15px}
+			.cbnexus-present-qr-persistent{position:fixed;bottom:16px;left:20px;z-index:100000;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 14px 8px 8px;cursor:default;transition:background .2s}
+			.cbnexus-present-qr-persistent:hover{background:rgba(255,255,255,.14)}
+			.cbnexus-present-qr-persistent img{width:56px;height:56px;border-radius:8px}
+			.cbnexus-present-qr-persistent-label{color:rgba(255,255,255,.5);font-size:12px;line-height:1.3}
 		</style>
 
 		<div class="cbnexus-present-wrap" id="cbnexus-present-wrap">
 			<a href="<?php echo esc_url($back_url); ?>" class="cbnexus-present-exit">✕ Exit</a>
 			<div class="cbnexus-present-nav-hint" id="cbnexus-nav-hint">← → Navigate · Esc to exit</div>
 			<div class="cbnexus-present-dots" id="cbnexus-present-dots"></div>
+			<div class="cbnexus-present-qr-persistent">
+				<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=<?php echo esc_attr($qr_data); ?>" alt="QR Code" width="56" height="56" />
+				<span class="cbnexus-present-qr-persistent-label">Scan to open<br/>the portal</span>
+			</div>
 
 			<div class="cbnexus-present-inner">
 
@@ -375,7 +380,6 @@ final class CBNexus_Portal_Club {
 				<?php if (!empty($wins)) : ?>
 				<!-- Section 1: Wins (with longer text — 40 words) -->
 				<div class="cbnexus-present-section" data-section="1">
-					<hr class="cbnexus-present-divider" />
 					<h2 class="cbnexus-present-sh">🏆 Wins</h2>
 					<div class="cbnexus-present-wgrid">
 						<?php foreach ($wins as $w) : ?>
@@ -387,7 +391,6 @@ final class CBNexus_Portal_Club {
 
 				<!-- Section 2: Connectors + New Members/Visitors -->
 				<div class="cbnexus-present-section" data-section="2">
-					<hr class="cbnexus-present-divider" />
 					<div class="cbnexus-present-cols">
 						<?php if (!empty($top)) : ?>
 						<div>
@@ -437,7 +440,6 @@ final class CBNexus_Portal_Club {
 				<?php if ($has_cov && $cov_summary['total'] > 0 && $cov_summary['gaps'] > 0) : ?>
 				<!-- Section 3: Recruitment Coverage -->
 				<div class="cbnexus-present-section" data-section="3">
-					<hr class="cbnexus-present-divider" />
 					<h2 class="cbnexus-present-sh">🎯 Who We Need</h2>
 					<p style="font-size:18px;color:rgba(255,255,255,.55);margin:-12px 0 20px;"><?php echo esc_html($cov_summary['coverage_pct']); ?>% coverage · <?php echo esc_html($cov_summary['gaps']); ?> open roles</p>
 					<div style="display:flex;flex-wrap:wrap;gap:12px;">
@@ -455,18 +457,8 @@ final class CBNexus_Portal_Club {
 				</div>
 				<?php endif; ?>
 
-				<!-- Final: QR Code -->
-				<div class="cbnexus-present-section" data-section="last">
-					<div class="cbnexus-present-qrwrap">
-						<div class="cbnexus-present-qrbox">
-							<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=<?php echo esc_attr($qr_data); ?>" alt="QR Code" width="120" height="120" />
-						</div>
-						<p class="cbnexus-present-qrlabel">Scan to open the portal</p>
-					</div>
 				</div>
-
 			</div>
-		</div>
 
 		<!-- Keyboard Navigation -->
 		<script>
@@ -476,6 +468,9 @@ final class CBNexus_Portal_Club {
 			var hint = document.getElementById('cbnexus-nav-hint');
 			var current = 0;
 			var total = sections.length;
+
+			// Activate first section
+			if(sections.length) sections[0].classList.add('cbnexus-present-section--active');
 
 			// Build progress dots
 			for(var i=0;i<total;i++){
@@ -488,11 +483,10 @@ final class CBNexus_Portal_Club {
 
 			function goTo(idx){
 				if(idx<0||idx>=total) return;
-				sections[current].style.opacity='0.3';
+				sections[current].classList.remove('cbnexus-present-section--active');
 				current = idx;
-				sections[current].style.opacity='1';
-				sections[current].scrollIntoView({behavior:'smooth',block:'start'});
-				// Update dots
+				sections[current].classList.add('cbnexus-present-section--active');
+				sections[current].scrollTop = 0;
 				var dots = dotContainer.querySelectorAll('.cbnexus-present-dot');
 				dots.forEach(function(d,i){ d.className = 'cbnexus-present-dot'+(i===current?' cbnexus-present-dot--active':''); });
 			}
