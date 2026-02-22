@@ -4,6 +4,55 @@
 
 ---
 
+## Completed: Post-Release Code Review & Fixes (February 2026)
+
+### Goals
+
+- Comprehensive code review of the full codebase
+- Fix all identified bugs, security issues, and performance problems
+
+### Fixes Applied (14 total)
+
+**Security (3 fixes):**
+- [x] Fireflies webhook now rejects all requests when no secret is configured (was accepting all — high severity)
+- [x] Added CSRF nonce verification to all 5 token router POST forms (defense-in-depth)
+- [x] Removed database fallback for Claude API key; now requires wp-config.php constant per SECURITY.md
+
+**Bugs (6 fixes):**
+- [x] Use `$wpdb->prepare()` for SHOW TABLES LIKE in recruitment coverage service
+- [x] Add explicit format array to meeting repository `update()` for DECIMAL/DATETIME columns
+- [x] Check per-user response status before sending follow-up reminders (was notifying already-responded members)
+- [x] Fix nullable integer handling in email log insert (conditional column inclusion)
+- [x] Handle JSON string values in `category_select` sanitization (decode before cast)
+- [x] Cache portal URL query in static variable (was running LIKE query on every call)
+
+**Performance (3 fixes):**
+- [x] Cache `get_full_coverage()` result per request (was computing 2-3× per page load)
+- [x] Batch active meeting pair checks into single query in matching engine (was N² individual queries)
+- [x] Prime user meta cache with `update_meta_cache()` before bulk profile loads in member repository
+
+**Code Quality (2 fixes):**
+- [x] Add all 10 portal admin tab classes to autoloader class map
+- [x] Move dev scripts (`create-members.php`, `seed-data.php`) to `dev/` directory
+
+### Files Modified
+
+- `includes/recruitment/class-recruitment-coverage-service.php` — SQL prepare, per-request caching
+- `includes/meetings/class-meeting-repository.php` — format array
+- `includes/matching/class-suggestion-generator.php` — per-user reminder check
+- `includes/emails/class-email-service.php` — nullable int handling
+- `includes/members/class-member-service.php` — JSON category sanitization
+- `includes/public/class-portal-router.php` — static URL cache
+- `includes/circleup/class-fireflies-webhook.php` — default-deny
+- `includes/tokens/class-token-router.php` — CSRF nonces
+- `includes/circleup/class-ai-extractor.php` — remove DB key fallback
+- `includes/matching/class-matching-engine.php` — batch active pairs
+- `includes/members/class-member-repository.php` — meta cache priming
+- `includes/class-autoloader.php` — admin tab entries
+- `includes/class-color-scheme.php` — cron-safe documentation
+
+---
+
 ## Completed Iteration: ITER-0017 (Admin Analytics, Reports & Recruitment Pipeline)
 
 ### Goals
@@ -141,7 +190,7 @@
 
 ### Risks / Notes
 
-- Fireflies webhook secret: CBNEXUS_FIREFLIES_SECRET in wp-config.php (accepts all if not set for dev)
+- Fireflies webhook requires CBNEXUS_FIREFLIES_SECRET in wp-config.php (rejects all requests if not configured)
 - Webhook handles multiple payload formats (sentences array, plain text, nested transcript object)
 - Attendee matching is best-effort by name search; manual correction via Archivist UI
 
@@ -192,6 +241,7 @@
 ### Risks / Notes
 
 - All-pairs scoring is O(n²); fine for groups under ~200 members
+- Active meeting pair check now uses batched single query instead of N² individual queries
 - Rules return 0.0–1.0, multiplied by weight (can be negative for penalties)
 - Admin boost rule uses config_json for specific pair overrides
 
@@ -369,63 +419,45 @@
 
 ### Goals
 
-- Introduce first real migration with no behavioral breakage  
-- Enable durable internal logging for diagnostics and support  
+- Introduce first real migration with no behavioral breakage
+- Enable durable internal logging for diagnostics and support
 
 ### Deliverables
 
-- [x] Migration `001_create_log_table` (creates `{$wpdb->prefix}cbnexus_log`)  
-- [x] Activation-only migration execution  
-- [x] DB-backed logging with guaranteed fallback to baseline behavior  
+- [x] Migration `001_create_log_table` (creates `{$wpdb->prefix}cbnexus_log`)
+- [x] Activation-only migration execution
+- [x] DB-backed logging with guaranteed fallback to baseline behavior
 
 ### Risks / Notes
 
-- No runtime or upgrade-triggered migrations  
-- No admin UI or capability changes  
+- No runtime or upgrade-triggered migrations
+- No admin UI or capability changes
 
 ---
 
 ## Completed Iteration: ITER-0001 (Plugin Skeleton)
 
 Delivered:
-- Plugin bootstrap  
-- Activation/deactivation hooks  
-- Migration runner (activation-only)  
-- Base logging service (stub)  
+- Plugin bootstrap
+- Activation/deactivation hooks
+- Migration runner (activation-only)
+- Base logging service (stub)
 
 ---
 
 ## Completed Iteration: ITER-0000 (Foundation)
 
 Delivered:
-- CONTRIBUTING.md  
-- ARCHITECTURE.md  
-- CODING_STANDARDS.md  
-- SECURITY.md  
-- MIGRATIONS.md  
-- PROGRESS.md  
-
----
-
-## Backlog (High Level)
-
-- **ITER-0005:** Admin Member Management UI
-- **ITER-0006:** Portal Shell & Profile Edit
-- **ITER-0007:** Member Directory
-- **ITER-0008:** Meetings Data Model & Core Workflow
-- **ITER-0009:** Manual 1:1 Requests & Meeting UI
-- **ITER-0010:** Matching Rules Engine
-- **ITER-0011:** Automated Suggestion Generation
-- **ITER-0012:** CircleUp + Fireflies Integration
-- **ITER-0013:** AI Extraction + Archivist Workflow
-- **ITER-0014:** CircleUp Archive & Member Submissions
-- **ITER-0015:** Personal Member Dashboard
-- **ITER-0016:** Club Dashboard & Presentation Mode
-- **ITER-0017:** Admin Analytics, Reports & Recruitment Pipeline
+- CONTRIBUTING.md
+- ARCHITECTURE.md
+- CODING_STANDARDS.md
+- SECURITY.md
+- MIGRATIONS.md
+- PROGRESS.md
 
 ---
 
 ## Rules
 
-- Every feature or fix **must update this file**  
-- Updates should be 1–3 lines per change  
+- Every feature or fix **must update this file**
+- Updates should be 1–3 lines per change
