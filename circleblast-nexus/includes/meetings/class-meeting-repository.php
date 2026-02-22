@@ -127,6 +127,24 @@ final class CBNexus_Meeting_Repository {
 	}
 
 	/**
+	 * Get auto-suggested meetings awaiting this member's response.
+	 * Includes both member_a and member_b since suggestions are mutual.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array Meeting rows.
+	 */
+	public static function get_suggested_for_member(int $user_id): array {
+		global $wpdb;
+		return $wpdb->get_results($wpdb->prepare(
+			"SELECT * FROM {$wpdb->prefix}cb_meetings
+			 WHERE (member_a_id = %d OR member_b_id = %d)
+			 AND status = 'suggested' AND source = 'auto'
+			 ORDER BY created_at DESC",
+			$user_id, $user_id
+		)) ?: [];
+	}
+
+	/**
 	 * Get meetings requiring action from a specific member.
 	 * "Pending" meetings where the member is the receiver (member_b).
 	 *

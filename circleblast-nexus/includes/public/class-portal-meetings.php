@@ -42,6 +42,7 @@ final class CBNexus_Portal_Meetings {
 
 	public static function render(array $profile): void {
 		$user_id = $profile['user_id'];
+		$suggested = CBNexus_Meeting_Repository::get_suggested_for_member($user_id);
 		$pending = CBNexus_Meeting_Repository::get_pending_for_member($user_id);
 		$needs_notes = CBNexus_Meeting_Repository::get_needs_notes($user_id);
 		$all = CBNexus_Meeting_Repository::get_for_member($user_id);
@@ -51,6 +52,7 @@ final class CBNexus_Portal_Meetings {
 		$history = array_filter($all, fn($m) => in_array($m->status, ['completed', 'closed', 'declined', 'cancelled']));
 		?>
 		<div class="cbnexus-meetings" id="cbnexus-meetings">
+			<?php if (!empty($suggested)) : foreach ($suggested as $m) : self::render_suggested_card($m, $user_id); endforeach; endif; ?>
 			<?php if (!empty($pending)) : foreach ($pending as $m) : self::render_pending_card($m, $user_id); endforeach; endif; ?>
 			<?php if (!empty($needs_notes)) : foreach ($needs_notes as $m) : self::render_notes_card($m, $user_id); endforeach; endif; ?>
 
@@ -75,6 +77,35 @@ final class CBNexus_Portal_Meetings {
 				<?php else : ?>
 					<?php foreach ($history as $m) : self::render_meeting_row($m, $user_id, false); endforeach; ?>
 				<?php endif; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	private static function render_suggested_card(object $m, int $user_id): void {
+		$other = CBNexus_Member_Repository::get_profile(CBNexus_Meeting_Repository::get_other_member($m, $user_id));
+		if (!$other) { return; }
+		$bio_snippet = mb_substr($other['cb_bio'] ?? '', 0, 100);
+		?>
+		<div class="cbnexus-card" style="padding:16px 20px;border-left:3px solid var(--cb-gold, #c49a3c);" data-meeting-id="<?php echo esc_attr($m->id); ?>">
+			<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+				<span style="font-size:16px;">🎯</span>
+				<span style="font-weight:700;font-size:15px;"><?php esc_html_e('Suggested Match', 'circleblast-nexus'); ?></span>
+				<span class="cbnexus-pill cbnexus-pill--gold-soft"><?php esc_html_e('Auto-matched', 'circleblast-nexus'); ?></span>
+			</div>
+			<div class="cbnexus-meeting-action-card" style="border:none;padding:0;margin:0;background:transparent;">
+				<div class="cbnexus-meeting-info" style="display:flex;align-items:center;gap:12px;flex:1;">
+					<div>
+						<div style="font-weight:600;"><?php echo esc_html($other['display_name']); ?></div>
+						<span class="cbnexus-text-muted"><?php echo esc_html(($other['cb_title'] ?? '') . ' at ' . ($other['cb_company'] ?? '')); ?></span>
+						<?php if ($bio_snippet) : ?><br/><span class="cbnexus-text-muted" style="font-size:13px;"><?php echo esc_html($bio_snippet); ?><?php echo strlen($other['cb_bio'] ?? '') > 100 ? '…' : ''; ?></span><?php endif; ?>
+						<br/><span class="cbnexus-text-muted" style="font-size:12px;"><?php printf(esc_html__('Suggested %s', 'circleblast-nexus'), esc_html(self::relative_time($m->created_at))); ?></span>
+					</div>
+				</div>
+				<div class="cbnexus-meeting-actions">
+					<button class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm cbnexus-action-btn" data-action="respond_meeting" data-meeting-id="<?php echo esc_attr($m->id); ?>" data-response="accepted"><?php esc_html_e('Accept', 'circleblast-nexus'); ?></button>
+					<button class="cbnexus-btn cbnexus-btn-outline cbnexus-btn-sm cbnexus-action-btn" data-action="respond_meeting" data-meeting-id="<?php echo esc_attr($m->id); ?>" data-response="declined"><?php esc_html_e('Decline', 'circleblast-nexus'); ?></button>
+				</div>
 			</div>
 		</div>
 		<?php
@@ -219,9 +250,25 @@ final class CBNexus_Portal_Meetings {
 		$meeting_id = absint($_POST['meeting_id'] ?? 0);
 		$response   = sanitize_key($_POST['response'] ?? '');
 		$message    = sanitize_textarea_field(wp_unslash($_POST['message'] ?? ''));
-		$result = ($response === 'accepted')
-			? CBNexus_Meeting_Service::accept($meeting_id, $uid, $message)
-			: CBNexus_Meeting_Service::decline($meeting_id, $uid, $message);
+
+		$meeting = CBNexus_Meeting_Repository::get($meeting_id);
+
+		if ($response === 'accepted' && $meeting && $meeting->source === 'auto'
+			&& in_array($meeting->status, ['suggested', 'pending'])) {
+			$result = CBNexus_Meeting_Service::accept_suggestion($meeting_id, $uid);
+		} elseif ($response === 'accepted') {
+			$result = CBNexus_Meeting_Service::accept($meeting_id, $uid, $message);
+		} else {
+			// For decline on suggested, handle directly.
+			if ($meeting && $meeting->status === 'suggested') {
+				CBNexus_Meeting_Repository::update($meeting_id, ['status' => 'declined']);
+				CBNexus_Meeting_Repository::record_response($meeting_id, $uid, 'declined', '');
+				$result = ['success' => true];
+			} else {
+				$result = CBNexus_Meeting_Service::decline($meeting_id, $uid, $message);
+			}
+		}
+
 		$result['success'] ? wp_send_json_success($result) : wp_send_json_error($result);
 	}
 

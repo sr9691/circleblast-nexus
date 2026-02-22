@@ -216,6 +216,94 @@ final class CBNexus_Meeting_Service {
 		return ['success' => true];
 	}
 
+	/**
+	 * Accept an auto-matched suggestion. Requires both members to accept.
+	 *
+	 * First accept:  suggested → pending (record who accepted).
+	 * Second accept: pending → accepted (both agreed).
+	 *
+	 * @param int $meeting_id Meeting ID.
+	 * @param int $user_id    User accepting.
+	 * @return array Result with 'success', 'state' keys.
+	 */
+	public static function accept_suggestion(int $meeting_id, int $user_id): array {
+		$meeting = CBNexus_Meeting_Repository::get($meeting_id);
+		if (!$meeting) {
+			return ['success' => false, 'errors' => ['Meeting not found.']];
+		}
+		if (!CBNexus_Meeting_Repository::is_participant($meeting, $user_id)) {
+			return ['success' => false, 'errors' => ['You are not a participant.']];
+		}
+
+		// Already accepted by this user?
+		if (self::has_responded($meeting_id, $user_id, 'accepted')) {
+			return ['success' => false, 'errors' => ['You have already accepted this meeting.']];
+		}
+
+		// Record this member's acceptance.
+		CBNexus_Meeting_Repository::record_response($meeting_id, $user_id, 'accepted', '');
+
+		if ($meeting->status === 'suggested') {
+			// First accept — move to pending.
+			CBNexus_Meeting_Repository::update($meeting_id, ['status' => 'pending']);
+			$other_id = CBNexus_Meeting_Repository::get_other_member($meeting, $user_id);
+			self::send_suggestion_first_accept_email($meeting_id, $user_id, $other_id);
+			self::log('Suggestion: first accept.', $meeting_id, $user_id);
+			return ['success' => true, 'state' => 'waiting_for_other'];
+		}
+
+		if ($meeting->status === 'pending' && $meeting->source === 'auto') {
+			// Second accept — both agreed, move to accepted.
+			CBNexus_Meeting_Repository::update($meeting_id, ['status' => 'accepted']);
+			$other_id = CBNexus_Meeting_Repository::get_other_member($meeting, $user_id);
+			self::send_response_email($meeting_id, $user_id, $other_id, 'accepted');
+			self::log('Suggestion: both accepted.', $meeting_id, $user_id);
+			return ['success' => true, 'state' => 'accepted'];
+		}
+
+		return ['success' => false, 'errors' => ['Cannot accept this meeting in its current state.']];
+	}
+
+	/**
+	 * Check if a member has already given a specific response.
+	 *
+	 * @param int    $meeting_id Meeting ID.
+	 * @param int    $user_id    User ID.
+	 * @param string $response   Response type.
+	 * @return bool
+	 */
+	private static function has_responded(int $meeting_id, int $user_id, string $response): bool {
+		global $wpdb;
+		return (bool) $wpdb->get_var($wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_meeting_responses
+			 WHERE meeting_id = %d AND responder_id = %d AND response = %s",
+			$meeting_id, $user_id, $response
+		));
+	}
+
+	/**
+	 * Send email to the other member after the first person accepts a suggestion.
+	 *
+	 * @param int $meeting_id Meeting ID.
+	 * @param int $accepter_id User who accepted.
+	 * @param int $other_id    User still to respond.
+	 */
+	private static function send_suggestion_first_accept_email(int $meeting_id, int $accepter_id, int $other_id): void {
+		$accepter = CBNexus_Member_Repository::get_profile($accepter_id);
+		$other    = CBNexus_Member_Repository::get_profile($other_id);
+		if (!$accepter || !$other) { return; }
+
+		$accept_token  = CBNexus_Token_Service::generate($other_id, 'accept_meeting', ['meeting_id' => $meeting_id]);
+		$decline_token = CBNexus_Token_Service::generate($other_id, 'decline_meeting', ['meeting_id' => $meeting_id]);
+
+		CBNexus_Email_Service::send('suggestion_partner_accepted', $other['user_email'], [
+			'first_name'  => $other['first_name'],
+			'other_name'  => $accepter['display_name'],
+			'accept_url'  => CBNexus_Token_Service::url($accept_token),
+			'decline_url' => CBNexus_Token_Service::url($decline_token),
+		], ['recipient_id' => $other_id, 'related_id' => $meeting_id, 'related_type' => 'suggestion_partner_accepted']);
+	}
+
 	// ─── Validation ────────────────────────────────────────────────────
 
 	private static function validate_request(int $requester_id, int $target_id): array {
@@ -331,6 +419,10 @@ final class CBNexus_Meeting_Service {
 
 		foreach ($meetings as $meeting) {
 			foreach ([(int) $meeting->member_a_id, (int) $meeting->member_b_id] as $uid) {
+				// Check reminder preference.
+				$pref = get_user_meta($uid, 'cb_email_reminders', true);
+				if ($pref === 'no') { continue; }
+
 				$profile = CBNexus_Member_Repository::get_profile($uid);
 				$other   = CBNexus_Member_Repository::get_profile(
 					CBNexus_Meeting_Repository::get_other_member($meeting, $uid)

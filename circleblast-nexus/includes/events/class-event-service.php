@@ -589,6 +589,10 @@ final class CBNexus_Event_Service {
 		$count = 0;
 
 		foreach ($members as $m) {
+			// Check digest email preference.
+			$pref = get_user_meta((int) $m['user_id'], 'cb_email_digest', true);
+			if ($pref === 'no') { continue; }
+
 			$sent = CBNexus_Email_Service::send('events_digest', $m['user_email'], [
 				'first_name'  => $m['first_name'],
 				'intro_text'  => $intro,

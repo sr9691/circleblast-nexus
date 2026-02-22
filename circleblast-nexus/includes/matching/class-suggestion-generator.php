@@ -89,23 +89,34 @@ final class CBNexus_Suggestion_Generator {
 	}
 
 	/**
-	 * Send follow-up reminders — now with token links.
+	 * Send follow-up reminders — capped at 2, with preference checks and stale cleanup.
 	 */
 	public static function send_follow_up_reminders(): void {
 		global $wpdb;
 
 		$cutoff = gmdate('Y-m-d H:i:s', strtotime('-3 days'));
+
+		// Only remind for meetings with < 2 reminders sent.
+		// Include 'pending' with source='auto' for two-accept flow (one accepted, other hasn't).
 		$meetings = $wpdb->get_results($wpdb->prepare(
 			"SELECT m.* FROM {$wpdb->prefix}cb_meetings m
-			 WHERE m.status = 'suggested' AND m.suggested_at < %s
+			 WHERE m.status IN ('suggested', 'pending')
+			 AND m.source = 'auto'
+			 AND m.suggested_at < %s
+			 AND m.reminder_count < 2
 			 AND m.id NOT IN (
 				SELECT DISTINCT meeting_id FROM {$wpdb->prefix}cb_meeting_responses
+				WHERE response IN ('accepted', 'declined')
 			 )",
 			$cutoff
 		));
 
 		foreach ($meetings ?: [] as $m) {
 			foreach ([(int) $m->member_a_id, (int) $m->member_b_id] as $uid) {
+				// Check email preference.
+				$pref = get_user_meta($uid, 'cb_email_reminders', true);
+				if ($pref === 'no') { continue; }
+
 				$profile = CBNexus_Member_Repository::get_profile($uid);
 				$other   = CBNexus_Member_Repository::get_profile(
 					CBNexus_Meeting_Repository::get_other_member($m, $uid)
@@ -123,7 +134,24 @@ final class CBNexus_Suggestion_Generator {
 					'meetings_url' => add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url()),
 				], ['recipient_id' => $uid, 'related_id' => (int) $m->id, 'related_type' => 'suggestion_reminder']);
 			}
+
+			// Increment reminder counter.
+			CBNexus_Meeting_Repository::update((int) $m->id, [
+				'reminder_count' => (int) ($m->reminder_count ?? 0) + 1,
+			]);
 		}
+
+		// Auto-cancel stale suggestions: exhausted reminders + 3 weeks old.
+		$stale_cutoff = gmdate('Y-m-d H:i:s', strtotime('-21 days'));
+		$wpdb->query($wpdb->prepare(
+			"UPDATE {$wpdb->prefix}cb_meetings
+			 SET status = 'cancelled', updated_at = %s
+			 WHERE status = 'suggested'
+			 AND source = 'auto'
+			 AND reminder_count >= 2
+			 AND suggested_at < %s",
+			gmdate('Y-m-d H:i:s'), $stale_cutoff
+		));
 	}
 
 	// ─── Admin Trigger ─────────────────────────────────────────────────
@@ -162,14 +190,22 @@ final class CBNexus_Suggestion_Generator {
 			wp_die(__('Meeting not found.', 'circleblast-nexus'));
 		}
 
-		if ($meeting->status === 'suggested') {
-			CBNexus_Meeting_Repository::update($data['meeting_id'], ['status' => 'pending']);
-		}
-
-		if ($data['action'] === 'accept') {
+		if ($data['action'] === 'accept' && $meeting->source === 'auto'
+			&& in_array($meeting->status, ['suggested', 'pending'])) {
+			// Use two-accept flow for auto-matched meetings.
+			CBNexus_Meeting_Service::accept_suggestion($data['meeting_id'], $data['user_id']);
+		} elseif ($data['action'] === 'accept') {
+			if ($meeting->status === 'suggested') {
+				CBNexus_Meeting_Repository::update($data['meeting_id'], ['status' => 'pending']);
+			}
 			CBNexus_Meeting_Service::accept($data['meeting_id'], $data['user_id']);
 		} elseif ($data['action'] === 'decline') {
-			CBNexus_Meeting_Service::decline($data['meeting_id'], $data['user_id']);
+			if ($meeting->status === 'suggested') {
+				CBNexus_Meeting_Repository::update($data['meeting_id'], ['status' => 'declined']);
+				CBNexus_Meeting_Repository::record_response($data['meeting_id'], $data['user_id'], 'declined', '');
+			} else {
+				CBNexus_Meeting_Service::decline($data['meeting_id'], $data['user_id']);
+			}
 		}
 
 		$portal_url = add_query_arg('section', 'meetings', CBNexus_Portal_Router::get_portal_url());

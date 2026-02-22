@@ -27,9 +27,19 @@ final class CBNexus_Portal_Admin_Matching {
 
 		<!-- Cycle Status -->
 		<div class="cbnexus-card">
-			<h2>Suggestion Cycle</h2>
+			<h2>Suggestion Cycle <?php
+				if ($last_cycle && !empty($last_cycle['timestamp'])) {
+					$ts = strtotime($last_cycle['timestamp']);
+					if ($ts) {
+						$full_date = wp_date('M j, Y \a\t g:i A', $ts);
+						$relative  = human_time_diff($ts, current_time('timestamp')) . ' ago';
+						echo '<span class="cbnexus-admin-meta" title="' . esc_attr($full_date) . '">(Last run: ' . esc_html($relative) . ')</span>';
+					}
+				} else {
+					echo '<span class="cbnexus-admin-meta">(Never run)</span>';
+				}
+			?></h2>
 			<div class="cbnexus-admin-stats-row">
-				<?php CBNexus_Portal_Admin::stat_card('Last Run', $last_cycle ? esc_html($last_cycle['timestamp']) : 'Never'); ?>
 				<?php CBNexus_Portal_Admin::stat_card('Total Suggestions', $cycle_stats['total']); ?>
 				<?php CBNexus_Portal_Admin::stat_card('Pending', $cycle_stats['pending']); ?>
 				<?php CBNexus_Portal_Admin::stat_card('Accepted', $cycle_stats['accepted']); ?>
@@ -44,35 +54,6 @@ final class CBNexus_Portal_Admin_Matching {
 					)); ?>" class="cbnexus-btn cbnexus-btn-accent" onclick="return confirm('Run the suggestion cycle? This will send match emails to all paired members.');">Run Cycle</a>
 				<?php endif; ?>
 			</div>
-		</div>
-
-		<!-- Rules Config -->
-		<div class="cbnexus-card">
-			<h2>Matching Rules</h2>
-			<form method="post" action="">
-				<?php wp_nonce_field('cbnexus_portal_save_matching_rules'); ?>
-				<div class="cbnexus-admin-table-wrap">
-					<table class="cbnexus-admin-table">
-						<thead><tr>
-							<th style="width:50px;">Active</th>
-							<th>Rule</th>
-							<th>Description</th>
-							<th style="width:90px;">Weight</th>
-						</tr></thead>
-						<tbody>
-						<?php foreach ($rules as $rule) : ?>
-							<tr>
-								<td><input type="checkbox" name="active_<?php echo esc_attr($rule->id); ?>" value="1" <?php checked($rule->is_active, 1); ?> /></td>
-								<td><strong><?php echo esc_html($rule->label); ?></strong></td>
-								<td class="cbnexus-admin-meta"><?php echo esc_html($rule->description); ?></td>
-								<td><input type="number" name="weight_<?php echo esc_attr($rule->id); ?>" value="<?php echo esc_attr($rule->weight); ?>" step="0.25" min="-5" max="10" class="cbnexus-input-sm" /></td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
-				</div>
-				<button type="submit" name="cbnexus_portal_save_rules" value="1" class="cbnexus-btn cbnexus-btn-accent">Save Rules</button>
-			</form>
 		</div>
 
 		<?php if ($dry_run) : ?>
@@ -104,6 +85,36 @@ final class CBNexus_Portal_Admin_Matching {
 			<?php endif; ?>
 		</div>
 		<?php endif; ?>
+
+		<!-- Rules Config -->
+		<div class="cbnexus-card">
+			<h2>Matching Rules</h2>
+			<form method="post" action="">
+				<?php wp_nonce_field('cbnexus_portal_save_matching_rules'); ?>
+				<div class="cbnexus-admin-table-wrap">
+					<table class="cbnexus-admin-table">
+						<thead><tr>
+							<th style="width:50px;">Active</th>
+							<th>Rule</th>
+							<th>Description</th>
+							<th style="width:90px;">Weight</th>
+						</tr></thead>
+						<tbody>
+						<?php foreach ($rules as $rule) : ?>
+							<tr>
+								<td><input type="checkbox" name="active_<?php echo esc_attr($rule->id); ?>" value="1" <?php checked($rule->is_active, 1); ?> /></td>
+								<td><strong><?php echo esc_html($rule->label); ?></strong></td>
+								<td class="cbnexus-admin-meta"><?php echo esc_html($rule->description); ?></td>
+								<td><input type="number" name="weight_<?php echo esc_attr($rule->id); ?>" value="<?php echo esc_attr($rule->weight); ?>" step="0.25" min="-5" max="10" class="cbnexus-input-sm" /></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+				<button type="submit" name="cbnexus_portal_save_rules" value="1" class="cbnexus-btn cbnexus-btn-accent">Save Rules</button>
+			</form>
+		</div>
+
 		<?php
 	}
 

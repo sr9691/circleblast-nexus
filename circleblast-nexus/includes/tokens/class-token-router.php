@@ -51,16 +51,31 @@ final class CBNexus_Token_Router {
 				if ($consumed) {
 					$mid = $consumed['payload']['meeting_id'] ?? 0;
 					$meeting = CBNexus_Meeting_Repository::get($mid);
-					if ($meeting && $meeting->status === 'suggested') {
-						CBNexus_Meeting_Repository::update($mid, ['status' => 'pending']);
+
+					if ($meeting && $meeting->source === 'auto' && in_array($meeting->status, ['suggested', 'pending'])) {
+						// Auto-matched: use two-accept flow.
+						$result = CBNexus_Meeting_Service::accept_suggestion($mid, $consumed['user_id']);
+						$other = CBNexus_Meeting_Repository::get_other_member(
+							CBNexus_Meeting_Repository::get($mid), $consumed['user_id']
+						);
+						$other_profile = CBNexus_Member_Repository::get_profile($other);
+						$name = $other_profile ? $other_profile['display_name'] : 'your match';
+
+						if (($result['state'] ?? '') === 'waiting_for_other') {
+							self::render_page('You\'re In! ✅', '<p>You\'ve accepted the 1:1 with <strong>' . esc_html($name) . '</strong>.</p><p>We\'ll let you know as soon as they confirm too.</p>');
+						} else {
+							self::render_page('Meeting Confirmed! 🎉', '<p>Both you and <strong>' . esc_html($name) . '</strong> have accepted! Coordinate a time that works and enjoy the conversation.</p>');
+						}
+					} else {
+						// Manual meeting: direct accept (existing behavior).
+						CBNexus_Meeting_Service::accept($mid, $consumed['user_id']);
+						$other = CBNexus_Meeting_Repository::get_other_member(
+							CBNexus_Meeting_Repository::get($mid), $consumed['user_id']
+						);
+						$other_profile = CBNexus_Member_Repository::get_profile($other);
+						$name = $other_profile ? $other_profile['display_name'] : 'your match';
+						self::render_page('Meeting Accepted! ✅', '<p>You\'ve accepted the 1:1 with <strong>' . esc_html($name) . '</strong>.</p><p>Coordinate a time that works for both of you.</p>');
 					}
-					CBNexus_Meeting_Service::accept($mid, $consumed['user_id']);
-					$other = CBNexus_Meeting_Repository::get_other_member(
-						CBNexus_Meeting_Repository::get($mid), $consumed['user_id']
-					);
-					$other_profile = CBNexus_Member_Repository::get_profile($other);
-					$name = $other_profile ? $other_profile['display_name'] : 'your match';
-					self::render_page('Meeting Accepted! ✅', '<p>You\'ve accepted the 1:1 with <strong>' . esc_html($name) . '</strong>.</p><p>Coordinate a time that works for both of you — we\'ll send a reminder before your meeting.</p>');
 				}
 				exit;
 
@@ -69,10 +84,14 @@ final class CBNexus_Token_Router {
 				if ($consumed) {
 					$mid = $consumed['payload']['meeting_id'] ?? 0;
 					$meeting = CBNexus_Meeting_Repository::get($mid);
+
+					// For suggested meetings, allow direct decline without intermediate transition.
 					if ($meeting && $meeting->status === 'suggested') {
-						CBNexus_Meeting_Repository::update($mid, ['status' => 'pending']);
+						CBNexus_Meeting_Repository::update($mid, ['status' => 'declined']);
+						CBNexus_Meeting_Repository::record_response($mid, $consumed['user_id'], 'declined', '');
+					} else {
+						CBNexus_Meeting_Service::decline($mid, $consumed['user_id']);
 					}
-					CBNexus_Meeting_Service::decline($mid, $consumed['user_id']);
 					self::render_page('Meeting Declined', '<p>No worries — we\'ll match you with someone else next time.</p>');
 				}
 				exit;
@@ -148,6 +167,14 @@ final class CBNexus_Token_Router {
 				self::handle_visit_feedback($raw_token, $data);
 				exit;
 
+			case 'manage_preferences':
+				if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+					self::process_preferences_form($data, $raw_token);
+				} else {
+					self::render_preferences_form($data, $raw_token);
+				}
+				exit;
+
 			default:
 				self::render_page('Unknown Action', '<p>This link is not recognized.</p>');
 				exit;
@@ -181,6 +208,10 @@ final class CBNexus_Token_Router {
 
 			case 'quick_share':
 				self::process_quick_share($data);
+				exit;
+
+			case 'manage_preferences':
+				self::process_preferences_form($data, $raw_token);
 				exit;
 
 			default:
@@ -564,6 +595,68 @@ final class CBNexus_Token_Router {
 				'related_id'   => $candidate->id,
 			]);
 		}
+	}
+
+	// ─── Manage Preferences ─────────────────────────────────────────────
+
+	private static function render_preferences_form(array $data, string $token): void {
+		$user_id = $data['user_id'];
+		$freq      = get_user_meta($user_id, 'cb_matching_frequency', true) ?: 'monthly';
+		$digest    = get_user_meta($user_id, 'cb_email_digest', true) ?: 'yes';
+		$reminders = get_user_meta($user_id, 'cb_email_reminders', true) ?: 'yes';
+
+		$form = '
+		<p>Update your email preferences below.</p>
+		<form method="post" style="max-width:500px;">
+			<input type="hidden" name="cbnexus_token" value="' . esc_attr($token) . '" />
+			<input type="hidden" name="cbnexus_token_action" value="manage_preferences" />
+
+			<label style="display:block;margin:16px 0 4px;font-weight:600;font-size:14px;">1:1 Matching Frequency</label>
+			<select name="cb_matching_frequency" style="width:100%;padding:10px;border:1px solid #e0d6e8;border-radius:10px;margin-bottom:4px;font-family:DM Sans,sans-serif;">
+				<option value="monthly" ' . selected($freq, 'monthly', false) . '>Monthly</option>
+				<option value="quarterly" ' . selected($freq, 'quarterly', false) . '>Quarterly</option>
+				<option value="paused" ' . selected($freq, 'paused', false) . '>Paused</option>
+			</select>
+			<p style="font-size:12px;color:#888;margin:0 0 12px;">How often you\'d like to be paired. "Paused" = no new suggestions.</p>
+
+			<label style="display:block;margin:0 0 4px;font-weight:600;font-size:14px;">Events Digest</label>
+			<select name="cb_email_digest" style="width:100%;padding:10px;border:1px solid #e0d6e8;border-radius:10px;margin-bottom:4px;font-family:DM Sans,sans-serif;">
+				<option value="yes" ' . selected($digest, 'yes', false) . '>Yes</option>
+				<option value="no" ' . selected($digest, 'no', false) . '>No</option>
+			</select>
+			<p style="font-size:12px;color:#888;margin:0 0 12px;">Weekly email with upcoming events.</p>
+
+			<label style="display:block;margin:0 0 4px;font-weight:600;font-size:14px;">Reminder Emails</label>
+			<select name="cb_email_reminders" style="width:100%;padding:10px;border:1px solid #e0d6e8;border-radius:10px;margin-bottom:12px;font-family:DM Sans,sans-serif;">
+				<option value="yes" ' . selected($reminders, 'yes', false) . '>Yes</option>
+				<option value="no" ' . selected($reminders, 'no', false) . '>No</option>
+			</select>
+			<p style="font-size:12px;color:#888;margin:0 0 16px;">Follow-up nudges for unanswered suggestions and meeting reminders.</p>
+
+			<button type="submit" style="background:#5b2d6e;color:#fff;border:none;padding:12px 28px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">Save Preferences</button>
+		</form>';
+
+		self::render_page('Email Preferences 📧', $form);
+	}
+
+	private static function process_preferences_form(array $data, string $raw_token): void {
+		$user_id = $data['user_id'];
+
+		$freq      = sanitize_key($_POST['cb_matching_frequency'] ?? 'monthly');
+		$digest    = sanitize_key($_POST['cb_email_digest'] ?? 'yes');
+		$reminders = sanitize_key($_POST['cb_email_reminders'] ?? 'yes');
+
+		// Validate values.
+		if (!in_array($freq, ['monthly', 'quarterly', 'paused'], true)) { $freq = 'monthly'; }
+		if (!in_array($digest, ['yes', 'no'], true)) { $digest = 'yes'; }
+		if (!in_array($reminders, ['yes', 'no'], true)) { $reminders = 'yes'; }
+
+		update_user_meta($user_id, 'cb_matching_frequency', $freq);
+		update_user_meta($user_id, 'cb_email_digest', $digest);
+		update_user_meta($user_id, 'cb_email_reminders', $reminders);
+
+		self::render_page('Preferences Updated ✅', '<p>Your email preferences have been saved.</p>');
+		exit;
 	}
 
 	// ─── Page Renderer ─────────────────────────────────────────────────

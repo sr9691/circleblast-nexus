@@ -44,7 +44,18 @@ final class CBNexus_Email_Service {
 		self::process_html_blocks($vars);
 
 		$body      = self::replace_placeholders($template['body'], $vars);
-		$html_body = self::wrap_html($body, $subject, $template_id);
+
+		// Generate preferences URL for the email footer.
+		$unsub_url = '';
+		if (!empty($options['recipient_id']) && class_exists('CBNexus_Token_Service')) {
+			$token = CBNexus_Token_Service::generate(
+				(int) $options['recipient_id'],
+				'manage_preferences', [], 90, true
+			);
+			$unsub_url = CBNexus_Token_Service::url($token);
+		}
+
+		$html_body = self::wrap_html($body, $subject, $template_id, $unsub_url);
 
 		$headers = [
 			'Content-Type: text/html; charset=UTF-8',
@@ -222,10 +233,10 @@ final class CBNexus_Email_Service {
 	 * Public wrapper for test emails from Admin Email Templates.
 	 */
 	public static function test_wrap(string $body, string $subject): string {
-		return self::wrap_html($body, $subject);
+		return self::wrap_html($body, $subject, '', '');
 	}
 
-	private static function wrap_html(string $body, string $subject, string $template_id = ''): string {
+	private static function wrap_html(string $body, string $subject, string $template_id = '', string $unsub_url = ''): string {
 		$year = gmdate('Y');
 		$colors = CBNexus_Color_Scheme::get_email_colors();
 		$logo_url = CBNexus_Color_Scheme::get_logo_url('email');
@@ -269,6 +280,7 @@ final class CBNexus_Email_Service {
 <tr><td style="padding:20px 30px;background-color:#f8f9fa;text-align:center;font-size:13px;color:#6c757d;">
 <p style="margin:0;">CircleBlast Professional Networking Group</p>
 <p style="margin:5px 0 0;">&copy; ' . $year . ' CircleBlast. All rights reserved.</p>
+' . ($unsub_url ? '<p style="margin:5px 0 0;"><a href="' . esc_url($unsub_url) . '" style="color:#6c757d;text-decoration:underline;font-size:13px;">Manage email preferences</a></p>' : '') . '
 </td></tr></table></td></tr></table></body></html>';
 	}
 

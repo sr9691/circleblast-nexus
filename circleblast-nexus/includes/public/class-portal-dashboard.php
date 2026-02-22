@@ -27,6 +27,7 @@ final class CBNexus_Portal_Dashboard {
 		$stats = self::compute_stats($uid);
 		$pending = CBNexus_Meeting_Repository::get_pending_for_member($uid);
 		$needs_notes = CBNexus_Meeting_Repository::get_needs_notes($uid);
+		$suggested = CBNexus_Meeting_Repository::get_suggested_for_member($uid);
 		$upcoming = self::get_upcoming($uid);
 		$recent_history = self::get_recent_history($uid, 5);
 		$all_actions = CBNexus_CircleUp_Repository::get_member_actions($uid);
@@ -90,13 +91,24 @@ final class CBNexus_Portal_Dashboard {
 				</div>
 			</div>
 
-			<?php if (!empty($pending) || !empty($needs_notes)) : ?>
+			<?php if (!empty($pending) || !empty($needs_notes) || !empty($suggested)) : ?>
 			<!-- Needs Your Attention -->
 			<div class="cbnexus-card cbnexus-card-highlight" style="padding:16px 20px;">
 				<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
 					<span style="font-size:16px;">⚡</span>
 					<span style="font-size:15px;font-weight:600;"><?php esc_html_e('Needs your attention', 'circleblast-nexus'); ?></span>
 				</div>
+				<?php if (!empty($suggested)) :
+					foreach ($suggested as $m) :
+						$other = CBNexus_Member_Repository::get_profile(CBNexus_Meeting_Repository::get_other_member($m, $uid));
+						if (!$other) { continue; }
+				?>
+					<div class="cbnexus-dash-alert">
+						<span class="cbnexus-dash-alert-dot cbnexus-dash-alert-dot--gold"></span>
+						<span class="cbnexus-dash-alert-text"><?php printf(esc_html__('🎯 You\'ve been matched with %s', 'circleblast-nexus'), esc_html($other['display_name'])); ?></span>
+						<a href="<?php echo esc_url(add_query_arg('section', 'meetings', $portal_url)); ?>" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm"><?php esc_html_e('Respond', 'circleblast-nexus'); ?></a>
+					</div>
+				<?php endforeach; endif; ?>
 				<?php if (!empty($pending)) :
 					foreach ($pending as $m) :
 						$other = CBNexus_Member_Repository::get_profile(CBNexus_Meeting_Repository::get_other_member($m, $uid));

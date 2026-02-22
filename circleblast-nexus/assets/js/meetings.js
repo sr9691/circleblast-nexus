@@ -88,6 +88,27 @@
 			});
 	});
 
+	// Rating button click handler.
+	document.addEventListener('click', function (e) {
+		var btn = e.target.closest('.cbnexus-rating-btn');
+		if (!btn) return;
+
+		var container = btn.closest('.cbnexus-rating-input');
+		if (!container) return;
+
+		// Remove active from siblings, add to clicked.
+		container.querySelectorAll('.cbnexus-rating-btn').forEach(function (b) {
+			b.classList.remove('active');
+		});
+		btn.classList.add('active');
+
+		// Update the hidden input.
+		var hidden = container.querySelector('input[name="rating"]');
+		if (hidden) {
+			hidden.value = btn.getAttribute('data-rating');
+		}
+	});
+
 	// Notes form submission.
 	document.addEventListener('submit', function (e) {
 		var form = e.target.closest('.cbnexus-notes-form');
@@ -105,8 +126,8 @@
 		data.append('insights', form.querySelector('[name="insights"]').value);
 		data.append('action_items', form.querySelector('[name="action_items"]').value);
 
-		var ratingEl = form.querySelector('[name="rating"]:checked');
-		data.append('rating', ratingEl ? ratingEl.value : '0');
+		var ratingInput = form.querySelector('input[name="rating"]');
+		data.append('rating', ratingInput ? ratingInput.value || '0' : '0');
 
 		submitBtn.disabled = true;
 		submitBtn.textContent = 'Submitting...';

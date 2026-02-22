@@ -20,6 +20,18 @@ final class CBNexus_Matching_Engine {
 	public static function generate_suggestions(int $max_suggestions = 0): array {
 		// 1. Load active members.
 		$members = CBNexus_Member_Repository::get_all_members('active');
+
+		// Filter out members who paused matching or are on quarterly cadence.
+		$members = array_filter($members, function ($m) {
+			$freq = get_user_meta((int) $m['user_id'], 'cb_matching_frequency', true);
+			if ($freq === 'paused') { return false; }
+			if ($freq === 'quarterly') {
+				return !self::was_recently_suggested((int) $m['user_id'], 80);
+			}
+			return true;
+		});
+		$members = array_values($members);
+
 		if (count($members) < 2) {
 			return [];
 		}
@@ -114,6 +126,25 @@ final class CBNexus_Matching_Engine {
 	}
 
 	// ─── Context Builder ───────────────────────────────────────────────
+
+	/**
+	 * Check if a member was suggested in the last N days.
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $days    Lookback period in days.
+	 * @return bool
+	 */
+	private static function was_recently_suggested(int $user_id, int $days): bool {
+		global $wpdb;
+		$cutoff = gmdate('Y-m-d H:i:s', strtotime("-{$days} days"));
+		return (bool) $wpdb->get_var($wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}cb_meetings
+			 WHERE (member_a_id = %d OR member_b_id = %d)
+			 AND source = 'auto'
+			 AND suggested_at > %s",
+			$user_id, $user_id, $cutoff
+		));
+	}
 
 	/**
 	 * Build pre-computed context data for all rules to use.

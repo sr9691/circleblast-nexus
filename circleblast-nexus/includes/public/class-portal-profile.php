@@ -198,6 +198,38 @@ final class CBNexus_Portal_Profile {
 				</div>
 			</div>
 
+			<!-- Preferences -->
+			<div class="cbnexus-card">
+				<div class="cbnexus-form-section-label"><?php esc_html_e('Preferences', 'circleblast-nexus'); ?></div>
+				<div class="cbnexus-form-field">
+					<label for="cb_matching_frequency"><?php esc_html_e('1:1 Matching Frequency', 'circleblast-nexus'); ?></label>
+					<select id="cb_matching_frequency" name="cb_matching_frequency">
+						<option value="monthly" <?php selected($profile['cb_matching_frequency'] ?? 'monthly', 'monthly'); ?>><?php esc_html_e('Monthly', 'circleblast-nexus'); ?></option>
+						<option value="quarterly" <?php selected($profile['cb_matching_frequency'] ?? '', 'quarterly'); ?>><?php esc_html_e('Quarterly', 'circleblast-nexus'); ?></option>
+						<option value="paused" <?php selected($profile['cb_matching_frequency'] ?? '', 'paused'); ?>><?php esc_html_e('Paused', 'circleblast-nexus'); ?></option>
+					</select>
+					<span class="cbnexus-text-muted" style="font-size:12px;display:block;margin-top:4px;"><?php esc_html_e('How often you\'d like to be paired. "Paused" = no new suggestions.', 'circleblast-nexus'); ?></span>
+				</div>
+				<div class="cbnexus-form-row">
+					<div class="cbnexus-form-field">
+						<label for="cb_email_digest"><?php esc_html_e('Events Digest', 'circleblast-nexus'); ?></label>
+						<select id="cb_email_digest" name="cb_email_digest">
+							<option value="yes" <?php selected($profile['cb_email_digest'] ?? 'yes', 'yes'); ?>><?php esc_html_e('Yes', 'circleblast-nexus'); ?></option>
+							<option value="no" <?php selected($profile['cb_email_digest'] ?? '', 'no'); ?>><?php esc_html_e('No', 'circleblast-nexus'); ?></option>
+						</select>
+						<span class="cbnexus-text-muted" style="font-size:12px;display:block;margin-top:4px;"><?php esc_html_e('Weekly email with upcoming events.', 'circleblast-nexus'); ?></span>
+					</div>
+					<div class="cbnexus-form-field">
+						<label for="cb_email_reminders"><?php esc_html_e('Reminder Emails', 'circleblast-nexus'); ?></label>
+						<select id="cb_email_reminders" name="cb_email_reminders">
+							<option value="yes" <?php selected($profile['cb_email_reminders'] ?? 'yes', 'yes'); ?>><?php esc_html_e('Yes', 'circleblast-nexus'); ?></option>
+							<option value="no" <?php selected($profile['cb_email_reminders'] ?? '', 'no'); ?>><?php esc_html_e('No', 'circleblast-nexus'); ?></option>
+						</select>
+						<span class="cbnexus-text-muted" style="font-size:12px;display:block;margin-top:4px;"><?php esc_html_e('Follow-up nudges for unanswered suggestions and meeting reminders.', 'circleblast-nexus'); ?></span>
+					</div>
+				</div>
+			</div>
+
 			<button type="submit" name="cbnexus_profile_submit" value="1" class="cbnexus-btn cbnexus-btn-primary" style="border-radius:14px;">
 				<?php esc_html_e('Save Changes', 'circleblast-nexus'); ?>
 			</button>
