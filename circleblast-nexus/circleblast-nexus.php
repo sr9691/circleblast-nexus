@@ -142,6 +142,17 @@ CBNexus_Members_API::init();
 CBNexus_Events_ICS_API::init();
 
 /**
+ * Redirect members to the portal after login instead of wp-admin.
+ */
+add_filter('login_redirect', function ($redirect_to, $requested, $user) {
+	if (!$user instanceof WP_User || !user_can($user, 'cbnexus_access_portal')) {
+		return $redirect_to;
+	}
+	$portal_url = CBNexus_Portal_Router::get_portal_url();
+	return $portal_url ? $portal_url : $redirect_to;
+}, 10, 3);
+
+/**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
  */
 function cbnexus_activate(): void {
