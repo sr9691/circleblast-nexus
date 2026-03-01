@@ -115,7 +115,11 @@ final class CBNexus_Email_Service {
 		$reset_key = get_password_reset_key(get_userdata($user_id));
 		$login_url = '';
 		if (!is_wp_error($reset_key)) {
+			$portal_url = CBNexus_Portal_Router::get_portal_url();
 			$login_url = network_site_url("wp-login.php?action=rp&key={$reset_key}&login=" . rawurlencode($profile['user_email']), 'login');
+			if ($portal_url) {
+			    $login_url = add_query_arg('redirect_to', urlencode($portal_url), $login_url);
+			}
 		}
 
 		$vars = [
@@ -147,7 +151,11 @@ final class CBNexus_Email_Service {
 		$reset_key = get_password_reset_key(get_userdata($user_id));
 		$login_url = '';
 		if (!is_wp_error($reset_key)) {
+			$portal_url = CBNexus_Portal_Router::get_portal_url();
 			$login_url = network_site_url("wp-login.php?action=rp&key={$reset_key}&login=" . rawurlencode($profile['user_email']), 'login');
+			if ($portal_url) {
+			    $login_url = add_query_arg('redirect_to', urlencode($portal_url), $login_url);
+			}
 		}
 
 		$vars = [
