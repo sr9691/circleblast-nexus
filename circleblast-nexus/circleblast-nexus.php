@@ -179,17 +179,20 @@ function cbnexus_activate(): void {
 	}
 
 	// Schedule cron jobs — respects saved frequencies and disabled states.
+	// NOTE: cbnexus_suggestion_cycle and cbnexus_suggestion_reminders default
+	// to 'disabled' intentionally. Automated matching will not run until an
+	// admin explicitly enables these in the Settings → Cron tab.
 	$cron_overrides = get_option('cbnexus_cron_schedules', []);
-	$cron_defaults = [
-		'cbnexus_meeting_reminders'    => 'daily',
-		'cbnexus_suggestion_cycle'     => 'monthly',
-		'cbnexus_suggestion_reminders' => 'weekly',
-		'cbnexus_ai_extraction'        => 'daily',
-		'cbnexus_analytics_snapshot'   => 'daily',
-		'cbnexus_monthly_report'       => 'monthly',
-		'cbnexus_event_reminders'      => 'daily',
-		'cbnexus_events_digest'        => 'weekly',
-		'cbnexus_token_cleanup'        => 'daily',
+	$cron_defaults  = [
+		'cbnexus_meeting_reminders'        => 'daily',
+		'cbnexus_suggestion_cycle'         => 'disabled',   // Enabled manually when ready.
+		'cbnexus_suggestion_reminders'     => 'disabled',   // Enabled manually when ready.
+		'cbnexus_ai_extraction'            => 'daily',
+		'cbnexus_analytics_snapshot'       => 'daily',
+		'cbnexus_monthly_report'           => 'monthly',
+		'cbnexus_event_reminders'          => 'daily',
+		'cbnexus_events_digest'            => 'weekly',
+		'cbnexus_token_cleanup'            => 'daily',
 		'cbnexus_recruitment_focus_rotate' => 'monthly',
 	];
 	foreach ($cron_defaults as $hook => $default_freq) {
