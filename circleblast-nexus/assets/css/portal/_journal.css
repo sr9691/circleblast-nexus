@@ -1,0 +1,80 @@
+/* =============================================================================
+   Journal – portal/_journal.css
+   ============================================================================= */
+
+/* ── Stats bar ────────────────────────────────────────────────────────────── */
+.cbnexus-journal-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+/* ── Filter tabs ──────────────────────────────────────────────────────────── */
+.cbnexus-journal-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--cb-border, #e8e0f0);
+}
+
+.cbnexus-journal-filter-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 14px;
+	border-radius: 20px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--cb-text-sec, #555);
+	background: var(--cb-bg-subtle, #f5f3fa);
+	border: 1px solid transparent;
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+	white-space: nowrap;
+}
+
+.cbnexus-journal-filter-tab:hover {
+	background: var(--cb-bg-hover, #ede8f5);
+	color: var(--cb-primary, #4a1a8c);
+	text-decoration: none;
+}
+
+.cbnexus-journal-filter-tab.active {
+	background: var(--cb-primary, #4a1a8c);
+	color: #fff;
+	border-color: var(--cb-primary, #4a1a8c);
+}
+
+.cbnexus-journal-filter-tab.active:hover {
+	background: var(--cb-primary-dark, #3a1470);
+	color: #fff;
+}
+
+/* ── Month header ─────────────────────────────────────────────────────────── */
+.cbnexus-journal-month-header {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--cb-text-muted, #888);
+	margin: 20px 0 8px;
+}
+
+.cbnexus-journal-month-header:first-child {
+	margin-top: 0;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+	.cbnexus-journal-filters {
+		gap: 6px;
+	}
+
+	.cbnexus-journal-filter-tab {
+		padding: 5px 11px;
+		font-size: 12px;
+	}
+}
