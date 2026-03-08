@@ -22,11 +22,16 @@ final class CBNexus_CircleUp_Repository {
 		global $wpdb;
 		$now = gmdate('Y-m-d H:i:s');
 
+		$type = in_array($data['meeting_type'] ?? '', ['circleup', 'council'], true)
+			? $data['meeting_type']
+			: 'circleup';
+
 		$result = $wpdb->insert(
 			$wpdb->prefix . 'cb_circleup_meetings',
 			[
 				'meeting_date'     => $data['meeting_date'],
 				'title'            => sanitize_text_field($data['title']),
+				'meeting_type'     => $type,
 				'fireflies_id'     => $data['fireflies_id'] ?? null,
 				'full_transcript'  => $data['full_transcript'] ?? null,
 				'ai_summary'       => $data['ai_summary'] ?? null,
@@ -37,7 +42,7 @@ final class CBNexus_CircleUp_Repository {
 				'created_at'       => $now,
 				'updated_at'       => $now,
 			],
-			['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
+			['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -66,19 +71,31 @@ final class CBNexus_CircleUp_Repository {
 	}
 
 	/**
-	 * Get meetings by status, ordered by date descending.
+	 * Get meetings by status and/or type, ordered by date descending.
+	 *
+	 * @param string $status      Filter by status ('draft', 'published', etc.) or '' for all.
+	 * @param int    $limit       Max results.
+	 * @param string $meeting_type Filter by type ('circleup', 'council') or '' for all.
 	 */
-	public static function get_meetings(string $status = '', int $limit = 50): array {
+	public static function get_meetings(string $status = '', int $limit = 50, string $meeting_type = ''): array {
 		global $wpdb;
-		$sql = "SELECT * FROM {$wpdb->prefix}cb_circleup_meetings";
+		$wheres = [];
 		$params = [];
 
 		if ($status !== '') {
-			$sql .= " WHERE status = %s";
+			$wheres[] = 'status = %s';
 			$params[] = $status;
 		}
+		if ($meeting_type !== '') {
+			$wheres[] = 'meeting_type = %s';
+			$params[] = $meeting_type;
+		}
 
-		$sql .= " ORDER BY meeting_date DESC LIMIT %d";
+		$sql = "SELECT * FROM {$wpdb->prefix}cb_circleup_meetings";
+		if ($wheres) {
+			$sql .= ' WHERE ' . implode(' AND ', $wheres);
+		}
+		$sql .= ' ORDER BY meeting_date DESC LIMIT %d';
 		$params[] = $limit;
 
 		return $wpdb->get_results($wpdb->prepare($sql, ...$params)) ?: [];

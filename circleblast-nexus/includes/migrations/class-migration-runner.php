@@ -158,6 +158,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_023_Create_Member_Journal',
 				'method' => 'up',
 			],
+			'024_add_meeting_type' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/024-add-meeting-type.php',
+				'class'  => 'CBNexus_Migration_024_Add_Meeting_Type',
+				'method' => 'up',
+			],
 		];
 	}
 

@@ -2,27 +2,71 @@
 /**
  * Portal Admin – Meeting Notes Tab
  *
- * Manages CircleUp meeting records: create, edit summary/transcript/attendees,
- * manage extracted items (approve/reject/edit/add), parse structured summaries,
- * optionally run AI extraction, and publish with email distribution.
+ * Manages two meeting types:
+ *   - CircleUp  (monthly, all-member) — notes emailed to all active members + attendee visitors
+ *   - Council   (select admins)       — notes emailed ONLY to cb_admin / cb_super_admin users
  *
- * AI-related features (Run AI Extraction button, AI-specific hints) are hidden
- * when no Claude API key is configured.
+ * AI-related features (Run AI Extraction button) are hidden when no Claude API key is configured.
  */
 
 defined('ABSPATH') || exit;
 
 final class CBNexus_Portal_Admin_Archivist {
 
-	/**
-	 * Check whether a Claude API key is configured (constant or DB).
-	 */
+	// ─── Helpers ──────────────────────────────────────────────────────
+
+	/** Valid meeting types. */
+	private static function meeting_types(): array {
+		return [
+			'circleup' => '🌐 CircleUp',
+			'council'  => '🏛 The Council',
+		];
+	}
+
+	/** Human label for a meeting type. */
+	private static function type_label(string $type): string {
+		return self::meeting_types()[$type] ?? ucfirst($type);
+	}
+
+	/** CSS badge colour per meeting type. */
+	private static function type_badge_style(string $type): string {
+		if ($type === 'council') {
+			return 'background:#1e1b4b;color:#c7d2fe;';
+		}
+		return 'background:#f3e8ff;color:#5b2d6e;';
+	}
+
+	/** Render a small meeting-type badge. */
+	private static function type_badge(string $type): void {
+		$style = self::type_badge_style($type);
+		echo '<span style="' . esc_attr($style) . 'font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;">' . esc_html(self::type_label($type)) . '</span>';
+	}
+
+	/** Check whether a Claude API key is configured. */
 	public static function has_ai(): bool {
 		if (defined('CBNEXUS_CLAUDE_API_KEY') && CBNEXUS_CLAUDE_API_KEY !== '') {
 			return true;
 		}
 		$db_keys = get_option('cbnexus_api_keys', []);
 		return !empty($db_keys['claude_api_key']);
+	}
+
+	/**
+	 * Return WP_User objects for all council members (cb_admin + cb_super_admin roles).
+	 *
+	 * @return WP_User[]
+	 */
+	private static function get_council_members(): array {
+		$admins       = get_users(['role' => 'cb_admin',       'fields' => 'all']);
+		$super_admins = get_users(['role' => 'cb_super_admin', 'fields' => 'all']);
+		$merged       = array_merge($admins, $super_admins);
+
+		// De-duplicate by user ID (a user could theoretically hold both roles).
+		$unique = [];
+		foreach ($merged as $u) {
+			$unique[$u->ID] = $u;
+		}
+		return array_values($unique);
 	}
 
 	// ─── Render: List ─────────────────────────────────────────────────
@@ -46,12 +90,39 @@ final class CBNexus_Portal_Admin_Archivist {
 		$notice = sanitize_key($_GET['pa_notice'] ?? '');
 		CBNexus_Portal_Admin::render_notice($notice);
 
-		$meetings = CBNexus_CircleUp_Repository::get_meetings();
+		// Type filter from query string ('', 'circleup', 'council').
+		$filter_type = sanitize_key($_GET['mt'] ?? '');
+		if (!in_array($filter_type, ['', 'circleup', 'council'], true)) {
+			$filter_type = '';
+		}
+
+		$meetings = CBNexus_CircleUp_Repository::get_meetings('', 50, $filter_type);
+
+		$tab_base = CBNexus_Portal_Admin::admin_url('archivist');
 		?>
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
-				<h2>CircleUp Meetings</h2>
+				<h2>Meeting Notes</h2>
 				<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('archivist', ['admin_action' => 'new_circleup'])); ?>" class="cbnexus-btn cbnexus-btn-accent">+ Add Meeting</a>
+			</div>
+
+			<!-- Type filter tabs -->
+			<div style="display:flex;gap:8px;margin-bottom:16px;">
+				<?php
+				$tabs = [
+					''         => 'All',
+					'circleup' => '🌐 CircleUp',
+					'council'  => '🏛 The Council',
+				];
+				foreach ($tabs as $val => $label) {
+					$active = ($filter_type === $val);
+					$url    = $val === '' ? $tab_base : add_query_arg('mt', $val, $tab_base);
+					$style  = $active
+						? 'background:#5b2d6e;color:#fff;'
+						: 'background:#f3f4f6;color:#374151;';
+					echo '<a href="' . esc_url($url) . '" style="' . esc_attr($style) . 'padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;">' . esc_html($label) . '</a>';
+				}
+				?>
 			</div>
 
 			<div class="cbnexus-admin-table-wrap">
@@ -59,20 +130,23 @@ final class CBNexus_Portal_Admin_Archivist {
 					<thead><tr>
 						<th>Date</th>
 						<th>Title</th>
+						<th>Type</th>
 						<th>Status</th>
 						<th>Items</th>
 						<th>Actions</th>
 					</tr></thead>
 					<tbody>
 					<?php if (empty($meetings)) : ?>
-						<tr><td colspan="5" class="cbnexus-admin-empty">No CircleUp meetings yet.</td></tr>
+						<tr><td colspan="6" class="cbnexus-admin-empty">No meetings found.</td></tr>
 					<?php else : foreach ($meetings as $m) :
-						$items = CBNexus_CircleUp_Repository::get_items($m->id);
+						$items      = CBNexus_CircleUp_Repository::get_items($m->id);
 						$item_count = count($items);
+						$mtype      = $m->meeting_type ?? 'circleup';
 					?>
 						<tr>
 							<td><?php echo esc_html(date_i18n('M j, Y', strtotime($m->meeting_date))); ?></td>
 							<td><strong><?php echo esc_html($m->title); ?></strong></td>
+							<td><?php self::type_badge($mtype); ?></td>
 							<td><?php CBNexus_Portal_Admin::status_pill($m->status); ?></td>
 							<td><?php echo esc_html($item_count); ?></td>
 							<td>
@@ -92,10 +166,22 @@ final class CBNexus_Portal_Admin_Archivist {
 	private static function render_add(): void {
 		?>
 		<div class="cbnexus-card">
-			<h2>Add CircleUp Meeting</h2>
+			<h2>Add Meeting</h2>
 			<form method="post" action="">
 				<?php wp_nonce_field('cbnexus_portal_create_circleup'); ?>
 				<div class="cbnexus-admin-form-stack">
+					<div>
+						<label>Meeting Type *</label>
+						<div style="display:flex;gap:12px;margin-top:4px;">
+							<?php foreach (self::meeting_types() as $val => $label) : ?>
+								<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;">
+									<input type="radio" name="meeting_type" value="<?php echo esc_attr($val); ?>" <?php echo ($val === 'circleup') ? 'checked' : ''; ?> />
+									<?php echo esc_html($label); ?>
+								</label>
+							<?php endforeach; ?>
+						</div>
+						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;"><strong>CircleUp</strong>: notes go to all active members. <strong>The Council</strong>: notes go only to admin &amp; super-admin members.</p>
+					</div>
 					<div>
 						<label>Title *</label>
 						<input type="text" name="title" required />
@@ -129,6 +215,9 @@ final class CBNexus_Portal_Admin_Archivist {
 			return;
 		}
 
+		$mtype    = $meeting->meeting_type ?? 'circleup';
+		$is_council = ($mtype === 'council');
+
 		$items    = CBNexus_CircleUp_Repository::get_items($id);
 		$members  = CBNexus_Member_Repository::get_all_members('active');
 		$attendees = CBNexus_CircleUp_Repository::get_attendees($id);
@@ -136,23 +225,36 @@ final class CBNexus_Portal_Admin_Archivist {
 		$has_ai   = self::has_ai();
 
 		global $wpdb;
-		$invited_recruits = $wpdb->get_results(
-			"SELECT id, name, stage FROM {$wpdb->prefix}cb_candidates WHERE stage = 'invited' ORDER BY name ASC"
-		) ?: [];
+		$invited_recruits = [];
+		if (!$is_council) {
+			$invited_recruits = $wpdb->get_results(
+				"SELECT id, name, stage FROM {$wpdb->prefix}cb_candidates WHERE stage = 'invited' ORDER BY name ASC"
+			) ?: [];
+		}
+
 		$notice = sanitize_key($_GET['pa_notice'] ?? '');
-		$base = CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id]);
+		$base   = CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id]);
 		?>
 		<?php CBNexus_Portal_Admin::render_notice($notice); ?>
 
 		<div class="cbnexus-card">
 			<div class="cbnexus-admin-header-row">
-				<h2><?php echo esc_html($meeting->title); ?></h2>
+				<div style="display:flex;align-items:center;gap:10px;">
+					<h2 style="margin:0;"><?php echo esc_html($meeting->title); ?></h2>
+					<?php self::type_badge($mtype); ?>
+				</div>
 				<a href="<?php echo esc_url(CBNexus_Portal_Admin::admin_url('archivist')); ?>" class="cbnexus-btn">← Back</a>
 			</div>
-			<div class="cbnexus-admin-meta"><?php echo esc_html(date_i18n('F j, Y', strtotime($meeting->meeting_date))); ?> · Status: <?php echo esc_html(ucfirst($meeting->status)); ?></div>
+			<div class="cbnexus-admin-meta">
+				<?php echo esc_html(date_i18n('F j, Y', strtotime($meeting->meeting_date))); ?>
+				· Status: <?php echo esc_html(ucfirst($meeting->status)); ?>
+				<?php if ($is_council) : ?>
+					· <span style="color:#7c3aed;font-weight:600;">🔒 Council — notes distributed only to admin members</span>
+				<?php endif; ?>
+			</div>
 		</div>
 
-		<!-- Summary & Attendees -->
+		<!-- Summary, Transcript & Attendees -->
 		<div class="cbnexus-card">
 			<form method="post" action="">
 				<?php wp_nonce_field('cbnexus_portal_save_circleup'); ?>
@@ -172,30 +274,47 @@ final class CBNexus_Portal_Admin_Archivist {
 							<?php endif; ?>
 						</p>
 					</div>
-					<div>
-						<label>Attendees</label>
-						<div class="cbnexus-admin-checkbox-grid">
-							<?php foreach ($members as $m) : ?>
-								<label><input type="checkbox" name="attendees[]" value="<?php echo esc_attr($m['user_id']); ?>" <?php echo in_array((int) $m['user_id'], array_map('intval', $attendee_ids), true) ? 'checked' : ''; ?> /> <?php echo esc_html($m['display_name']); ?></label>
-							<?php endforeach; ?>
+
+					<?php if ($is_council) : ?>
+						<!-- Council: attendee list is fixed to admin/super-admin roles; no guests or recruits. -->
+						<div>
+							<label>Council Attendees <span style="font-size:12px;color:#6b7280;font-weight:normal;">(cb_admin &amp; cb_super_admin members)</span></label>
+							<div class="cbnexus-admin-checkbox-grid">
+								<?php
+								$council_members = self::get_council_members();
+								foreach ($council_members as $cu) : ?>
+									<label><input type="checkbox" name="attendees[]" value="<?php echo esc_attr($cu->ID); ?>" <?php echo in_array((int) $cu->ID, array_map('intval', $attendee_ids), true) ? 'checked' : ''; ?> /> <?php echo esc_html($cu->display_name); ?></label>
+								<?php endforeach; ?>
+							</div>
+							<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Only council members are shown. Published notes will be emailed exclusively to these members.</p>
 						</div>
-					</div>
-					<?php if (!empty($invited_recruits)) : ?>
-					<div>
-						<label>Invited Recruits <span style="font-size:12px;color:#6b7280;font-weight:normal;">(pipeline stage: Invited)</span></label>
-						<div class="cbnexus-admin-checkbox-grid">
-							<?php foreach ($invited_recruits as $r) : ?>
-								<label style="color:#92400e;"><input type="checkbox" name="guest_recruit_ids[]" value="<?php echo esc_attr($r->id); ?>" /> <?php echo esc_html($r->name); ?> <span style="font-size:11px;color:#b45309;">★ Invited</span></label>
-							<?php endforeach; ?>
+					<?php else : ?>
+						<!-- CircleUp: all active members + optional guests / recruits. -->
+						<div>
+							<label>Attendees</label>
+							<div class="cbnexus-admin-checkbox-grid">
+								<?php foreach ($members as $m) : ?>
+									<label><input type="checkbox" name="attendees[]" value="<?php echo esc_attr($m['user_id']); ?>" <?php echo in_array((int) $m['user_id'], array_map('intval', $attendee_ids), true) ? 'checked' : ''; ?> /> <?php echo esc_html($m['display_name']); ?></label>
+								<?php endforeach; ?>
+							</div>
 						</div>
-						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Checking a recruit here will automatically move them to "Visited" stage and trigger their thank-you email.</p>
-					</div>
+						<?php if (!empty($invited_recruits)) : ?>
+						<div>
+							<label>Invited Recruits <span style="font-size:12px;color:#6b7280;font-weight:normal;">(pipeline stage: Invited)</span></label>
+							<div class="cbnexus-admin-checkbox-grid">
+								<?php foreach ($invited_recruits as $r) : ?>
+									<label style="color:#92400e;"><input type="checkbox" name="guest_recruit_ids[]" value="<?php echo esc_attr($r->id); ?>" /> <?php echo esc_html($r->name); ?> <span style="font-size:11px;color:#b45309;">★ Invited</span></label>
+								<?php endforeach; ?>
+							</div>
+							<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Checking a recruit here will automatically move them to "Visited" stage and trigger their thank-you email.</p>
+						</div>
+						<?php endif; ?>
+						<div>
+							<label>Guest / Prospect Attendees</label>
+							<input type="text" name="guest_attendees" value="" class="cbnexus-input" style="width:100%;" placeholder="Enter guest names, comma-separated (matched against recruitment pipeline)" />
+							<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Names matching candidates in the pipeline (stages: Referral–Invited) will automatically move to "Visited" and trigger a thank-you email.</p>
+						</div>
 					<?php endif; ?>
-					<div>
-						<label>Guest / Prospect Attendees</label>
-						<input type="text" name="guest_attendees" value="" class="cbnexus-input" style="width:100%;" placeholder="Enter guest names, comma-separated (matched against recruitment pipeline)" />
-						<p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Names matching candidates in the pipeline (stages: Referral–Invited) will automatically move to "Visited" and trigger a thank-you email.</p>
-					</div>
 				</div>
 				<button type="submit" name="cbnexus_portal_save_circleup" value="1" class="cbnexus-btn cbnexus-btn-accent">Save</button>
 			</form>
@@ -344,7 +463,12 @@ final class CBNexus_Portal_Admin_Archivist {
 					<a href="<?php echo esc_url(wp_nonce_url(add_query_arg('cbnexus_portal_parse', $id, $base), 'cbnexus_portal_parse_' . $id, '_panonce')); ?>" class="cbnexus-btn" onclick="return confirm('Parse summary for items? New items will be added without removing existing ones.');">📋 Parse Summary for Items</a>
 				<?php endif; ?>
 				<?php if ($meeting->status !== 'published' && current_user_can('cbnexus_publish_circleup')) : ?>
-					<a href="<?php echo esc_url(wp_nonce_url(add_query_arg('cbnexus_portal_publish', $id, $base), 'cbnexus_portal_publish_' . $id, '_panonce')); ?>" class="cbnexus-btn cbnexus-btn-accent" onclick="return confirm('Publish and email summary to all members?');">Publish &amp; Email</a>
+					<?php
+					$confirm_msg = $is_council
+						? 'Publish and email summary to council members only (admin & super-admin)?'
+						: 'Publish and email summary to all active members?';
+					?>
+					<a href="<?php echo esc_url(wp_nonce_url(add_query_arg('cbnexus_portal_publish', $id, $base), 'cbnexus_portal_publish_' . $id, '_panonce')); ?>" class="cbnexus-btn cbnexus-btn-accent" onclick="return confirm('<?php echo esc_js($confirm_msg); ?>");">Publish &amp; Email</a>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -357,10 +481,13 @@ final class CBNexus_Portal_Admin_Archivist {
 		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_create_circleup')) { return; }
 		if (!current_user_can('cbnexus_manage_circleup')) { return; }
 
+		$raw_type   = sanitize_key($_POST['meeting_type'] ?? 'circleup');
+		$meet_type  = in_array($raw_type, ['circleup', 'council'], true) ? $raw_type : 'circleup';
 		$transcript = wp_unslash($_POST['full_transcript'] ?? '');
 
 		$id = CBNexus_CircleUp_Repository::create_meeting([
 			'title'            => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
+			'meeting_type'     => $meet_type,
 			'meeting_date'     => sanitize_text_field(wp_unslash($_POST['meeting_date'] ?? '')),
 			'duration_minutes' => absint($_POST['duration_minutes'] ?? 60),
 			'full_transcript'  => $transcript,
@@ -380,11 +507,12 @@ final class CBNexus_Portal_Admin_Archivist {
 		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_save_circleup')) { return; }
 		if (!current_user_can('cbnexus_manage_circleup')) { return; }
 
-		$id = absint($_POST['circleup_id'] ?? 0);
+		$id         = absint($_POST['circleup_id'] ?? 0);
 		$transcript = wp_unslash($_POST['full_transcript'] ?? '');
+		$existing   = CBNexus_CircleUp_Repository::get_meeting($id);
+		$is_council = ($existing && ($existing->meeting_type ?? 'circleup') === 'council');
 
 		// Check if the transcript content actually changed.
-		$existing = CBNexus_CircleUp_Repository::get_meeting($id);
 		$transcript_changed = $existing && ($existing->full_transcript ?? '') !== $transcript;
 
 		CBNexus_CircleUp_Repository::update_meeting($id, [
@@ -402,16 +530,17 @@ final class CBNexus_Portal_Admin_Archivist {
 			}
 		}
 
-		// Guest attendees → match against recruitment pipeline.
-		$guest_raw = sanitize_text_field(wp_unslash($_POST['guest_attendees'] ?? ''));
-		if ($guest_raw !== '') {
-			CBNexus_Portal_Admin_Recruitment::match_guest_attendees_to_pipeline($guest_raw);
-		}
+		// Guest attendees and recruit transitions only apply to CircleUp meetings.
+		if (!$is_council) {
+			$guest_raw = sanitize_text_field(wp_unslash($_POST['guest_attendees'] ?? ''));
+			if ($guest_raw !== '') {
+				CBNexus_Portal_Admin_Recruitment::match_guest_attendees_to_pipeline($guest_raw);
+			}
 
-		// Invited recruits checked as attending → transition to "visited".
-		$recruit_ids = array_map('absint', (array) ($_POST['guest_recruit_ids'] ?? []));
-		if (!empty($recruit_ids)) {
-			CBNexus_Portal_Admin_Recruitment::transition_checked_recruits_to_visited($recruit_ids);
+			$recruit_ids = array_map('absint', (array) ($_POST['guest_recruit_ids'] ?? []));
+			if (!empty($recruit_ids)) {
+				CBNexus_Portal_Admin_Recruitment::transition_checked_recruits_to_visited($recruit_ids);
+			}
 		}
 
 		// Auto-parse if transcript changed and meeting has no items yet.
@@ -438,12 +567,11 @@ final class CBNexus_Portal_Admin_Archivist {
 			exit;
 		}
 
-		// Parse from transcript first, then also try curated summary.
-		$text = $meeting->full_transcript;
+		$text   = $meeting->full_transcript;
 		$result = CBNexus_Summary_Parser::parse($text, $id);
 
 		if (count($result['items']) < 2 && !empty($meeting->curated_summary)) {
-			$summary_result = CBNexus_Summary_Parser::parse($meeting->curated_summary, $id);
+			$summary_result  = CBNexus_Summary_Parser::parse($meeting->curated_summary, $id);
 			$result['items'] = array_merge($result['items'], $summary_result['items']);
 		}
 
@@ -452,14 +580,10 @@ final class CBNexus_Portal_Admin_Archivist {
 		}
 
 		if (empty($meeting->curated_summary) && !empty($result['summary'])) {
-			CBNexus_CircleUp_Repository::update_meeting($id, [
-				'curated_summary' => $result['summary'],
-			]);
+			CBNexus_CircleUp_Repository::update_meeting($id, ['curated_summary' => $result['summary']]);
 		}
 
-		$count = count($result['items']);
-		$notice = $count > 0 ? 'items_parsed' : 'no_items_parsed';
-
+		$notice = count($result['items']) > 0 ? 'items_parsed' : 'no_items_parsed';
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => $notice]));
 		exit;
 	}
@@ -471,7 +595,7 @@ final class CBNexus_Portal_Admin_Archivist {
 		if (!wp_verify_nonce(wp_unslash($_POST['_wpnonce'] ?? ''), 'cbnexus_portal_add_item')) { return; }
 		if (!current_user_can('cbnexus_manage_circleup')) { return; }
 
-		$id = absint($_POST['circleup_id'] ?? 0);
+		$id      = absint($_POST['circleup_id'] ?? 0);
 		$content = sanitize_textarea_field(wp_unslash($_POST['new_item_content'] ?? ''));
 		if ($id === 0 || $content === '') {
 			wp_safe_redirect(CBNexus_Portal_Admin::admin_url('archivist', ['circleup_id' => $id, 'pa_notice' => 'error']));
@@ -515,19 +639,19 @@ final class CBNexus_Portal_Admin_Archivist {
 		}
 
 		// Update remaining items.
-		$statuses  = is_array($_POST['item_status'] ?? null) ? array_map('sanitize_key', wp_unslash($_POST['item_status'])) : [];
-		$contents  = is_array($_POST['item_content'] ?? null) ? array_map(function ($v) { return sanitize_textarea_field(wp_unslash($v)); }, $_POST['item_content']) : [];
-		$speakers  = is_array($_POST['item_speaker'] ?? null) ? array_map('absint', wp_unslash($_POST['item_speaker'])) : [];
-		$assigned  = is_array($_POST['item_assigned'] ?? null) ? array_map('absint', wp_unslash($_POST['item_assigned'])) : [];
+		$statuses = is_array($_POST['item_status'] ?? null)  ? array_map('sanitize_key', wp_unslash($_POST['item_status'])) : [];
+		$contents = is_array($_POST['item_content'] ?? null) ? array_map(fn($v) => sanitize_textarea_field(wp_unslash($v)), $_POST['item_content']) : [];
+		$speakers = is_array($_POST['item_speaker'] ?? null) ? array_map('absint', wp_unslash($_POST['item_speaker'])) : [];
+		$assigned = is_array($_POST['item_assigned'] ?? null) ? array_map('absint', wp_unslash($_POST['item_assigned'])) : [];
 
 		foreach ($statuses as $item_id => $status) {
 			$item_id = absint($item_id);
 			if ($item_id === 0 || in_array($item_id, $delete_ids, true)) { continue; }
 
 			$data = ['status' => $status];
-			if (isset($contents[$item_id]))  { $data['content']     = $contents[$item_id]; }
-			if (isset($speakers[$item_id]))  { $data['speaker_id']  = $speakers[$item_id] ?: null; }
-			if (isset($assigned[$item_id]))  { $data['assigned_to'] = $assigned[$item_id] ?: null; }
+			if (isset($contents[$item_id])) { $data['content']     = $contents[$item_id]; }
+			if (isset($speakers[$item_id])) { $data['speaker_id']  = $speakers[$item_id] ?: null; }
+			if (isset($assigned[$item_id])) { $data['assigned_to'] = $assigned[$item_id] ?: null; }
 
 			CBNexus_CircleUp_Repository::update_item($item_id, $data);
 		}
@@ -555,6 +679,12 @@ final class CBNexus_Portal_Admin_Archivist {
 		exit;
 	}
 
+	/**
+	 * Publish a meeting and send the summary email to the appropriate audience.
+	 *
+	 * - CircleUp → all active members (same as before)
+	 * - Council  → only users with cb_admin or cb_super_admin role
+	 */
 	public static function handle_publish(): void {
 		$id = absint($_GET['cbnexus_portal_publish']);
 		if (!wp_verify_nonce(wp_unslash($_GET['_panonce'] ?? ''), 'cbnexus_portal_publish_' . $id)) { return; }
@@ -572,6 +702,9 @@ final class CBNexus_Portal_Admin_Archivist {
 			exit;
 		}
 
+		$mtype      = $meeting->meeting_type ?? 'circleup';
+		$is_council = ($mtype === 'council');
+
 		$items    = CBNexus_CircleUp_Repository::get_items($id);
 		$approved = array_filter($items, fn($i) => $i->status === 'approved');
 		$wins     = array_filter($approved, fn($i) => $i->item_type === 'win');
@@ -583,13 +716,33 @@ final class CBNexus_Portal_Admin_Archivist {
 			$summary_text = '<p style="font-size:15px;color:#333;line-height:1.6;">' . nl2br(esc_html(wp_trim_words($summary_text, 80))) . '</p>';
 		}
 
-		$all_members = CBNexus_Member_Repository::get_all_members('active');
-		foreach ($all_members as $m) {
-			$uid = (int) $m['user_id'];
+		// ── Determine recipient list ──────────────────────────────────
+		if ($is_council) {
+			// Council meeting: send ONLY to cb_admin and cb_super_admin users.
+			$recipients = [];
+			foreach (self::get_council_members() as $wp_user) {
+				$recipients[] = [
+					'user_id'    => $wp_user->ID,
+					'user_email' => $wp_user->user_email,
+					'first_name' => $wp_user->first_name ?: $wp_user->display_name,
+				];
+			}
+		} else {
+			// CircleUp meeting: send to all active members (existing behaviour).
+			$recipients = array_map(fn($m) => [
+				'user_id'    => (int) $m['user_id'],
+				'user_email' => $m['user_email'],
+				'first_name' => $m['first_name'],
+			], CBNexus_Member_Repository::get_all_members('active'));
+		}
 
-			$view_token    = CBNexus_Token_Service::generate($uid, 'view_circleup', ['meeting_id' => $id], 30, true);
+		// ── Send emails ───────────────────────────────────────────────
+		foreach ($recipients as $r) {
+			$uid = (int) $r['user_id'];
+
+			$view_token    = CBNexus_Token_Service::generate($uid, 'view_circleup',    ['meeting_id' => $id], 30, true);
 			$forward_token = CBNexus_Token_Service::generate($uid, 'forward_circleup', ['meeting_id' => $id], 30, true);
-			$share_token   = CBNexus_Token_Service::generate($uid, 'quick_share', [], 30, true);
+			$share_token   = CBNexus_Token_Service::generate($uid, 'quick_share',      [],                   30, true);
 
 			$my_actions = array_filter($actions, fn($i) => (int) ($i->assigned_to ?? 0) === $uid);
 			$action_items_block = '';
@@ -604,8 +757,8 @@ final class CBNexus_Portal_Admin_Archivist {
 				$action_items_block .= '</div>';
 			}
 
-			CBNexus_Email_Service::send('circleup_summary', $m['user_email'], [
-				'first_name'         => $m['first_name'],
+			CBNexus_Email_Service::send('circleup_summary', $r['user_email'], [
+				'first_name'         => $r['first_name'],
 				'title'              => $meeting->title,
 				'meeting_date'       => date_i18n('F j, Y', strtotime($meeting->meeting_date)),
 				'summary_text'       => $summary_text,
@@ -625,9 +778,6 @@ final class CBNexus_Portal_Admin_Archivist {
 
 	// ─── Auto-Parse Helper ──────────────────────────────────────────────
 
-	/**
-	 * Automatically parse a structured summary and insert items if parseable.
-	 */
 	private static function auto_parse_summary(int $meeting_id, string $text): void {
 		if (!CBNexus_Summary_Parser::looks_parseable($text)) {
 			return;
