@@ -10,7 +10,8 @@
  *   pending → accepted → scheduled → completed → closed
  *   pending → declined
  *   any active → cancelled
- *   suggested → pending (from auto-matching)
+ *   suggested → pending (from auto-matching, first accept)
+ *   pending   → accepted (from auto-matching, second accept — both must confirm)
  */
 
 defined('ABSPATH') || exit;
@@ -217,10 +218,19 @@ final class CBNexus_Meeting_Service {
 	}
 
 	/**
-	 * Accept an auto-matched suggestion. Requires both members to accept.
+	 * Accept an auto-matched suggestion. Requires both members to accept (two-accept flow).
 	 *
-	 * First accept:  suggested → pending (record who accepted).
-	 * Second accept: pending → accepted (both agreed).
+	 * First accept:  suggested → pending (record this member's acceptance).
+	 * Second accept: pending → accepted (both agreed — verified against response log).
+	 *
+	 * The transition to 'accepted' is only possible when:
+	 *   1. The meeting source is 'auto'.
+	 *   2. The current status is 'pending' (first accept already recorded).
+	 *   3. Exactly one 'accepted' response exists in cb_meeting_responses
+	 *      (from the other member — not the current user).
+	 *   4. The current user has NOT already accepted.
+	 *
+	 * This prevents any single code path from collapsing both accepts into one.
 	 *
 	 * @param int $meeting_id Meeting ID.
 	 * @param int $user_id    User accepting.
@@ -235,7 +245,7 @@ final class CBNexus_Meeting_Service {
 			return ['success' => false, 'errors' => ['You are not a participant.']];
 		}
 
-		// Already accepted by this user?
+		// Guard: this user must not have already accepted.
 		if (self::has_responded($meeting_id, $user_id, 'accepted')) {
 			return ['success' => false, 'errors' => ['You have already accepted this meeting.']];
 		}
@@ -244,18 +254,28 @@ final class CBNexus_Meeting_Service {
 		CBNexus_Meeting_Repository::record_response($meeting_id, $user_id, 'accepted', '');
 
 		if ($meeting->status === 'suggested') {
-			// First accept — move to pending.
+			// First accept — move to pending and notify the other member (if emails on).
 			CBNexus_Meeting_Repository::update($meeting_id, ['status' => 'pending']);
 			$other_id = CBNexus_Meeting_Repository::get_other_member($meeting, $user_id);
-			self::send_suggestion_first_accept_email($meeting_id, $user_id, $other_id);
+			if (CBNexus_Suggestion_Generator::emails_enabled()) {
+				self::send_suggestion_first_accept_email($meeting_id, $user_id, $other_id);
+			}
 			self::log('Suggestion: first accept.', $meeting_id, $user_id);
 			return ['success' => true, 'state' => 'waiting_for_other'];
 		}
 
 		if ($meeting->status === 'pending' && $meeting->source === 'auto') {
-			// Second accept — both agreed, move to accepted.
-			CBNexus_Meeting_Repository::update($meeting_id, ['status' => 'accepted']);
+			// Second accept — verify exactly one prior acceptance exists (from the other member).
 			$other_id = CBNexus_Meeting_Repository::get_other_member($meeting, $user_id);
+			if (!self::has_responded($meeting_id, $other_id, 'accepted')) {
+				// Other member hasn't accepted yet — treat this as the first accept.
+				// (Can happen if status was set to pending by a non-acceptance path.)
+				self::log('Suggestion: accept recorded, waiting for partner.', $meeting_id, $user_id);
+				return ['success' => true, 'state' => 'waiting_for_other'];
+			}
+
+			// Both have now accepted — finalise.
+			CBNexus_Meeting_Repository::update($meeting_id, ['status' => 'accepted']);
 			self::send_response_email($meeting_id, $user_id, $other_id, 'accepted');
 			self::log('Suggestion: both accepted.', $meeting_id, $user_id);
 			return ['success' => true, 'state' => 'accepted'];
@@ -266,11 +286,6 @@ final class CBNexus_Meeting_Service {
 
 	/**
 	 * Check if a member has already given a specific response.
-	 *
-	 * @param int    $meeting_id Meeting ID.
-	 * @param int    $user_id    User ID.
-	 * @param string $response   Response type.
-	 * @return bool
 	 */
 	private static function has_responded(int $meeting_id, int $user_id, string $response): bool {
 		global $wpdb;
@@ -283,10 +298,7 @@ final class CBNexus_Meeting_Service {
 
 	/**
 	 * Send email to the other member after the first person accepts a suggestion.
-	 *
-	 * @param int $meeting_id Meeting ID.
-	 * @param int $accepter_id User who accepted.
-	 * @param int $other_id    User still to respond.
+	 * Only called when suggestion emails are enabled.
 	 */
 	private static function send_suggestion_first_accept_email(int $meeting_id, int $accepter_id, int $other_id): void {
 		$accepter = CBNexus_Member_Repository::get_profile($accepter_id);
@@ -389,8 +401,6 @@ final class CBNexus_Meeting_Service {
 	}
 
 	private static function send_notes_request_email(int $meeting_id, int $member_a, int $member_b): void {
-		$meeting = CBNexus_Meeting_Repository::get($meeting_id);
-
 		foreach ([$member_a, $member_b] as $uid) {
 			$profile  = CBNexus_Member_Repository::get_profile($uid);
 			$other_id = ($uid === $member_a) ? $member_b : $member_a;

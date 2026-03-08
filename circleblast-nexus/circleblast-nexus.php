@@ -179,13 +179,15 @@ function cbnexus_activate(): void {
 	}
 
 	// Schedule cron jobs — respects saved frequencies and disabled states.
-	// NOTE: cbnexus_suggestion_cycle and cbnexus_suggestion_reminders default
-	// to 'disabled' intentionally. Automated matching will not run until an
-	// admin explicitly enables these in the Settings → Cron tab.
+	// NOTE: cbnexus_suggestion_cycle runs monthly by default so suggestions
+	// appear in the portal. cbnexus_suggestion_reminders is disabled by
+	// default — no emails are sent until the admin enables them.
+	// Suggestion notification emails are separately gated by the
+	// cbnexus_suggestion_emails site option (default: disabled).
 	$cron_overrides = get_option('cbnexus_cron_schedules', []);
 	$cron_defaults  = [
 		'cbnexus_meeting_reminders'        => 'daily',
-		'cbnexus_suggestion_cycle'         => 'disabled',   // Enabled manually when ready.
+		'cbnexus_suggestion_cycle'         => 'monthly',
 		'cbnexus_suggestion_reminders'     => 'disabled',   // Enabled manually when ready.
 		'cbnexus_ai_extraction'            => 'daily',
 		'cbnexus_analytics_snapshot'       => 'daily',

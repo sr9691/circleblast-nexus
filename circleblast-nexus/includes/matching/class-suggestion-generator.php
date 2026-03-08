@@ -5,6 +5,11 @@
  * ITER-0011 + Token Update: Automated monthly matching cycle.
  * Now uses the universal CBNexus_Token_Service for accept/decline links.
  * Old token handler kept for backward compat with previously sent emails.
+ *
+ * Email opt-in: suggestion notification emails are only sent when the
+ * cbnexus_suggestion_emails site option is set to 'yes'. The cycle
+ * always runs and creates meeting records — members can always see their
+ * suggestions in the portal regardless of the email setting.
  */
 
 defined('ABSPATH') || exit;
@@ -12,6 +17,14 @@ defined('ABSPATH') || exit;
 final class CBNexus_Suggestion_Generator {
 
 	private static $token_option = 'cbnexus_suggestion_tokens';
+
+	/**
+	 * Check whether suggestion notification emails are enabled.
+	 * Default: disabled — admin must explicitly turn this on.
+	 */
+	public static function emails_enabled(): bool {
+		return get_option('cbnexus_suggestion_emails', 'no') === 'yes';
+	}
 
 	public static function init(): void {
 		add_action('admin_init', [__CLASS__, 'handle_admin_trigger']);
@@ -21,6 +34,9 @@ final class CBNexus_Suggestion_Generator {
 
 	/**
 	 * Run a suggestion cycle.
+	 *
+	 * Always creates meeting records so suggestions appear in the portal.
+	 * Emails are only sent when cbnexus_suggestion_emails = 'yes'.
 	 *
 	 * Includes a cooldown check: refuses to run if a cycle completed within
 	 * the last 24 hours (prevents accidental multi-fire from cron glitches,
@@ -46,6 +62,7 @@ final class CBNexus_Suggestion_Generator {
 			}
 		}
 
+		$send_emails = self::emails_enabled();
 		$suggestions = CBNexus_Matching_Engine::generate_suggestions(0);
 		$generated   = 0;
 		$emailed     = 0;
@@ -63,25 +80,28 @@ final class CBNexus_Suggestion_Generator {
 			if (!$meeting_id) { continue; }
 			$generated++;
 
-			if (self::send_suggestion_emails($meeting_id, $s['member_a_id'], $s['member_b_id'])) {
+			if ($send_emails && self::send_suggestion_emails($meeting_id, $s['member_a_id'], $s['member_b_id'])) {
 				$emailed += 2;
 			}
 		}
 
 		update_option('cbnexus_last_suggestion_cycle', [
-			'timestamp'   => gmdate('Y-m-d H:i:s'),
-			'generated'   => $generated,
-			'emailed'     => $emailed,
-			'total_pairs' => count($suggestions),
+			'timestamp'    => gmdate('Y-m-d H:i:s'),
+			'generated'    => $generated,
+			'emailed'      => $emailed,
+			'emails_on'    => $send_emails,
+			'total_pairs'  => count($suggestions),
 		]);
 
 		if (class_exists('CBNexus_Logger')) {
 			CBNexus_Logger::info('Suggestion cycle completed.', [
-				'generated' => $generated, 'emailed' => $emailed,
+				'generated'  => $generated,
+				'emailed'    => $emailed,
+				'emails_on'  => $send_emails,
 			]);
 		}
 
-		return ['generated' => $generated, 'emailed' => $emailed];
+		return ['generated' => $generated, 'emailed' => $emailed, 'emails_on' => $send_emails];
 	}
 
 	public static function cron_run(): void {
@@ -90,8 +110,13 @@ final class CBNexus_Suggestion_Generator {
 
 	/**
 	 * Send follow-up reminders — capped at 2, with preference checks and stale cleanup.
+	 * Only runs when suggestion emails are enabled.
 	 */
 	public static function send_follow_up_reminders(): void {
+		if (!self::emails_enabled()) {
+			return;
+		}
+
 		global $wpdb;
 
 		$cutoff = gmdate('Y-m-d H:i:s', strtotime('-3 days'));
@@ -203,7 +228,7 @@ final class CBNexus_Suggestion_Generator {
 
 		if ($data['action'] === 'accept' && $meeting->source === 'auto'
 			&& in_array($meeting->status, ['suggested', 'pending'])) {
-			// Use two-accept flow for auto-matched meetings.
+			// Auto-matched: use two-accept flow.
 			CBNexus_Meeting_Service::accept_suggestion($data['meeting_id'], $data['user_id']);
 		} elseif ($data['action'] === 'accept') {
 			if ($meeting->status === 'suggested') {
