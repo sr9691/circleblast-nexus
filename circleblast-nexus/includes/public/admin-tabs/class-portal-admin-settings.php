@@ -149,6 +149,44 @@ final class CBNexus_Portal_Admin_Settings {
 					</table>
 				</div>
 
+				<!-- ── Matching & Suggestions ───────────────────────────────── -->
+				<div>
+					<h3>Matching &amp; Suggestions</h3>
+					<p class="cbnexus-admin-meta" style="margin:0 0 12px;">
+						The suggestion cycle always runs on schedule and creates matches visible in the portal.
+						Use this toggle to control whether members also receive notification emails.
+					</p>
+					<form method="post">
+						<?php
+						wp_nonce_field('cbnexus_portal_save_suggestion_emails', '_panonce_sugg_emails');
+						$emails_on = get_option('cbnexus_suggestion_emails', 'no') === 'yes';
+						?>
+						<table class="cbnexus-admin-kv-table">
+							<tr>
+								<td><strong>Suggestion Emails</strong><div class="cbnexus-admin-meta">Send match notification &amp; reminder emails to members.</div></td>
+								<td>
+									<select name="suggestion_emails" class="cbnexus-input" style="min-width:140px;">
+										<option value="yes" <?php selected($emails_on, true); ?>>✅ Enabled</option>
+										<option value="no"  <?php selected($emails_on, false); ?>>⛔ Disabled</option>
+									</select>
+								</td>
+								<td>
+									<?php if ($emails_on) : ?>
+										<span class="cbnexus-status-pill cbnexus-status-green">Emails on</span>
+									<?php else : ?>
+										<span class="cbnexus-status-pill cbnexus-status-red">Emails off</span>
+									<?php endif; ?>
+								</td>
+							</tr>
+						</table>
+						<p class="cbnexus-admin-meta" style="margin:8px 0 12px;">
+							When disabled, suggestions are still created and members can see and act on them in the
+							<strong>Meetings</strong> section of the portal — they just won't receive an email notification.
+						</p>
+						<button type="submit" name="cbnexus_portal_save_suggestion_emails" value="1" class="cbnexus-btn cbnexus-btn-primary">💾 Save</button>
+					</form>
+				</div>
+
 				<div>
 					<h3>Cron Jobs</h3>
 					<p class="cbnexus-admin-meta" style="margin:0 0 12px;">Adjust how often each automated task runs. Changes take effect immediately.</p>
@@ -488,13 +526,13 @@ final class CBNexus_Portal_Admin_Settings {
 			],
 			'cbnexus_suggestion_cycle' => [
 				'label'       => 'Suggestion Cycle',
-				'description' => 'Runs the matching engine and sends new 1:1 suggestions.',
+				'description' => 'Runs the matching engine and creates new 1:1 suggestions (visible in portal). Emails controlled separately above.',
 				'default'     => 'monthly',
 				'options'     => $freq_daily_weekly_monthly,
 			],
 			'cbnexus_suggestion_reminders' => [
 				'label'       => 'Suggestion Reminders',
-				'description' => 'Sends follow-up reminders for unanswered suggestions.',
+				'description' => 'Sends follow-up reminders for unanswered suggestions (only runs when Suggestion Emails are enabled).',
 				'default'     => 'weekly',
 				'options'     => $freq_daily_weekly,
 			],
@@ -543,15 +581,24 @@ final class CBNexus_Portal_Admin_Settings {
 		];
 	}
 
+	// ─── Save Handlers ─────────────────────────────────────────────────
+
 	/**
-	 * Handle saving cron schedules.
+	 * Save the suggestion emails enabled/disabled toggle.
 	 */
-	/**
-	 * Handle saving email sender settings.
-	 */
-	/**
-	 * Handle saving API keys.
-	 */
+	public static function handle_save_suggestion_emails(): void {
+		if (!isset($_POST['cbnexus_portal_save_suggestion_emails'])) { return; }
+		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_sugg_emails'] ?? ''), 'cbnexus_portal_save_suggestion_emails')) { return; }
+		if (!current_user_can('cbnexus_manage_plugin_settings')) { return; }
+
+		$value = sanitize_key($_POST['suggestion_emails'] ?? 'no');
+		$value = in_array($value, ['yes', 'no'], true) ? $value : 'no';
+		update_option('cbnexus_suggestion_emails', $value, false);
+
+		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('settings', ['pa_notice' => 'suggestion_emails_saved']));
+		exit;
+	}
+
 	public static function handle_save_api_keys(): void {
 		if (!isset($_POST['cbnexus_portal_save_api_keys'])) { return; }
 		if (!wp_verify_nonce(wp_unslash($_POST['_panonce_apikeys'] ?? ''), 'cbnexus_portal_save_api_keys')) { return; }
@@ -618,6 +665,7 @@ final class CBNexus_Portal_Admin_Settings {
 		$saved = get_option('cbnexus_cron_schedules', []);
 
 		foreach ($defs as $hook => $def) {
+			if ($def === null) { continue; }
 			$new_freq = sanitize_key($input[$hook] ?? $def['default']);
 
 			// Validate against allowed options.
