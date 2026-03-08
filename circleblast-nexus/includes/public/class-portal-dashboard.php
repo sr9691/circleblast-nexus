@@ -6,6 +6,8 @@
  * metrics. Plum & gold themed, matching demo layout: greeting row,
  * 5-stat grid, action-required card with gold highlight, two-column
  * upcoming + action items, recent meeting history with note status pills.
+ *
+ * Journal summary card injected below the stat grid (if CBNexus_Portal_Journal is available).
  */
 
 defined('ABSPATH') || exit;
@@ -90,6 +92,13 @@ final class CBNexus_Portal_Dashboard {
 					<span class="cbnexus-stat-label"><?php esc_html_e('Contributions', 'circleblast-nexus'); ?></span>
 				</div>
 			</div>
+
+			<!-- Journal Summary Card -->
+			<?php
+			if (class_exists('CBNexus_Portal_Journal')) {
+				CBNexus_Portal_Journal::render_dashboard_card($uid);
+			}
+			?>
 
 			<?php if (!empty($pending) || !empty($needs_notes) || !empty($suggested)) : ?>
 			<!-- Needs Your Attention -->

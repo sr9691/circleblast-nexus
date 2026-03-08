@@ -153,6 +153,11 @@ final class CBNexus_Migration_Runner {
 				'class'  => 'CBNexus_Migration_021_Create_Feedback',
 				'method' => 'up',
 			],
+			'023_create_member_journal' => [
+				'file'   => CBNEXUS_PLUGIN_DIR . 'includes/migrations/versions/023-create-member-journal.php',
+				'class'  => 'CBNexus_Migration_023_Create_Member_Journal',
+				'method' => 'up',
+			],
 		];
 	}
 

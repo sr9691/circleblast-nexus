@@ -123,6 +123,11 @@ final class CBNexus_Autoloader {
 		// Feedback
 		'CBNexus_Feedback_Service' => 'includes/feedback/class-feedback-service.php',
 		'CBNexus_Feedback_Form'    => 'includes/public/class-feedback-form.php',
+
+		// Journal (standalone wins/insights/referrals)
+		'CBNexus_Journal_Repository' => 'includes/journal/class-journal-repository.php',
+		'CBNexus_Journal_Service'    => 'includes/journal/class-journal-service.php',
+		'CBNexus_Portal_Journal'     => 'includes/public/class-portal-journal.php',
 	];
 
 	/**

@@ -45,6 +45,11 @@ final class CBNexus_Portal_Router {
 				'icon'     => '🤝',
 				'callback' => ['CBNexus_Portal_Meetings', 'render'],
 			],
+			'journal' => [
+				'label'    => __('Journal', 'circleblast-nexus'),
+				'icon'     => '📓',
+				'callback' => ['CBNexus_Portal_Journal', 'render'],
+			],
 			'circleup' => [
 				'label'    => __('CircleUp', 'circleblast-nexus'),
 				'icon'     => '📢',
