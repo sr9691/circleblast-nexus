@@ -505,8 +505,9 @@ final class CBNexus_Event_Service {
 		if (empty($time)) {
 			return gmdate('Ymd', strtotime($date));
 		}
-		$ts = strtotime($date . ' ' . $time);
-		return gmdate('Ymd\THis\Z', $ts);
+		$dt = new \DateTime($date . ' ' . $time, wp_timezone());
+		$dt->setTimezone(new \DateTimeZone('UTC'));
+		return $dt->format('Ymd\THis\Z');
 	}
 
 	/**
@@ -516,8 +517,9 @@ final class CBNexus_Event_Service {
 		if (empty($time)) {
 			return gmdate('Y-m-d', strtotime($date));
 		}
-		$ts = strtotime($date . ' ' . $time);
-		return gmdate('Y-m-d\TH:i:s\Z', $ts);
+		$dt = new \DateTime($date . ' ' . $time, wp_timezone());
+		$dt->setTimezone(new \DateTimeZone('UTC'));
+		return $dt->format('Y-m-d\TH:i:s\Z');
 	}
 
 	// ─── Shared Helpers ─────────────────────────────────────────────────

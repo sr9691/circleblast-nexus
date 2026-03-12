@@ -124,7 +124,9 @@ final class CBNexus_Events_ICS_API {
 		if (empty($time)) {
 			return gmdate('Ymd', strtotime($date));
 		}
-		return gmdate('Ymd\THis\Z', strtotime($date . ' ' . $time));
+		$dt = new \DateTime($date . ' ' . $time, wp_timezone());
+		$dt->setTimezone(new \DateTimeZone('UTC'));
+		return $dt->format('Ymd\THis\Z');
 	}
 
 	/**
