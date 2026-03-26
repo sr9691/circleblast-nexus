@@ -39,31 +39,85 @@
 	}
 
 	// ── type-specific form hints ─────────────────────────────────────────
-	var typeHints = {
-		win:               { label: 'What did you win?',          placeholder: 'e.g. Closed a deal, landed a new client, hit a milestone...' },
-		insight:           { label: 'What did you learn?',        placeholder: 'e.g. New strategy, key takeaway from a conversation...' },
-		referral_given:    { label: 'Who did you refer?',         placeholder: 'e.g. Referred Jane to Bob for web design services...' },
-		referral_received: { label: 'What referral did you get?', placeholder: 'e.g. Got an intro to Acme Corp from a fellow member...' },
-		action:            { label: 'What did you commit to?',    placeholder: 'e.g. Follow up with prospect, send proposal by Friday...' },
+	// ── type-specific form configuration ─────────────────────────────
+	var typeConfig = {
+		win: {
+			contentLabel: 'What did you win?',
+			contentPlaceholder: 'e.g. Closed a deal, landed a new client, hit a milestone...',
+			contextLabel: 'Context / Notes',
+			contextPlaceholder: 'e.g. deal size, who was involved, what led to the win...',
+			showMember: false,
+		},
+		insight: {
+			contentLabel: 'What did you learn?',
+			contentPlaceholder: 'e.g. New strategy, key takeaway from a conversation...',
+			contextLabel: 'How will you apply this?',
+			contextPlaceholder: 'e.g. will test this approach next quarter, shared with team...',
+			showMember: false,
+		},
+		referral_given: {
+			contentLabel: 'What was the referral?',
+			contentPlaceholder: 'e.g. Introduced them for web design services, recommended for consulting...',
+			contextLabel: 'Additional details',
+			contextPlaceholder: 'e.g. deal size, expected timeline, how to follow up...',
+			memberLabel: 'Who did you refer?',
+			showMember: true,
+		},
+		referral_received: {
+			contentLabel: 'What was the referral?',
+			contentPlaceholder: 'e.g. Got an intro to Acme Corp for their IT needs...',
+			contextLabel: 'Additional details',
+			contextPlaceholder: 'e.g. next steps, meeting scheduled, potential value...',
+			memberLabel: 'Who referred you?',
+			showMember: true,
+		},
+		action: {
+			contentLabel: 'What are you committing to?',
+			contentPlaceholder: 'e.g. Follow up with prospect, send proposal by Friday, schedule intro...',
+			contextLabel: 'Due date or context',
+			contextPlaceholder: 'e.g. by end of week, after next meeting, pending their reply...',
+			showMember: false,
+		},
 	};
 
 	function initTypeHints() {
-		var radios  = document.querySelectorAll('#cbnexus-journal-form input[name="entry_type"]');
-		var labelEl = document.querySelector('label[for="cbnexus-journal-content"]');
-		var textarea = document.getElementById('cbnexus-journal-content');
-		if (!radios.length || !labelEl || !textarea) return;
+		var radios       = document.querySelectorAll('#cbnexus-journal-form input[name="entry_type"]');
+		var contentLabel = document.getElementById('cbnexus-journal-content-label');
+		var contentTA    = document.getElementById('cbnexus-journal-content');
+		var contextLabel = document.getElementById('cbnexus-journal-context-label');
+		var contextTA    = document.getElementById('cbnexus-journal-context');
+		var memberField  = document.getElementById('cbnexus-journal-member-field');
+		var memberLabel  = document.getElementById('cbnexus-journal-member-label');
+		var memberSelect = document.getElementById('cbnexus-journal-member');
+		var externalField = document.getElementById('cbnexus-journal-external-field');
+		if (!radios.length || !contentLabel) return;
 
 		function update(type) {
-			var hint = typeHints[type];
-			if (!hint) return;
-			labelEl.innerHTML = hint.label + ' <span style="color:var(--cb-accent);">*</span>';
-			textarea.placeholder = hint.placeholder;
+			var c = typeConfig[type];
+			if (!c) return;
+			contentLabel.innerHTML = c.contentLabel + ' <span style="color:var(--cb-accent);">*</span>';
+			if (contentTA) contentTA.placeholder = c.contentPlaceholder;
+			if (contextLabel) contextLabel.innerHTML = c.contextLabel + ' <span class="cbnexus-text-muted">(optional)</span>';
+			if (contextTA) contextTA.placeholder = c.contextPlaceholder;
+			if (memberField) memberField.style.display = c.showMember ? '' : 'none';
+			if (memberLabel && c.memberLabel) memberLabel.textContent = c.memberLabel;
+			// Reset member picker when hiding.
+			if (!c.showMember && memberSelect) {
+				memberSelect.value = '';
+				if (externalField) externalField.style.display = 'none';
+			}
+		}
+
+		// Show/hide external name field based on member select value.
+		if (memberSelect && externalField) {
+			memberSelect.addEventListener('change', function () {
+				externalField.style.display = memberSelect.value === 'external' ? '' : 'none';
+			});
 		}
 
 		radios.forEach(function (r) {
 			r.addEventListener('change', function () { update(r.value); });
 		});
-		// Set initial hint for default selection.
 		var checked = document.querySelector('#cbnexus-journal-form input[name="entry_type"]:checked');
 		if (checked) update(checked.value);
 	}
@@ -97,11 +151,13 @@
 			btn.textContent = 'Saving…';
 
 			const data = {
-				entry_type:  form.querySelector('[name=entry_type]:checked')?.value || 'win',
-				content:     form.querySelector('[name=content]').value,
-				context:     form.querySelector('[name=context]').value,
-				entry_date:  form.querySelector('[name=entry_date]').value,
-				visibility:  form.querySelector('[name=visibility]').value,
+				entry_type:      form.querySelector('[name=entry_type]:checked')?.value || 'win',
+				content:         form.querySelector('[name=content]').value,
+				context:         form.querySelector('[name=context]').value,
+				entry_date:      form.querySelector('[name=entry_date]').value,
+				visibility:      form.querySelector('[name=visibility]').value,
+				related_member:  form.querySelector('[name=related_member]')?.value || '',
+				external_name:   form.querySelector('[name=external_name]')?.value || '',
 			};
 
 			post('cbnexus_journal_add', data, res => {
@@ -128,6 +184,12 @@
 				showMsg(msg, '✓ Saved!', true);
 				form.querySelector('[name=content]').value = '';
 				form.querySelector('[name=context]').value = '';
+				var memberSel = form.querySelector('[name=related_member]');
+				if (memberSel) memberSel.value = '';
+				var extName = form.querySelector('[name=external_name]');
+				if (extName) extName.value = '';
+				var extField = document.getElementById('cbnexus-journal-external-field');
+				if (extField) extField.style.display = 'none';
 			});
 		});
 	}

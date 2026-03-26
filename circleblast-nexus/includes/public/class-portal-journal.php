@@ -105,15 +105,41 @@ final class CBNexus_Portal_Journal {
 							<?php endforeach; ?>
 						</div>
 
-						<div class="cbnexus-form-field" style="margin-top:12px;">
-							<label for="cbnexus-journal-content"><?php esc_html_e('What happened?', 'circleblast-nexus'); ?> <span style="color:var(--cb-accent);">*</span></label>
+						<!-- Member picker (referral types only) -->
+						<?php
+						$members = CBNexus_Member_Repository::get_all_members('active');
+						usort($members, fn($a, $b) => strcasecmp($a['display_name'], $b['display_name']));
+						?>
+						<div class="cbnexus-form-field cbnexus-journal-field-member" id="cbnexus-journal-member-field" style="margin-top:12px;display:none;">
+							<label for="cbnexus-journal-member" id="cbnexus-journal-member-label"><?php esc_html_e('Member', 'circleblast-nexus'); ?></label>
+							<select id="cbnexus-journal-member" name="related_member">
+								<option value=""><?php esc_html_e('— Select a member —', 'circleblast-nexus'); ?></option>
+								<?php foreach ($members as $m) :
+									if ((int) $m['user_id'] === $uid) { continue; }
+								?>
+									<option value="<?php echo esc_attr($m['user_id']); ?>"><?php echo esc_html($m['display_name'] . ($m['cb_company'] ? ' · ' . $m['cb_company'] : '')); ?></option>
+								<?php endforeach; ?>
+								<option value="external"><?php esc_html_e('Someone outside the group', 'circleblast-nexus'); ?></option>
+							</select>
+						</div>
+
+						<!-- External name (shown when "outside the group" selected) -->
+						<div class="cbnexus-form-field" id="cbnexus-journal-external-field" style="display:none;">
+							<label for="cbnexus-journal-external"><?php esc_html_e('Their name', 'circleblast-nexus'); ?></label>
+							<input type="text" id="cbnexus-journal-external" name="external_name" placeholder="<?php esc_attr_e('Full name', 'circleblast-nexus'); ?>" maxlength="200" />
+						</div>
+
+						<!-- Main content textarea -->
+						<div class="cbnexus-form-field" style="margin-top:12px;" id="cbnexus-journal-content-field">
+							<label for="cbnexus-journal-content" id="cbnexus-journal-content-label"><?php esc_html_e('What happened?', 'circleblast-nexus'); ?> <span style="color:var(--cb-accent);">*</span></label>
 							<textarea id="cbnexus-journal-content" name="content" rows="3"
 								placeholder="<?php esc_attr_e('Describe your win, insight, or referral...', 'circleblast-nexus'); ?>"
 								maxlength="2000" required></textarea>
 						</div>
 
-						<div class="cbnexus-form-field">
-							<label for="cbnexus-journal-context"><?php esc_html_e('Context / Notes', 'circleblast-nexus'); ?> <span class="cbnexus-text-muted">(<?php esc_html_e('optional', 'circleblast-nexus'); ?>)</span></label>
+						<!-- Context textarea -->
+						<div class="cbnexus-form-field" id="cbnexus-journal-context-field">
+							<label for="cbnexus-journal-context" id="cbnexus-journal-context-label"><?php esc_html_e('Context / Notes', 'circleblast-nexus'); ?> <span class="cbnexus-text-muted">(<?php esc_html_e('optional', 'circleblast-nexus'); ?>)</span></label>
 							<textarea id="cbnexus-journal-context" name="context" rows="2"
 								placeholder="<?php esc_attr_e('e.g. names involved, deal size, follow-up needed...', 'circleblast-nexus'); ?>"
 								maxlength="1000"></textarea>
@@ -245,10 +271,32 @@ final class CBNexus_Portal_Journal {
 	public static function ajax_add(): void {
 		$uid = self::verify_ajax();
 
+		$entry_type     = sanitize_key(wp_unslash($_POST['entry_type'] ?? 'win'));
+		$related_member = sanitize_text_field(wp_unslash($_POST['related_member'] ?? ''));
+		$external_name  = sanitize_text_field(wp_unslash($_POST['external_name'] ?? ''));
+		$context_raw    = sanitize_textarea_field(wp_unslash($_POST['context'] ?? ''));
+
+		// For referral types, prepend the related member/person to context.
+		if (in_array($entry_type, ['referral_given', 'referral_received'], true)) {
+			$person_name = '';
+			if ($related_member === 'external' && $external_name !== '') {
+				$person_name = $external_name . ' (external)';
+			} elseif ($related_member !== '' && $related_member !== 'external') {
+				$profile = CBNexus_Member_Repository::get_profile((int) $related_member);
+				if ($profile) {
+					$person_name = $profile['display_name'];
+				}
+			}
+			if ($person_name !== '') {
+				$prefix = $entry_type === 'referral_given' ? 'Referred: ' : 'Referred by: ';
+				$context_raw = $prefix . $person_name . ($context_raw !== '' ? "\n" . $context_raw : '');
+			}
+		}
+
 		$data = [
-			'entry_type' => sanitize_key(wp_unslash($_POST['entry_type'] ?? 'win')),
+			'entry_type' => $entry_type,
 			'content'    => sanitize_textarea_field(wp_unslash($_POST['content'] ?? '')),
-			'context'    => sanitize_textarea_field(wp_unslash($_POST['context'] ?? '')),
+			'context'    => $context_raw,
 			'entry_date' => sanitize_text_field(wp_unslash($_POST['entry_date'] ?? gmdate('Y-m-d'))),
 			'visibility' => sanitize_key(wp_unslash($_POST['visibility'] ?? 'private')),
 		];
