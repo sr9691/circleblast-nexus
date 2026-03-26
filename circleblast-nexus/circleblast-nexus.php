@@ -134,6 +134,7 @@ CBNexus_Fireflies_Webhook::init();
 CBNexus_Portal_CircleUp::init();
 CBNexus_Portal_Club::init();
 CBNexus_Portal_Events::init();
+CBNexus_Portal_Journal::init();
 CBNexus_Portal_Admin::init();
 CBNexus_Token_Router::init();
 CBNexus_Referral_Form::init();
