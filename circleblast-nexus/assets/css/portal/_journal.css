@@ -67,6 +67,25 @@
 	margin-top: 0;
 }
 
+/* ── Type chip checked states (journal-specific types) ────────────────────── */
+.cbnexus-cu-type-option input[type="radio"]:checked + .cbnexus-cu-type-chip--referral-given {
+	background: var(--cb-green-soft, #ecfdf5);
+	color: var(--cb-green, #2a7a2a);
+	border-color: var(--cb-green, #2a7a2a);
+}
+
+.cbnexus-cu-type-option input[type="radio"]:checked + .cbnexus-cu-type-chip--referral-received {
+	background: var(--cb-blue-soft, #eff6ff);
+	color: var(--cb-blue, #2563eb);
+	border-color: var(--cb-blue, #3b82f6);
+}
+
+.cbnexus-cu-type-option input[type="radio"]:checked + .cbnexus-cu-type-chip--action {
+	background: var(--cb-bg-deep, #f0edf5);
+	color: var(--cb-text-primary, #1a1a2e);
+	border-color: var(--cb-text-ter, #999);
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
 	.cbnexus-journal-filters {

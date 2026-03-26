@@ -38,6 +38,36 @@
 		if (isOk) { setTimeout(() => { el.style.display = 'none'; }, 3000); }
 	}
 
+	// ── type-specific form hints ─────────────────────────────────────────
+	var typeHints = {
+		win:               { label: 'What did you win?',          placeholder: 'e.g. Closed a deal, landed a new client, hit a milestone...' },
+		insight:           { label: 'What did you learn?',        placeholder: 'e.g. New strategy, key takeaway from a conversation...' },
+		referral_given:    { label: 'Who did you refer?',         placeholder: 'e.g. Referred Jane to Bob for web design services...' },
+		referral_received: { label: 'What referral did you get?', placeholder: 'e.g. Got an intro to Acme Corp from a fellow member...' },
+		action:            { label: 'What did you commit to?',    placeholder: 'e.g. Follow up with prospect, send proposal by Friday...' },
+	};
+
+	function initTypeHints() {
+		var radios  = document.querySelectorAll('#cbnexus-journal-form input[name="entry_type"]');
+		var labelEl = document.querySelector('label[for="cbnexus-journal-content"]');
+		var textarea = document.getElementById('cbnexus-journal-content');
+		if (!radios.length || !labelEl || !textarea) return;
+
+		function update(type) {
+			var hint = typeHints[type];
+			if (!hint) return;
+			labelEl.innerHTML = hint.label + ' <span style="color:var(--cb-accent);">*</span>';
+			textarea.placeholder = hint.placeholder;
+		}
+
+		radios.forEach(function (r) {
+			r.addEventListener('change', function () { update(r.value); });
+		});
+		// Set initial hint for default selection.
+		var checked = document.querySelector('#cbnexus-journal-form input[name="entry_type"]:checked');
+		if (checked) update(checked.value);
+	}
+
 	// ── collapsible toggle (mirrors circleup.js pattern) ─────────────────
 	function initToggle() {
 		const btn  = document.getElementById('cbnexus-journal-toggle');
@@ -170,6 +200,7 @@
 
 	ready(() => {
 		initToggle();
+		initTypeHints();
 		initForm();
 		initDeleteDelegation();
 		initFilterTabs();
