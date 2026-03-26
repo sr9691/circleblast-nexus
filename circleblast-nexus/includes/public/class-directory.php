@@ -130,6 +130,20 @@ final class CBNexus_Directory {
 					<?php echo self::render_cards($members); ?>
 				</div>
 			</div>
+
+			<!-- Quick Preview Modal -->
+			<div id="cbnexus-preview-overlay" class="cbnexus-preview-overlay" style="display:none;"></div>
+			<div id="cbnexus-preview-modal" class="cbnexus-preview-modal" style="display:none;">
+				<div class="cbnexus-preview-header">
+					<h3 id="cbnexus-preview-name"></h3>
+					<button type="button" class="cbnexus-preview-close" id="cbnexus-preview-close">&times;</button>
+				</div>
+				<p id="cbnexus-preview-title" class="cbnexus-text-muted" style="margin-bottom:12px;"></p>
+				<div id="cbnexus-preview-body"></div>
+				<div class="cbnexus-preview-footer">
+					<a id="cbnexus-preview-profile-link" href="#" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm">View Full Profile</a>
+				</div>
+			</div>
 		</div>
 		<?php
 	}
@@ -258,14 +272,15 @@ final class CBNexus_Directory {
 				$html .= '</div>';
 			}
 
-			// Expertise tags (directory-specific — not shown on Manage page).
+			// Expertise tags (directory-specific — truncate long tags to 30 chars).
 			if (!empty($expertise)) {
 				$html .= '<div class="cbnexus-admin-mcard-detail cbnexus-admin-mcard-detail-tags">';
 				$html .= '<span class="cbnexus-admin-mcard-detail-label">Skills</span>';
 				$html .= '<span class="cbnexus-admin-mcard-tags-wrap">';
 				$show = array_slice($expertise, 0, 3);
 				foreach ($show as $tag) {
-					$html .= '<span class="cbnexus-tag">' . esc_html($tag) . '</span>';
+					$display = mb_strlen($tag) > 30 ? mb_substr($tag, 0, 27) . '...' : $tag;
+					$html .= '<span class="cbnexus-tag" title="' . esc_attr($tag) . '">' . esc_html($display) . '</span>';
 				}
 				if (count($expertise) > 3) {
 					$html .= '<span class="cbnexus-tag cbnexus-tag-more">+' . (count($expertise) - 3) . '</span>';
@@ -274,7 +289,7 @@ final class CBNexus_Directory {
 				$html .= '</div>';
 			}
 
-			// Admin-only: email + join date.
+			// Admin-only: email, join date, last login.
 			if ($is_admin) {
 				$html .= '<div class="cbnexus-admin-mcard-detail">';
 				$html .= '<span class="cbnexus-admin-mcard-detail-label">Email</span>';
@@ -286,6 +301,15 @@ final class CBNexus_Directory {
 					$html .= '<span class="cbnexus-admin-mcard-value">' . esc_html($m['cb_join_date']) . '</span>';
 					$html .= '</div>';
 				}
+				$last_login = get_user_meta((int) $uid, 'cb_last_login', true);
+				$html .= '<div class="cbnexus-admin-mcard-detail">';
+				$html .= '<span class="cbnexus-admin-mcard-detail-label">Last Login</span>';
+				if ($last_login) {
+					$html .= '<span class="cbnexus-admin-mcard-value">' . esc_html(date_i18n('M j, Y', strtotime($last_login))) . '</span>';
+				} else {
+					$html .= '<span class="cbnexus-admin-mcard-value cbnexus-text-muted">Never</span>';
+				}
+				$html .= '</div>';
 			}
 
 			$html .= '</div>'; // end details
@@ -322,6 +346,23 @@ final class CBNexus_Directory {
 				}
 				$html .= '</div>';
 			}
+			// Quick Preview button.
+			$html .= '<button type="button" class="cbnexus-btn cbnexus-btn-sm cbnexus-btn-outline cbnexus-preview-btn"'
+				. ' data-member-id="' . esc_attr($uid) . '"'
+				. ' data-name="' . esc_attr($m['display_name']) . '"'
+				. ' data-title="' . esc_attr($m['cb_title'] ?? '') . '"'
+				. ' data-company="' . esc_attr($m['cb_company'] ?? '') . '"'
+				. ' data-industry="' . esc_attr($m['cb_industry'] ?? '') . '"'
+				. ' data-bio="' . esc_attr($m['cb_bio'] ?? '') . '"'
+				. ' data-expertise="' . esc_attr(wp_json_encode($expertise)) . '"'
+				. ' data-looking="' . esc_attr(wp_json_encode(is_array($m['cb_looking_for'] ?? null) ? $m['cb_looking_for'] : [])) . '"'
+				. ' data-help="' . esc_attr(wp_json_encode(is_array($m['cb_can_help_with'] ?? null) ? $m['cb_can_help_with'] : [])) . '"'
+				. ' data-email="' . esc_attr($m['user_email']) . '"'
+				. ' data-phone="' . esc_attr($m['cb_phone'] ?? '') . '"'
+				. ' data-linkedin="' . esc_attr($m['cb_linkedin'] ?? '') . '"'
+				. ' data-profile-url="' . esc_url($profile_url) . '"'
+				. '>' . esc_html__('Quick Preview', 'circleblast-nexus') . '</button>';
+
 			// Request 1:1 button — available to all members (including admins).
 			if ((int) $uid !== $viewer_id) {
 				$html .= '<button type="button" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm cbnexus-request-meeting-btn" data-member-id="' . esc_attr($uid) . '">' . esc_html__('Request 1:1', 'circleblast-nexus') . '</button>';

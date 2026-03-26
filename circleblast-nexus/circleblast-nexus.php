@@ -12,7 +12,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('CBNEXUS_VERSION')) {
-	define('CBNEXUS_VERSION', '1.2.0');
+	define('CBNEXUS_VERSION', '1.3.0');
 }
 if (!defined('CBNEXUS_PLUGIN_FILE')) {
 	define('CBNEXUS_PLUGIN_FILE', __FILE__);
@@ -152,6 +152,15 @@ add_filter('login_redirect', function ($redirect_to, $requested, $user) {
 	$portal_url = CBNexus_Portal_Router::get_portal_url();
 	return $portal_url ? $portal_url : $redirect_to;
 }, 10, 3);
+
+/**
+ * Track last-login timestamp for portal members.
+ */
+add_action('wp_login', function ($user_login, $user) {
+	if ($user instanceof WP_User && user_can($user, 'cbnexus_access_portal')) {
+		update_user_meta($user->ID, 'cb_last_login', current_time('mysql'));
+	}
+}, 10, 2);
 
 /**
  * Activation: run migrations and schedule cron (activation-only policy, approved).
