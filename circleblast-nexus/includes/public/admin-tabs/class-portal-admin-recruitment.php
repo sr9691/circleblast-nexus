@@ -358,6 +358,17 @@ final class CBNexus_Portal_Admin_Recruitment {
 			'updated_at'  => $now,
 		], ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s']);
 
+		// Notify referrer that their prospect was received.
+		$new_id = $wpdb->insert_id;
+		if ($new_id) {
+			$candidate = $wpdb->get_row($wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}cb_candidates WHERE id = %d", $new_id
+			));
+			if ($candidate) {
+				self::run_recruitment_automations($candidate, '', 'referral');
+			}
+		}
+
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'candidate_added']));
 		exit;
 	}
@@ -384,7 +395,11 @@ final class CBNexus_Portal_Admin_Recruitment {
 		], ['id' => $id], ['%s', '%s', '%s'], ['%d']);
 
 		if ($old_stage !== $new_stage) {
-			self::run_recruitment_automations($candidate, $old_stage, $new_stage);
+			// Re-fetch so automations see the updated notes/stage.
+			$updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+			if ($updated) {
+				self::run_recruitment_automations($updated, $old_stage, $new_stage);
+			}
 		}
 
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'candidate_updated']));
@@ -439,6 +454,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 			: '';
 
 		// ── 1. "Accepted" → auto-create member account ──
+		$accepted_referrer_emailed = false;
 		if ($new_stage === 'accepted') {
 			$created_user_id = self::convert_candidate_to_member($candidate);
 
@@ -451,6 +467,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 					'recipient_id' => $referrer->ID,
 					'related_type' => 'recruitment_accepted',
 				]);
+				$accepted_referrer_emailed = true;
 			}
 
 			if (class_exists('CBNexus_Logger')) {
@@ -460,8 +477,6 @@ final class CBNexus_Portal_Admin_Recruitment {
 					'new_user_id'  => $created_user_id,
 				]);
 			}
-
-			return;
 		}
 
 		// ── 2. "Invited" → email the candidate ──
@@ -535,7 +550,8 @@ final class CBNexus_Portal_Admin_Recruitment {
 		}
 
 		// ── 4. Notify referrer on any stage change ──
-		if ($referrer) {
+		// Skip if the specific recruit_accepted email was already sent to avoid a double-send.
+		if ($referrer && !$accepted_referrer_emailed) {
 			CBNexus_Email_Service::send('recruit_stage_referrer', $referrer->user_email, [
 				'referrer_name'        => $referrer->display_name,
 				'candidate_name'       => $candidate->name,

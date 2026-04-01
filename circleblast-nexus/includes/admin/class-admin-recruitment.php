@@ -61,6 +61,17 @@ final class CBNexus_Admin_Recruitment {
 			'updated_at'  => $now,
 		], ['%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']);
 
+		// Notify referrer that their prospect was received.
+		$new_id = $wpdb->insert_id;
+		if ($new_id && class_exists('CBNexus_Portal_Admin')) {
+			$candidate = $wpdb->get_row($wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}cb_candidates WHERE id = %d", $new_id
+			));
+			if ($candidate) {
+				CBNexus_Portal_Admin::trigger_recruitment_automation($candidate, '', 'referral');
+			}
+		}
+
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-recruitment&cbnexus_notice=added'));
 		exit;
 	}
@@ -91,7 +102,11 @@ final class CBNexus_Admin_Recruitment {
 
 		// Trigger automations on stage change (delegate to Portal Admin which has the logic).
 		if ($old_stage !== $new_stage && class_exists('CBNexus_Portal_Admin')) {
-			CBNexus_Portal_Admin::trigger_recruitment_automation($candidate, $old_stage, $new_stage);
+			// Re-fetch so automations see the updated notes/stage.
+			$updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+			if ($updated) {
+				CBNexus_Portal_Admin::trigger_recruitment_automation($updated, $old_stage, $new_stage);
+			}
 		}
 
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-recruitment&cbnexus_notice=updated'));
