@@ -453,6 +453,9 @@ final class CBNexus_Portal_Admin_Recruitment {
 			? '<div style="background:#f0f9ff;border-left:3px solid #2563eb;padding:12px 16px;margin:16px 0;font-size:14px;color:#1e40af;">' . $detail_inner . '</div>'
 			: '';
 
+		// Council emails for CC on referrer-facing stage notifications (excludes the referrer themself).
+		$council_cc = self::get_council_cc_emails($referrer);
+
 		// ── 1. "Accepted" → auto-create member account ──
 		$accepted_referrer_emailed = false;
 		if ($new_stage === 'accepted') {
@@ -466,6 +469,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 				], [
 					'recipient_id' => $referrer->ID,
 					'related_type' => 'recruitment_accepted',
+					'cc'           => $council_cc,
 				]);
 				$accepted_referrer_emailed = true;
 			}
@@ -562,8 +566,30 @@ final class CBNexus_Portal_Admin_Recruitment {
 				'recipient_id' => $referrer->ID,
 				'related_type' => 'recruitment_stage_change',
 				'related_id'   => $candidate->id,
+				'cc'           => $council_cc,
 			]);
 		}
+	}
+
+	/**
+	 * Return email addresses for all council members (cb_admin + cb_super_admin),
+	 * optionally excluding a given user (typically the referrer, who is the primary To).
+	 *
+	 * @return string[]
+	 */
+	private static function get_council_cc_emails(?WP_User $exclude = null): array {
+		$admins       = get_users(['role' => 'cb_admin',       'fields' => ['ID', 'user_email']]);
+		$super_admins = get_users(['role' => 'cb_super_admin', 'fields' => ['ID', 'user_email']]);
+		$exclude_id   = $exclude ? (int) $exclude->ID : 0;
+
+		$emails = [];
+		foreach (array_merge($admins, $super_admins) as $u) {
+			if ((int) $u->ID === $exclude_id) { continue; }
+			if (!empty($u->user_email)) {
+				$emails[strtolower($u->user_email)] = $u->user_email;
+			}
+		}
+		return array_values($emails);
 	}
 
 	/**

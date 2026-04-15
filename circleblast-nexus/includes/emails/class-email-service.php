@@ -16,7 +16,7 @@ final class CBNexus_Email_Service {
 	 * @param string $template_id  Template identifier (e.g. 'welcome_member').
 	 * @param string $to_email     Recipient email address.
 	 * @param array  $vars         Template variables for placeholder replacement.
-	 * @param array  $options      Optional: 'subject', 'recipient_id', 'related_id', 'related_type'.
+	 * @param array  $options      Optional: 'subject', 'recipient_id', 'related_id', 'related_type', 'cc' (string|array of emails).
 	 * @return bool True if wp_mail reported success.
 	 */
 	public static function send(string $template_id, string $to_email, array $vars = [], array $options = []): bool {
@@ -61,6 +61,21 @@ final class CBNexus_Email_Service {
 			'Content-Type: text/html; charset=UTF-8',
 			self::get_from_header(),
 		];
+
+		// Optional CC recipients — de-duplicated and stripped of the primary To address.
+		if (!empty($options['cc'])) {
+			$cc_raw = is_array($options['cc']) ? $options['cc'] : [$options['cc']];
+			$to_lc  = strtolower(trim($to_email));
+			$seen   = [];
+			foreach ($cc_raw as $cc_email) {
+				$cc_email = trim((string) $cc_email);
+				if ($cc_email === '' || !is_email($cc_email)) { continue; }
+				$key = strtolower($cc_email);
+				if ($key === $to_lc || isset($seen[$key])) { continue; }
+				$seen[$key] = true;
+				$headers[]  = 'Cc: ' . $cc_email;
+			}
+		}
 
 		$sent   = wp_mail($to_email, $subject, $html_body, $headers);
 		$status = $sent ? 'sent' : 'failed';
