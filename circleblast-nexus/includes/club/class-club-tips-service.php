@@ -599,46 +599,25 @@ final class CBNexus_Club_Tips_Service {
 	}
 
 	/**
-	 * Get new members (added in the current calendar month).
+	 * Get new members (joined in the current calendar month).
 	 *
-	 * Uses the cb_candidates table as the source of truth: members
-	 * whose email matches an accepted candidate record updated this
-	 * month are considered new. This avoids false positives from
-	 * bulk-imported members whose cb_join_date was set during import.
+	 * Uses cb_join_date — members added through the normal flow
+	 * (recruitment pipeline or manual admin creation) get the correct
+	 * date stamped automatically.
 	 */
 	public static function get_new_members(int $limit = 5): array {
-		global $wpdb;
-
+		$members     = CBNexus_Member_Repository::get_all_members('active');
 		$month_start = gmdate('Y-m-01');
 
-		// Get candidates accepted this month, with their email.
-		$accepted = $wpdb->get_results($wpdb->prepare(
-			"SELECT LOWER(email) as email, name, updated_at
-			 FROM {$wpdb->prefix}cb_candidates
-			 WHERE stage = 'accepted'
-			   AND email IS NOT NULL AND email != ''
-			   AND updated_at >= %s
-			 ORDER BY updated_at DESC",
-			$month_start
-		));
-
-		if (empty($accepted)) { return []; }
-
-		// Map accepted emails to member profiles.
-		$members = CBNexus_Member_Repository::get_all_members('active');
-		$by_email = [];
-		foreach ($members as $m) {
-			$email = strtolower(trim($m['user_email'] ?? ''));
-			if ($email !== '') { $by_email[$email] = $m; }
-		}
-
 		$new = [];
-		foreach ($accepted as $a) {
-			if (isset($by_email[$a->email])) {
-				$new[] = $by_email[$a->email];
+		foreach ($members as $m) {
+			$join_date = $m['cb_join_date'] ?? '';
+			if ($join_date >= $month_start) {
+				$new[] = $m;
 			}
 		}
 
+		usort($new, fn($a, $b) => ($b['cb_join_date'] ?? '') <=> ($a['cb_join_date'] ?? ''));
 		return array_slice($new, 0, $limit);
 	}
 
