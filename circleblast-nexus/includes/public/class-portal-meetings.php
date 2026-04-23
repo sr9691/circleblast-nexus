@@ -19,6 +19,7 @@ final class CBNexus_Portal_Meetings {
 			'cbnexus_complete_meeting',
 			'cbnexus_submit_notes',
 			'cbnexus_cancel_meeting',
+			'cbnexus_log_meeting',
 		];
 		foreach ($actions as $action) {
 			add_action('wp_ajax_' . $action, [__CLASS__, 'handle_' . str_replace('cbnexus_', '', $action)]);
@@ -50,8 +51,10 @@ final class CBNexus_Portal_Meetings {
 		$upcoming = array_filter($all, fn($m) => in_array($m->status, ['accepted', 'scheduled']));
 		$sent_pending = array_filter($all, fn($m) => $m->status === 'pending' && (int) $m->member_a_id === $user_id);
 		$history = array_filter($all, fn($m) => in_array($m->status, ['completed', 'closed', 'declined', 'cancelled']));
+		$members = CBNexus_Member_Repository::get_all_members('active');
 		?>
 		<div class="cbnexus-meetings" id="cbnexus-meetings">
+			<?php self::render_log_meeting_card($user_id, $members); ?>
 			<?php if (!empty($suggested)) : foreach ($suggested as $m) : self::render_suggested_card($m, $user_id); endforeach; endif; ?>
 			<?php if (!empty($pending)) : foreach ($pending as $m) : self::render_pending_card($m, $user_id); endforeach; endif; ?>
 			<?php if (!empty($needs_notes)) : foreach ($needs_notes as $m) : self::render_notes_card($m, $user_id); endforeach; endif; ?>
@@ -218,6 +221,52 @@ final class CBNexus_Portal_Meetings {
 		<?php
 	}
 
+	private static function render_log_meeting_card(int $user_id, array $members): void {
+		?>
+		<div class="cbnexus-card cbnexus-log-meeting-card">
+			<div class="cbnexus-log-meeting-header" id="cbnexus-log-meeting-toggle">
+				<div style="display:flex;align-items:center;gap:8px;">
+					<span style="font-size:16px;">✅</span>
+					<h3 style="margin:0;"><?php esc_html_e('Log a Meeting', 'circleblast-nexus'); ?></h3>
+				</div>
+				<span class="cbnexus-log-meeting-chevron" aria-hidden="true">›</span>
+			</div>
+			<p class="cbnexus-text-muted cbnexus-log-meeting-subtitle"><?php esc_html_e('Had a 1:1 with a fellow member? Record it here.', 'circleblast-nexus'); ?></p>
+
+			<div class="cbnexus-log-meeting-body" id="cbnexus-log-meeting-body" style="display:none;">
+				<div id="cbnexus-log-meeting-msg" class="cbnexus-referral-msg" style="display:none;"></div>
+
+				<form id="cbnexus-log-meeting-form" autocomplete="off">
+					<div class="cbnexus-referral-row">
+						<div class="cbnexus-referral-field">
+							<label><?php esc_html_e('Met with', 'circleblast-nexus'); ?> <span class="cbnexus-required">*</span></label>
+							<select name="partner_id" required>
+								<option value=""><?php esc_html_e('Select a member…', 'circleblast-nexus'); ?></option>
+								<?php foreach ($members as $m) :
+									if ((int) $m['user_id'] === $user_id) { continue; }
+								?>
+									<option value="<?php echo esc_attr($m['user_id']); ?>"><?php echo esc_html($m['display_name']); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div class="cbnexus-referral-field">
+							<label><?php esc_html_e('When', 'circleblast-nexus'); ?></label>
+							<input type="date" name="met_at" value="<?php echo esc_attr(date_i18n('Y-m-d')); ?>" max="<?php echo esc_attr(date_i18n('Y-m-d')); ?>" />
+						</div>
+					</div>
+
+					<div class="cbnexus-referral-field">
+						<label><?php esc_html_e('Quick notes', 'circleblast-nexus'); ?></label>
+						<textarea name="wins" rows="2" placeholder="<?php esc_attr_e('What did you talk about? Any wins or takeaways?', 'circleblast-nexus'); ?>"></textarea>
+					</div>
+
+					<button type="submit" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm"><?php esc_html_e('Log Meeting', 'circleblast-nexus'); ?></button>
+				</form>
+			</div>
+		</div>
+		<?php
+	}
+
 	private static function relative_time(string $datetime): string {
 		$diff = time() - strtotime($datetime);
 		if ($diff < 3600) { return sprintf(__('%d min ago', 'circleblast-nexus'), max(1, intdiv($diff, 60))); }
@@ -303,6 +352,23 @@ final class CBNexus_Portal_Meetings {
 		$uid = self::verify_ajax();
 		$meeting_id = absint($_POST['meeting_id'] ?? 0);
 		$result = CBNexus_Meeting_Service::cancel($meeting_id, $uid);
+		$result['success'] ? wp_send_json_success($result) : wp_send_json_error($result);
+	}
+
+	public static function handle_log_meeting(): void {
+		$uid = self::verify_ajax();
+		$partner_id = absint($_POST['partner_id'] ?? 0);
+		$met_at_raw = sanitize_text_field(wp_unslash($_POST['met_at'] ?? ''));
+		$met_at     = $met_at_raw ? $met_at_raw . ' 12:00:00' : '';
+
+		$notes_data = [
+			'wins'         => sanitize_textarea_field(wp_unslash($_POST['wins'] ?? '')),
+			'insights'     => '',
+			'action_items' => '',
+			'rating'       => 0,
+		];
+
+		$result = CBNexus_Meeting_Service::log_meeting($uid, $partner_id, $met_at, $notes_data);
 		$result['success'] ? wp_send_json_success($result) : wp_send_json_error($result);
 	}
 }

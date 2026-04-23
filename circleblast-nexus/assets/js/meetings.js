@@ -88,6 +88,59 @@
 			});
 	});
 
+	// Log Meeting – toggle and submit.
+	var logToggle = document.getElementById('cbnexus-log-meeting-toggle');
+	var logBody   = document.getElementById('cbnexus-log-meeting-body');
+	if (logToggle && logBody) {
+		logToggle.addEventListener('click', function () {
+			var open = logBody.style.display !== 'none';
+			logBody.style.display = open ? 'none' : '';
+			logToggle.classList.toggle('open', !open);
+		});
+	}
+
+	var logForm = document.getElementById('cbnexus-log-meeting-form');
+	if (logForm) {
+		logForm.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var btn = logForm.querySelector('button[type="submit"]');
+			var msgEl = document.getElementById('cbnexus-log-meeting-msg');
+
+			var partner = logForm.querySelector('[name="partner_id"]').value;
+			if (!partner) {
+				if (msgEl) { msgEl.textContent = 'Please select a member.'; msgEl.className = 'cbnexus-referral-msg cbnexus-referral-msg-error'; msgEl.style.display = ''; }
+				return;
+			}
+
+			btn.disabled = true;
+			btn.textContent = 'Logging…';
+
+			var data = new FormData();
+			data.append('action', 'cbnexus_log_meeting');
+			data.append('nonce', cbnexusMtg.nonce);
+			data.append('partner_id', partner);
+			data.append('met_at', logForm.querySelector('[name="met_at"]').value || '');
+			data.append('wins', (logForm.querySelector('[name="wins"]') || {}).value || '');
+
+			fetch(cbnexusMtg.ajax_url, { method: 'POST', credentials: 'same-origin', body: data })
+				.then(function (r) { return r.json(); })
+				.then(function (json) {
+					if (json.success) {
+						if (msgEl) { msgEl.textContent = 'Meeting logged! 🎉'; msgEl.className = 'cbnexus-referral-msg cbnexus-referral-msg-success'; msgEl.style.display = ''; }
+						logForm.reset();
+						btn.textContent = 'Logged ✓';
+						setTimeout(function () { location.reload(); }, 1200);
+					} else {
+						var errMsg = (json.data && json.data.errors) ? json.data.errors.join('\n') : 'Something went wrong.';
+						if (msgEl) { msgEl.textContent = errMsg; msgEl.className = 'cbnexus-referral-msg cbnexus-referral-msg-error'; msgEl.style.display = ''; }
+						btn.disabled = false;
+						btn.textContent = 'Log Meeting';
+					}
+				})
+				.catch(function () { btn.disabled = false; btn.textContent = 'Log Meeting'; });
+		});
+	}
+
 	// Rating button click handler.
 	document.addEventListener('click', function (e) {
 		var btn = e.target.closest('.cbnexus-rating-btn');

@@ -193,6 +193,50 @@ final class CBNexus_Meeting_Service {
 	}
 
 	/**
+	 * Log a completed 1:1 meeting directly (no request/accept flow).
+	 *
+	 * Creates a meeting record that goes straight to 'completed',
+	 * with source = 'logged'. Optionally records inline notes from the logger.
+	 */
+	public static function log_meeting(int $logger_id, int $partner_id, string $met_at = '', array $notes_data = []): array {
+		if ($logger_id === $partner_id) {
+			return ['success' => false, 'errors' => ['You cannot log a meeting with yourself.']];
+		}
+		if (!CBNexus_Member_Repository::is_member($logger_id)) {
+			return ['success' => false, 'errors' => ['You are not a member of The Circle.']];
+		}
+		if (!CBNexus_Member_Repository::is_member($partner_id)) {
+			return ['success' => false, 'errors' => ['Selected member not found.']];
+		}
+
+		$now = gmdate('Y-m-d H:i:s');
+		$completed_at = $met_at ?: $now;
+
+		$meeting_id = CBNexus_Meeting_Repository::create([
+			'member_a_id'  => $logger_id,
+			'member_b_id'  => $partner_id,
+			'status'       => 'completed',
+			'source'       => 'logged',
+			'completed_at' => $completed_at,
+		]);
+
+		if (!$meeting_id) {
+			return ['success' => false, 'errors' => ['Failed to create meeting record.']];
+		}
+
+		// If inline notes were provided, save them.
+		$has_notes = !empty($notes_data['wins']) || !empty($notes_data['insights']) || !empty($notes_data['action_items']);
+		if ($has_notes) {
+			CBNexus_Meeting_Repository::save_notes($meeting_id, $logger_id, $notes_data);
+			CBNexus_Meeting_Repository::update($meeting_id, ['notes_status' => 'partial']);
+		}
+
+		self::log('Meeting logged (completed).', $meeting_id, $logger_id);
+
+		return ['success' => true, 'meeting_id' => $meeting_id];
+	}
+
+	/**
 	 * Cancel a meeting.
 	 */
 	public static function cancel(int $meeting_id, int $user_id): array {

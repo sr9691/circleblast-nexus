@@ -108,3 +108,37 @@
 	color: var(--cb-accent);
 }
 
+/* Log Meeting card */
+.cbnexus-log-meeting-card {
+	border-left: 3px solid var(--cb-green, #22c55e);
+}
+
+.cbnexus-log-meeting-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	cursor: pointer;
+	user-select: none;
+}
+
+.cbnexus-log-meeting-chevron {
+	font-size: 20px;
+	font-weight: 700;
+	color: var(--cb-text-sec);
+	transition: transform .2s ease;
+	display: inline-block;
+}
+
+.cbnexus-log-meeting-header.open .cbnexus-log-meeting-chevron {
+	transform: rotate(90deg);
+}
+
+.cbnexus-log-meeting-subtitle {
+	margin: 4px 0 0;
+	font-size: 13px;
+}
+
+.cbnexus-log-meeting-body {
+	margin-top: 16px;
+}
+
