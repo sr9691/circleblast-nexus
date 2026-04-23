@@ -269,6 +269,7 @@ final class CBNexus_Meeting_Repository {
 			'insights'     => sanitize_textarea_field($data['insights'] ?? ''),
 			'action_items' => sanitize_textarea_field($data['action_items'] ?? ''),
 			'rating'       => isset($data['rating']) ? absint($data['rating']) : null,
+			'is_private'   => !empty($data['is_private']) ? 1 : 0,
 			'created_at'   => gmdate('Y-m-d H:i:s'),
 		];
 
@@ -277,7 +278,7 @@ final class CBNexus_Meeting_Repository {
 			return (int) $existing;
 		}
 
-		$result = $wpdb->insert($table, $row, ['%d', '%d', '%s', '%s', '%s', '%d', '%s']);
+		$result = $wpdb->insert($table, $row, ['%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s']);
 		return $result ? $wpdb->insert_id : false;
 	}
 

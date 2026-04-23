@@ -168,13 +168,22 @@ final class CBNexus_Portal_Meetings {
 						<textarea name="<?php echo esc_attr($key); ?>" rows="2" placeholder="<?php echo esc_attr($meta[1]); ?>"></textarea>
 					</div>
 				<?php endforeach; ?>
-				<div class="cbnexus-form-field">
-					<label><?php esc_html_e('Rating', 'circleblast-nexus'); ?></label>
-					<div class="cbnexus-rating-input">
+				<div class="cbnexus-referral-row">
+					<div class="cbnexus-form-field">
+						<label><?php esc_html_e('Rating', 'circleblast-nexus'); ?></label>
+						<div class="cbnexus-rating-input">
 						<?php for ($i = 1; $i <= 5; $i++) : ?>
 							<button type="button" class="cbnexus-rating-btn" data-rating="<?php echo $i; ?>"><?php echo $i; ?></button>
 						<?php endfor; ?>
 						<input type="hidden" name="rating" value="" />
+						</div>
+					</div>
+					<div class="cbnexus-form-field">
+						<label><?php esc_html_e('Visibility', 'circleblast-nexus'); ?></label>
+						<select name="is_private" class="cbnexus-schedule-input" style="width:100%;">
+							<option value="0"><?php esc_html_e('Share with group', 'circleblast-nexus'); ?></option>
+							<option value="1"><?php esc_html_e('Keep private', 'circleblast-nexus'); ?></option>
+						</select>
 					</div>
 				</div>
 				<button type="submit" class="cbnexus-btn cbnexus-btn-primary cbnexus-btn-sm"><?php esc_html_e('Submit Notes', 'circleblast-nexus'); ?></button>
@@ -344,6 +353,7 @@ final class CBNexus_Portal_Meetings {
 			'insights'     => sanitize_textarea_field(wp_unslash($_POST['insights'] ?? '')),
 			'action_items' => sanitize_textarea_field(wp_unslash($_POST['action_items'] ?? '')),
 			'rating'       => absint($_POST['rating'] ?? 0),
+			'is_private'   => absint($_POST['is_private'] ?? 0),
 		]);
 		$result['success'] ? wp_send_json_success($result) : wp_send_json_error($result);
 	}

@@ -260,6 +260,12 @@ final class CBNexus_Token_Router {
 				<label style="cursor:pointer;"><input type="radio" name="rating" value="5" /> 5</label>
 			</div>
 
+			<label style="display:block;margin:16px 0 4px;font-weight:600;font-size:14px;">Visibility</label>
+			<select name="is_private" style="width:100%;padding:10px;border:1px solid #e0d6e8;border-radius:10px;font-family:DM Sans,sans-serif;margin-bottom:20px;">
+				<option value="0">Share with group</option>
+				<option value="1">Keep private</option>
+			</select>
+
 			<button type="submit" style="background:#5b2d6e;color:#fff;border:none;padding:12px 28px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">Submit Notes</button>
 		</form>';
 
@@ -274,6 +280,7 @@ final class CBNexus_Token_Router {
 			'insights'     => sanitize_textarea_field(wp_unslash($_POST['insights'] ?? '')),
 			'action_items' => sanitize_textarea_field(wp_unslash($_POST['action_items'] ?? '')),
 			'rating'       => absint($_POST['rating'] ?? 3),
+			'is_private'   => absint($_POST['is_private'] ?? 0),
 		];
 
 		$result = CBNexus_Meeting_Service::submit_notes($meeting_id, $data['user_id'], $notes_data);

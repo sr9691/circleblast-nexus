@@ -540,7 +540,10 @@ final class CBNexus_Portal_Club {
 		$possible = $total > 1 ? ($total * ($total - 1)) / 2 : 1;
 		$density  = round($unique_pairs / $possible * 100);
 		$circleup_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}cb_circleup_meetings WHERE status = 'published'");
-		$wins_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}cb_circleup_items WHERE item_type = 'win' AND status = 'approved'");
+		$circleup_wins = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}cb_circleup_items WHERE item_type = 'win' AND status = 'approved'");
+		$meeting_wins  = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}cb_meeting_notes WHERE wins IS NOT NULL AND wins != '' AND is_private = 0");
+		$journal_wins  = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}cb_member_journal WHERE entry_type = 'win' AND visibility = 'members'");
+		$wins_total = $circleup_wins + $meeting_wins + $journal_wins;
 		return [
 			'total_members'   => $total,
 			'new_members'     => $new,
@@ -569,11 +572,21 @@ final class CBNexus_Portal_Club {
 	private static function get_recent_wins(int $limit): array {
 		global $wpdb;
 		return $wpdb->get_results($wpdb->prepare(
-			"SELECT i.content, u.display_name as speaker_name
-			 FROM {$wpdb->prefix}cb_circleup_items i
-			 LEFT JOIN {$wpdb->users} u ON i.speaker_id = u.ID
-			 WHERE i.item_type = 'win' AND i.status = 'approved'
-			 ORDER BY i.created_at DESC LIMIT %d", $limit
+			"(SELECT i.content, u.display_name as speaker_name, i.created_at
+			  FROM {$wpdb->prefix}cb_circleup_items i
+			  LEFT JOIN {$wpdb->users} u ON i.speaker_id = u.ID
+			  WHERE i.item_type = 'win' AND i.status = 'approved')
+			 UNION ALL
+			 (SELECT n.wins AS content, u.display_name as speaker_name, n.created_at
+			  FROM {$wpdb->prefix}cb_meeting_notes n
+			  LEFT JOIN {$wpdb->users} u ON n.author_id = u.ID
+			  WHERE n.wins IS NOT NULL AND n.wins != '' AND n.is_private = 0)
+			 UNION ALL
+			 (SELECT j.content, u.display_name as speaker_name, j.created_at
+			  FROM {$wpdb->prefix}cb_member_journal j
+			  LEFT JOIN {$wpdb->users} u ON j.member_id = u.ID
+			  WHERE j.entry_type = 'win' AND j.visibility = 'members')
+			 ORDER BY created_at DESC LIMIT %d", $limit
 		)) ?: [];
 	}
 

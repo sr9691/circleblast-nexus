@@ -182,6 +182,9 @@
 		var ratingInput = form.querySelector('input[name="rating"]');
 		data.append('rating', ratingInput ? ratingInput.value || '0' : '0');
 
+		var privacySelect = form.querySelector('[name="is_private"]');
+		data.append('is_private', privacySelect ? privacySelect.value : '0');
+
 		submitBtn.disabled = true;
 		submitBtn.textContent = 'Submitting...';
 
