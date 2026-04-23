@@ -12,7 +12,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('CBNEXUS_VERSION')) {
-	define('CBNEXUS_VERSION', '1.3.0');
+	define('CBNEXUS_VERSION', '1.4.0');
 }
 if (!defined('CBNEXUS_PLUGIN_FILE')) {
 	define('CBNEXUS_PLUGIN_FILE', __FILE__);
