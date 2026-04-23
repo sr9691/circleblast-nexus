@@ -601,23 +601,32 @@ final class CBNexus_Club_Tips_Service {
 	/**
 	 * Get new members (joined within last 90 days).
 	 *
-	 * Uses cb_join_date as primary, but cross-checks against the WP
-	 * user_registered date — if the account existed before the cutoff,
-	 * they are NOT new regardless of cb_join_date. This prevents
-	 * long-standing members from appearing after a data import/update.
+	 * Only includes members who came through the recruitment pipeline
+	 * (have a matching accepted candidate record). This reliably
+	 * excludes bulk-imported or long-standing members whose join dates
+	 * were set during import.
 	 */
 	public static function get_new_members(int $limit = 5): array {
+		global $wpdb;
+
 		$members = CBNexus_Member_Repository::get_all_members('active');
-		$cutoff = gmdate('Y-m-d', strtotime('-90 days'));
+		$cutoff  = gmdate('Y-m-d', strtotime('-90 days'));
+
+		// Build a set of emails that have an accepted candidate record.
+		$accepted_emails = $wpdb->get_col(
+			"SELECT LOWER(email) FROM {$wpdb->prefix}cb_candidates
+			 WHERE stage = 'accepted' AND email IS NOT NULL AND email != ''"
+		);
+		$accepted_set = array_flip($accepted_emails);
 
 		$new = [];
 		foreach ($members as $m) {
 			$join_date = $m['cb_join_date'] ?? '';
 			if ($join_date === '' || $join_date < $cutoff) { continue; }
 
-			// Cross-check: WP account must also have been created recently.
-			$user = get_userdata($m['user_id']);
-			if ($user && substr($user->user_registered, 0, 10) < $cutoff) { continue; }
+			// Must have come through the recruitment pipeline.
+			$email = strtolower(trim($m['user_email'] ?? ''));
+			if ($email === '' || !isset($accepted_set[$email])) { continue; }
 
 			$new[] = $m;
 		}
