@@ -599,39 +599,46 @@ final class CBNexus_Club_Tips_Service {
 	}
 
 	/**
-	 * Get new members (joined within last 90 days).
+	 * Get new members (added in the current calendar month).
 	 *
-	 * Only includes members who came through the recruitment pipeline
-	 * (have a matching accepted candidate record). This reliably
-	 * excludes bulk-imported or long-standing members whose join dates
-	 * were set during import.
+	 * Uses the cb_candidates table as the source of truth: members
+	 * whose email matches an accepted candidate record updated this
+	 * month are considered new. This avoids false positives from
+	 * bulk-imported members whose cb_join_date was set during import.
 	 */
 	public static function get_new_members(int $limit = 5): array {
 		global $wpdb;
 
+		$month_start = gmdate('Y-m-01');
+
+		// Get candidates accepted this month, with their email.
+		$accepted = $wpdb->get_results($wpdb->prepare(
+			"SELECT LOWER(email) as email, name, updated_at
+			 FROM {$wpdb->prefix}cb_candidates
+			 WHERE stage = 'accepted'
+			   AND email IS NOT NULL AND email != ''
+			   AND updated_at >= %s
+			 ORDER BY updated_at DESC",
+			$month_start
+		));
+
+		if (empty($accepted)) { return []; }
+
+		// Map accepted emails to member profiles.
 		$members = CBNexus_Member_Repository::get_all_members('active');
-		$cutoff  = gmdate('Y-m-d', strtotime('-90 days'));
-
-		// Build a set of emails that have an accepted candidate record.
-		$accepted_emails = $wpdb->get_col(
-			"SELECT LOWER(email) FROM {$wpdb->prefix}cb_candidates
-			 WHERE stage = 'accepted' AND email IS NOT NULL AND email != ''"
-		);
-		$accepted_set = array_flip($accepted_emails);
-
-		$new = [];
+		$by_email = [];
 		foreach ($members as $m) {
-			$join_date = $m['cb_join_date'] ?? '';
-			if ($join_date === '' || $join_date < $cutoff) { continue; }
-
-			// Must have come through the recruitment pipeline.
 			$email = strtolower(trim($m['user_email'] ?? ''));
-			if ($email === '' || !isset($accepted_set[$email])) { continue; }
-
-			$new[] = $m;
+			if ($email !== '') { $by_email[$email] = $m; }
 		}
 
-		usort($new, fn($a, $b) => ($b['cb_join_date'] ?? '') <=> ($a['cb_join_date'] ?? ''));
+		$new = [];
+		foreach ($accepted as $a) {
+			if (isset($by_email[$a->email])) {
+				$new[] = $by_email[$a->email];
+			}
+		}
+
 		return array_slice($new, 0, $limit);
 	}
 

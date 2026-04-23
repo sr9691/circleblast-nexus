@@ -192,7 +192,6 @@ final class CBNexus_Portal_Router {
 
 			<?php CBNexus_Portal_Help::render_drawer(); ?>
 			<?php CBNexus_Referral_Form::render_modal(); ?>
-			<?php CBNexus_Referral_Form::render_floating_button(); ?>
 			<?php CBNexus_Feedback_Form::render_modal(); ?>
 		</div>
 		<?php
@@ -248,6 +247,7 @@ final class CBNexus_Portal_Router {
 				<h1 class="cbnexus-portal-subtitle"><?php esc_html_e('Member Portal', 'circleblast-nexus'); ?></h1>
 			</div>
 			<div class="cbnexus-portal-header-right">
+				<button type="button" class="cbnexus-header-icon-btn cbnexus-referral-header-btn" data-referral-open aria-label="<?php esc_attr_e('Refer someone', 'circleblast-nexus'); ?>" title="<?php esc_attr_e('Know someone?', 'circleblast-nexus'); ?>">👋</button>
 				<button type="button" id="cbnexus-help-toggle" class="cbnexus-help-toggle" aria-label="<?php esc_attr_e('Help for this page', 'circleblast-nexus'); ?>" title="<?php esc_attr_e('Help for this page', 'circleblast-nexus'); ?>">?</button>
 				<button type="button" class="cbnexus-feedback-toggle" data-feedback-open aria-label="<?php esc_attr_e('Send Feedback', 'circleblast-nexus'); ?>" title="<?php esc_attr_e('Send Feedback', 'circleblast-nexus'); ?>">✉</button>
 				<?php if ($is_admin) : ?>
