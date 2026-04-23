@@ -35,7 +35,6 @@ final class CBNexus_Email_Service {
 			'color_accent'    => $colors['accent_text'],
 			'color_green'     => $colors['green'],
 			'color_blue'      => $colors['blue'],
-			'logo_url'        => CBNexus_Color_Scheme::get_logo_url('email'),
 		], $vars);
 
 		$subject   = self::replace_placeholders($options['subject'] ?? $template['subject'], $vars);
@@ -262,7 +261,7 @@ final class CBNexus_Email_Service {
 	private static function wrap_html(string $body, string $subject, string $template_id = '', string $unsub_url = ''): string {
 		$year = gmdate('Y');
 		$colors = CBNexus_Color_Scheme::get_email_colors();
-		$logo_url = CBNexus_Color_Scheme::get_logo_url('email');
+		// Logo removed — text-only brand header.
 		$header_bg = esc_attr($colors['header_bg']);
 
 		// Determine referral prompt type for this template.
@@ -295,8 +294,7 @@ final class CBNexus_Email_Service {
 <tr><td align="center" style="padding:30px 15px;">
 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
 <tr><td style="background-color:' . $header_bg . ';padding:24px 30px;text-align:center;">
-<img src="' . esc_url($logo_url) . '" alt="The Circle" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px;" />
-<span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:22px;font-weight:600;">The Circle</span>
+<span style="color:#ffffff;font-size:22px;font-weight:600;">The Circle</span>
 </td></tr>
 <tr><td style="padding:30px;">' . $body_with_prominent . '</td></tr>
 ' . $subtle_row . '

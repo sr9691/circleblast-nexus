@@ -22,7 +22,7 @@ final class CBNexus_Portal_Admin_Settings {
 		$scheme = CBNexus_Color_Scheme::get_scheme();
 		$presets = CBNexus_Color_Scheme::PRESETS;
 		$active_preset = $scheme['preset'] ?? 'circleblast';
-		$logo_url = CBNexus_Color_Scheme::get_logo_url('small');
+		// Logo removed — text-only brand.
 		?>
 
 		<!-- Color Scheme Picker -->
@@ -102,7 +102,6 @@ final class CBNexus_Portal_Admin_Settings {
 					<h3 style="margin:0 0 12px;">Live Preview</h3>
 					<div class="cbnexus-scheme-live-preview" id="cbnexus-live-preview">
 						<div class="cbnexus-slp-header" id="slp-header">
-							<img src="<?php echo esc_url($logo_url); ?>" width="28" height="28" style="border-radius:4px;" />
 							<span style="font-weight:700;font-size:13px;" id="slp-brand-text">The Circle</span>
 						</div>
 						<div class="cbnexus-slp-body" id="slp-body">
