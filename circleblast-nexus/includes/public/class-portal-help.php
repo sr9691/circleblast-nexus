@@ -659,7 +659,7 @@ final class CBNexus_Portal_Help {
 
 		return [
 			'_default' => [
-				'title' => __('Welcome to CircleBlast', 'circleblast-nexus'),
+				'title' => __('Welcome to The Circle', 'circleblast-nexus'),
 				'body'  => '<p>Use the navigation tabs to explore your member portal. Each page has its own help content — click the <strong>?</strong> icon anytime for guidance specific to where you are.</p>'
 				         . '<p>If you need further assistance, reach out to your group admin.</p>',
 			],
@@ -841,7 +841,7 @@ final class CBNexus_Portal_Help {
 
 			'manage.emails' => [
 				'title' => __('Email Templates', 'circleblast-nexus'),
-				'body'  => '<p>Customize the emails CircleBlast sends automatically.</p>'
+				'body'  => '<p>Customize the emails The Circle sends automatically.</p>'
 				         . '<h3>Editing Templates</h3>'
 				         . '<p>Click <strong>"Edit"</strong> on any template to customize its subject line and body. Use the Visual editor for formatting or switch to HTML for full control.</p>'
 				         . '<h3>Placeholders</h3>'
@@ -854,7 +854,7 @@ final class CBNexus_Portal_Help {
 
 			'manage.logs' => [
 				'title' => __('Plugin Logs', 'circleblast-nexus'),
-				'body'  => '<p>System log entries from CircleBlast Nexus for troubleshooting.</p>'
+				'body'  => '<p>System log entries from The Circle Nexus for troubleshooting.</p>'
 				         . '<p>Logs are automatically cleaned up after 30 days. Use this page to diagnose issues with email delivery, webhook processing, AI extraction, and cron job execution.</p>',
 			],
 

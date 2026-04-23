@@ -41,7 +41,7 @@ final class CBNexus_Token_Router {
 		// For GET requests, peek first to decide if it's a one-shot action or a form render.
 		$data = CBNexus_Token_Service::peek($raw_token);
 		if (!$data) {
-			self::render_page('Link Expired', '<p>This link has expired or has already been used.</p><p><a href="' . esc_url(home_url()) . '">Go to CircleBlast</a></p>');
+			self::render_page('Link Expired', '<p>This link has expired or has already been used.</p><p><a href="' . esc_url(home_url()) . '">Go to The Circle</a></p>');
 			exit;
 		}
 
@@ -414,7 +414,7 @@ final class CBNexus_Token_Router {
 		}
 
 		$sender = CBNexus_Member_Repository::get_profile($data['user_id']);
-		$sender_name = $sender ? $sender['display_name'] : 'A CircleBlast member';
+		$sender_name = $sender ? $sender['display_name'] : 'A member of The Circle';
 
 		// Generate a view token for the recipient (30-day, multi-use).
 		$view_token = CBNexus_Token_Service::generate(0, 'view_circleup', ['meeting_id' => $meeting_id], 30, true);
@@ -498,7 +498,7 @@ final class CBNexus_Token_Router {
 		// Consume the token (single-use).
 		$consumed = CBNexus_Token_Service::validate($raw_token);
 		if (!$consumed) {
-			self::render_page('Already Answered', '<p>Looks like you\'ve already responded — thank you!</p><p><a href="' . esc_url(home_url()) . '">Visit CircleBlast →</a></p>');
+			self::render_page('Already Answered', '<p>Looks like you\'ve already responded — thank you!</p><p><a href="' . esc_url(home_url()) . '">Visit The Circle →</a></p>');
 			exit;
 		}
 
@@ -529,13 +529,13 @@ final class CBNexus_Token_Router {
 
 		// Friendly confirmation.
 		$messages = [
-			'yes'   => '<p>🎉 That\'s great to hear! Someone from CircleBlast will be in touch soon about next steps.</p>',
+			'yes'   => '<p>🎉 That\'s great to hear! Someone from The Circle will be in touch soon about next steps.</p>',
 			'maybe' => '<p>Thanks! We\'ll have someone reach out with more details about what membership looks like.</p>',
 			'later' => '<p>No problem at all — the door is always open. Thanks for letting us know!</p>',
 			'no'    => '<p>We appreciate your honesty. Thanks for taking the time to visit us!</p>',
 		];
 		$body = ($messages[$answer] ?? '<p>Thanks for your feedback!</p>')
-			. '<p style="margin-top:16px;"><a href="' . esc_url(home_url()) . '" style="color:#5b2d6e;">Visit CircleBlast →</a></p>';
+			. '<p style="margin-top:16px;"><a href="' . esc_url(home_url()) . '" style="color:#5b2d6e;">Visit The Circle →</a></p>';
 
 		self::render_page('Thanks for Your Feedback!', $body);
 		exit;
@@ -568,7 +568,7 @@ final class CBNexus_Token_Router {
 				. '<strong>🤔 They\'re interested but want more info.</strong> Here\'s how to help:'
 				. '<ul style="margin:8px 0 0 16px;padding:0;line-height:1.8;">'
 				. '<li>Schedule a casual follow-up conversation — coffee, call, or text</li>'
-				. '<li>Share what you personally get out of CircleBlast and why you referred them</li>'
+				. '<li>Share what you personally get out of The Circle and why you referred them</li>'
 				. '<li>Answer questions about commitment, cost, meeting format, and member expectations</li>'
 				. '<li>Ask about their overall impression and whether they connected with anyone specifically</li>'
 				. '</ul></div>',
@@ -679,7 +679,7 @@ final class CBNexus_Token_Router {
 		header('Content-Type: text/html; charset=UTF-8');
 		$year = gmdate('Y');
 		echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-		<title>' . esc_html($title) . ' — CircleBlast</title>
+		<title>' . esc_html($title) . ' — The Circle</title>
 		<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 		<style>
 			*{box-sizing:border-box;margin:0;padding:0;}
@@ -694,10 +694,10 @@ final class CBNexus_Token_Router {
 			.cb-footer{text-align:center;margin-top:28px;font-size:12px;color:#a094a8;}
 		</style></head><body>
 		<div class="cb-page">
-			<div class="cb-brand"><span></span>CircleBlast</div>
+			<div class="cb-brand"><span></span>The Circle</div>
 			<h2>' . $title . '</h2>
 			' . $body . '
-			<div class="cb-footer">&copy; ' . $year . ' CircleBlast</div>
+			<div class="cb-footer">&copy; ' . $year . ' The Circle</div>
 		</div></body></html>';
 	}
 }

@@ -22,7 +22,7 @@ final class CBNexus_Admin_Logs {
 	 */
 	public static function register_menu(): void {
 		add_management_page(
-			__('CircleBlast Nexus Logs', 'circleblast-nexus'),
+			__('The Circle Nexus Logs', 'circleblast-nexus'),
 			__('CB Nexus Logs', 'circleblast-nexus'),
 			'manage_options',
 			'cbnexus-logs',
@@ -49,7 +49,7 @@ final class CBNexus_Admin_Logs {
 
 		if (!$table_exists) {
 			echo '<div class="wrap">';
-			echo '<h1>' . esc_html__('CircleBlast Nexus Logs', 'circleblast-nexus') . '</h1>';
+			echo '<h1>' . esc_html__('The Circle Nexus Logs', 'circleblast-nexus') . '</h1>';
 			echo '<div class="notice notice-warning"><p>';
 			echo esc_html__('Log table does not exist. Please deactivate and reactivate the plugin to run migrations.', 'circleblast-nexus');
 			echo '</p></div></div>';
@@ -115,7 +115,7 @@ final class CBNexus_Admin_Logs {
 		$base_url = admin_url('tools.php?page=cbnexus-logs');
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e('CircleBlast Nexus Logs', 'circleblast-nexus'); ?></h1>
+			<h1><?php esc_html_e('The Circle Nexus Logs', 'circleblast-nexus'); ?></h1>
 
 			<form method="get" action="<?php echo esc_url($base_url); ?>" style="margin: 15px 0;">
 				<input type="hidden" name="page" value="cbnexus-logs" />

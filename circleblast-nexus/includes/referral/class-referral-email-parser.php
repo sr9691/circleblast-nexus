@@ -12,7 +12,7 @@
  *
  * Parsing logic:
  *  1. From: header → matched against member email addresses → logger
- *  2. Body scanned for CircleBlast member names → recipient hint
+ *  2. Body scanned for The Circle member names → recipient hint
  *  3. Subject line extracted as referral description
  *  4. Creates a referral_given journal entry for the sender
  *  5. Optionally creates a mirrored referral_received entry for the recipient
@@ -176,7 +176,7 @@ final class CBNexus_Referral_Email_Parser {
 		$sender_uid = self::find_member_by_email($from_email);
 
 		if (!$sender_uid) {
-			// Not a CircleBlast member — skip but mark seen.
+			// Not a member of The Circle — skip but mark seen.
 			CBNexus_Logger::info("Referral inbox: message from {$from_email} — no matching member, skipping.", [], 'referral_parser');
 			return false;
 		}

@@ -11,5 +11,5 @@ Your recent 1:1 with <strong>{{other_name}}</strong> has been marked as complete
 <a href="{{notes_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">Submit Your Notes</a>
 </td></tr></table>
 <p style="font-size:13px;color:#a0aec0;margin:0 0 16px;">No login required — just click and fill in the form.</p>
-<p style="font-size:15px;color:#333;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;">— The Circle Team</p>',
 ];

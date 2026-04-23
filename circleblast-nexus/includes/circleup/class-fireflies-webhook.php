@@ -167,7 +167,7 @@ final class CBNexus_Fireflies_Webhook {
 	}
 
 	/**
-	 * Try to match participant names from Fireflies to CircleBlast members.
+	 * Try to match participant names from Fireflies to The Circle members.
 	 */
 	private static function match_attendees(int $meeting_id, array $participants): void {
 		foreach ($participants as $p) {

@@ -292,7 +292,7 @@ final class CBNexus_Feedback_Service {
 					'message'        => nl2br(esc_html($message)),
 					'feedback_url'   => $feedback_url,
 				], [
-					'subject'      => '[CircleBlast] New ' . $type_label . ': ' . $subject,
+					'subject'      => '[The Circle] New ' . $type_label . ': ' . $subject,
 					'recipient_id' => $admin->ID,
 					'related_id'   => $feedback_id,
 					'related_type' => 'feedback',

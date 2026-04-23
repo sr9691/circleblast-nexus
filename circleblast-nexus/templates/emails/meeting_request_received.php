@@ -16,5 +16,5 @@ return [
 </td>
 </tr></table>
 <p style="font-size:13px;color:#a0aec0;margin:16px 0 0;">No login required — just click to respond.</p>
-<p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;margin:16px 0 0;">— The Circle Team</p>',
 ];

@@ -3,7 +3,7 @@
  * WP-Admin Matching
  *
  * Manages the 1:1 matching rules engine and suggestion cycles
- * from the WordPress admin dashboard (submenu under CircleBlast).
+ * from the WordPress admin dashboard (submenu under The Circle).
  */
 
 defined('ABSPATH') || exit;

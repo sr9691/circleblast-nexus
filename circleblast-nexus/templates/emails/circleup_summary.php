@@ -31,5 +31,5 @@ Here\'s the recap from our latest CircleUp: <strong>{{title}}</strong> ({{meetin
 
 {{action_items_block}}
 
-<p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;margin:16px 0 0;">— The Circle Team</p>',
 ];

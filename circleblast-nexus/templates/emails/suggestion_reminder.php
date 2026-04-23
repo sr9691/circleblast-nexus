@@ -16,5 +16,5 @@ Just a friendly nudge — you haven\'t responded to your suggested 1:1 with <str
 </td>
 </tr></table>
 <p style="font-size:13px;color:#a0aec0;margin:16px 0 0;">Or <a href="{{meetings_url}}" style="color:{{color_primary}};">view in your portal</a>.</p>
-<p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;margin:16px 0 0;">— The Circle Team</p>',
 ];

@@ -93,7 +93,7 @@ final class CBNexus_Events_ICS_API {
 		$lines = [
 			'BEGIN:VCALENDAR',
 			'VERSION:2.0',
-			'PRODID:-//CircleBlast//Nexus//EN',
+			'PRODID:-//The Circle//Nexus//EN',
 			'CALSCALE:GREGORIAN',
 			'METHOD:PUBLISH',
 			'BEGIN:VEVENT',

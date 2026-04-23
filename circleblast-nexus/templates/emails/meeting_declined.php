@@ -10,5 +10,5 @@ Unfortunately, <strong>{{responder_name}}</strong> is unable to meet at this tim
 <tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{meetings_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">Browse the Directory</a>
 </td></tr></table>
-<p style="font-size:15px;color:#333;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;">— The Circle Team</p>',
 ];

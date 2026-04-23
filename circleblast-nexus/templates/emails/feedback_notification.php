@@ -26,5 +26,5 @@ A member has submitted new feedback through the portal.</p>
 </td>
 </tr></table>
 
-<p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast System</p>',
+<p style="font-size:15px;color:#333;margin:16px 0 0;">— The Circle System</p>',
 ];

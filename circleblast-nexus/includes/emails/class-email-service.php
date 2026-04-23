@@ -106,7 +106,7 @@ final class CBNexus_Email_Service {
 	public static function get_sender_settings(): array {
 		$saved = get_option('cbnexus_email_sender', []);
 		return [
-			'from_name'  => $saved['from_name']  ?? 'CircleBlast',
+			'from_name'  => $saved['from_name']  ?? 'The Circle',
 			'from_email' => $saved['from_email'] ?? 'noreply@circleblast.org',
 		];
 	}
@@ -295,14 +295,14 @@ final class CBNexus_Email_Service {
 <tr><td align="center" style="padding:30px 15px;">
 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
 <tr><td style="background-color:' . $header_bg . ';padding:24px 30px;text-align:center;">
-<img src="' . esc_url($logo_url) . '" alt="CircleBlast" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px;" />
-<span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:22px;font-weight:600;">CircleBlast</span>
+<img src="' . esc_url($logo_url) . '" alt="The Circle" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px;" />
+<span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:22px;font-weight:600;">The Circle</span>
 </td></tr>
 <tr><td style="padding:30px;">' . $body_with_prominent . '</td></tr>
 ' . $subtle_row . '
 <tr><td style="padding:20px 30px;background-color:#f8f9fa;text-align:center;font-size:13px;color:#6c757d;">
-<p style="margin:0;">CircleBlast Professional Networking Group</p>
-<p style="margin:5px 0 0;">&copy; ' . $year . ' CircleBlast. All rights reserved.</p>
+<p style="margin:0;">The Circle Professional Networking Group</p>
+<p style="margin:5px 0 0;">&copy; ' . $year . ' The Circle. All rights reserved.</p>
 ' . ($unsub_url ? '<p style="margin:5px 0 0;"><a href="' . esc_url($unsub_url) . '" style="color:#6c757d;text-decoration:underline;font-size:13px;">Manage email preferences</a></p>' : '') . '
 </td></tr></table></td></tr></table></body></html>';
 	}

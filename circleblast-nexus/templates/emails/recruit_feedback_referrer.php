@@ -23,6 +23,6 @@ Your referral <strong>{{candidate_name}}</strong> just responded to our post-vis
 {{action_block}}
 
 <p style="font-size:15px;color:#333;line-height:1.6;margin:16px 0 8px;">
-Your involvement makes a huge difference in the recruitment process. Thank you for helping CircleBlast grow!</p>
-<p style="font-size:15px;color:#333;margin:0;">— The CircleBlast Team</p>',
+Your involvement makes a huge difference in the recruitment process. Thank you for helping The Circle grow!</p>
+<p style="font-size:15px;color:#333;margin:0;">— The Circle Team</p>',
 ];

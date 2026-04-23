@@ -354,7 +354,7 @@ final class CBNexus_Portal_Club {
 
 				<!-- Section 0: Title + KPIs + This Month -->
 				<div class="cbnexus-present-section" data-section="0">
-					<h1 class="cbnexus-present-title">CircleBlast</h1>
+					<h1 class="cbnexus-present-title">The Circle</h1>
 					<p class="cbnexus-present-date"><?php echo esc_html(date_i18n('F Y')); ?> Report</p>
 					<div class="cbnexus-present-kpis">
 						<div class="cbnexus-present-kpi">

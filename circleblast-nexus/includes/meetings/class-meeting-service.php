@@ -325,7 +325,7 @@ final class CBNexus_Meeting_Service {
 			$errors[] = 'You cannot request a meeting with yourself.';
 		}
 		if (!CBNexus_Member_Repository::is_member($requester_id)) {
-			$errors[] = 'Requester is not a CircleBlast member.';
+			$errors[] = 'Requester is not a member of The Circle.';
 		}
 		if (!CBNexus_Member_Repository::is_member($target_id)) {
 			$errors[] = 'Target member not found.';

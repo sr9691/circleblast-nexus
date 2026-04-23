@@ -91,15 +91,15 @@ final class CBNexus_Migration_002_Register_Roles {
 
 		return [
 			'cb_member' => [
-				'name' => 'CircleBlast Member',
+				'name' => 'The Circle Member',
 				'caps' => $member_caps,
 			],
 			'cb_admin' => [
-				'name' => 'CircleBlast Admin',
+				'name' => 'The Circle Admin',
 				'caps' => $admin_caps,
 			],
 			'cb_super_admin' => [
-				'name' => 'CircleBlast Super Admin',
+				'name' => 'The Circle Super Admin',
 				'caps' => $super_admin_caps,
 			],
 		];

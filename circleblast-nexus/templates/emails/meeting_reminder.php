@@ -11,5 +11,5 @@ Just a friendly reminder — your 1:1 with <strong>{{other_name}}</strong> is co
 <tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{complete_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">We Met — Submit Notes</a>
 </td></tr></table>
-<p style="font-size:15px;color:#333;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;">— The Circle Team</p>',
 ];

@@ -69,7 +69,7 @@ final class CBNexus_Member_Service {
 	 */
 	public static function update_member(int $user_id, array $profile_data, bool $is_admin = false): array {
 		if (!CBNexus_Member_Repository::is_member($user_id)) {
-			return ['success' => false, 'errors' => ['User is not a CircleBlast member.']];
+			return ['success' => false, 'errors' => ['User is not a member of The Circle.']];
 		}
 
 		// Filter out fields the member cannot edit themselves.
@@ -113,7 +113,7 @@ final class CBNexus_Member_Service {
 		$current = CBNexus_Member_Repository::get_status($user_id);
 
 		if ($current === '') {
-			return ['success' => false, 'errors' => ['User has no current status. Is this a CircleBlast member?']];
+			return ['success' => false, 'errors' => ['User has no current status. Is this a member of The Circle?']];
 		}
 
 		$valid_transitions = [

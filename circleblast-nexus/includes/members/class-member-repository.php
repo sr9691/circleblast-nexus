@@ -199,7 +199,7 @@ final class CBNexus_Member_Repository {
 	}
 
 	/**
-	 * Check if a user has any CircleBlast role.
+	 * Check if a user has any The Circle role.
 	 *
 	 * @param int $user_id WordPress user ID.
 	 * @return bool

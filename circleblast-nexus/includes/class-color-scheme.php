@@ -22,7 +22,7 @@ final class CBNexus_Color_Scheme {
 	 */
 	const PRESETS = [
 		'circleblast' => [
-			'label'     => 'CircleBlast (Default)',
+			'label'     => 'The Circle (Default)',
 			'accent'    => '#2b5a94',  // Steel blue from logo "C"
 			'secondary' => '#f09214',  // Amber orange from logo "B"
 			'green'     => '#3d8b4d',

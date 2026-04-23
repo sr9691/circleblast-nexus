@@ -494,7 +494,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 			CBNexus_Email_Service::send('recruit_invitation', $candidate->email, [
 				'candidate_first_name' => $candidate_first,
 				'candidate_name'       => $candidate->name,
-				'referrer_name'        => $referrer ? $referrer->display_name : 'a CircleBlast member',
+				'referrer_name'        => $referrer ? $referrer->display_name : 'a member of The Circle',
 				'invitation_notes_block' => $notes_block,
 			], [
 				'related_type' => 'recruitment_invitation',
@@ -524,7 +524,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 
 				$followup = $referrer
 					? $referrer->display_name
-					: 'A member of the CircleBlast Council';
+					: 'A member of The Circle Council';
 
 				$sent = CBNexus_Email_Service::send('recruit_visited_thankyou', $candidate->email, [
 					'candidate_first_name' => $candidate_first,
@@ -593,7 +593,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 	}
 
 	/**
-	 * Convert an accepted candidate into a full CircleBlast member.
+	 * Convert an accepted candidate into a full The Circle member.
 	 */
 	private static function convert_candidate_to_member(object $candidate): ?int {
 		if (empty($candidate->email)) {

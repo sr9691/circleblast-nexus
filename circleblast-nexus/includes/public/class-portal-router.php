@@ -241,8 +241,8 @@ final class CBNexus_Portal_Router {
 		<header class="cbnexus-portal-header">
 			<div>
 				<div class="cbnexus-portal-brand">
-					<img src="<?php echo esc_url(CBNexus_Color_Scheme::get_logo_url('small')); ?>" alt="CircleBlast" class="cbnexus-portal-brand-logo" width="36" height="36" />
-					<span class="cbnexus-portal-brand-name"><?php esc_html_e('CircleBlast', 'circleblast-nexus'); ?></span>
+					<img src="<?php echo esc_url(CBNexus_Color_Scheme::get_logo_url('small')); ?>" alt="The Circle" class="cbnexus-portal-brand-logo" width="36" height="36" />
+					<span class="cbnexus-portal-brand-name"><?php esc_html_e('The Circle', 'circleblast-nexus'); ?></span>
 				</div>
 				<h1 class="cbnexus-portal-subtitle"><?php esc_html_e('Member Portal', 'circleblast-nexus'); ?></h1>
 			</div>

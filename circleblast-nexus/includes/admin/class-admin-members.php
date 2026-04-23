@@ -17,7 +17,7 @@ final class CBNexus_Admin_Members {
 
 	public static function register_menu(): void {
 		add_menu_page(
-			__('CircleBlast Members', 'circleblast-nexus'),
+			__('The Circle Members', 'circleblast-nexus'),
 			__('CB Members', 'circleblast-nexus'),
 			'cbnexus_manage_members',
 			'cbnexus-members',
@@ -129,7 +129,7 @@ final class CBNexus_Admin_Members {
 		self::render_notices();
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline"><?php esc_html_e('CircleBlast Members', 'circleblast-nexus'); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e('The Circle Members', 'circleblast-nexus'); ?></h1>
 			<?php if (current_user_can('cbnexus_create_members')) : ?>
 				<a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-member-new')); ?>" class="page-title-action"><?php esc_html_e('Add New Member', 'circleblast-nexus'); ?></a>
 			<?php endif; ?>

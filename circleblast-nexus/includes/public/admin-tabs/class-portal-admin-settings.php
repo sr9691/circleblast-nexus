@@ -103,7 +103,7 @@ final class CBNexus_Portal_Admin_Settings {
 					<div class="cbnexus-scheme-live-preview" id="cbnexus-live-preview">
 						<div class="cbnexus-slp-header" id="slp-header">
 							<img src="<?php echo esc_url($logo_url); ?>" width="28" height="28" style="border-radius:4px;" />
-							<span style="font-weight:700;font-size:13px;" id="slp-brand-text">CircleBlast</span>
+							<span style="font-weight:700;font-size:13px;" id="slp-brand-text">The Circle</span>
 						</div>
 						<div class="cbnexus-slp-body" id="slp-body">
 							<div class="cbnexus-slp-nav">
@@ -253,7 +253,7 @@ final class CBNexus_Portal_Admin_Settings {
 						<table class="cbnexus-admin-kv-table">
 							<tr>
 								<td><label for="cbnexus_from_name"><strong>From Name</strong></label></td>
-								<td><input type="text" id="cbnexus_from_name" name="from_name" value="<?php echo esc_attr($sender['from_name']); ?>" class="cbnexus-input" style="width:100%;max-width:300px;" placeholder="CircleBlast" /></td>
+								<td><input type="text" id="cbnexus_from_name" name="from_name" value="<?php echo esc_attr($sender['from_name']); ?>" class="cbnexus-input" style="width:100%;max-width:300px;" placeholder="The Circle" /></td>
 							</tr>
 							<tr>
 								<td><label for="cbnexus_from_email"><strong>From Email</strong></label></td>
@@ -643,7 +643,7 @@ final class CBNexus_Portal_Admin_Settings {
 		$from_name  = sanitize_text_field($_POST['from_name'] ?? '');
 		$from_email = sanitize_email($_POST['from_email'] ?? '');
 
-		if (empty($from_name)) { $from_name = 'CircleBlast'; }
+		if (empty($from_name)) { $from_name = 'The Circle'; }
 		if (empty($from_email)) { $from_email = 'noreply@circleblast.org'; }
 
 		CBNexus_Email_Service::save_sender_settings([

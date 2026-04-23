@@ -1,10 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 return [
-	'subject' => 'CircleBlast Monthly Report — {{total_members}} Members, {{total_meetings}} Meetings',
+	'subject' => 'The Circle Monthly Report — {{total_members}} Members, {{total_meetings}} Meetings',
 	'body'    => '
 <p style="font-size:16px;color:#333;margin:0 0 16px;">Hi {{first_name}},</p>
-<p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">Here\'s your monthly CircleBlast admin report.</p>
+<p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">Here\'s your monthly The Circle admin report.</p>
 
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:16px 0;">
 <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;">
@@ -33,5 +33,5 @@ return [
 <tr><td style="background-color:{{color_primary}};border-radius:6px;">
 <a href="{{portal_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">View Full Analytics</a>
 </td></tr></table>
-<p style="font-size:15px;color:#333;">— CircleBlast Nexus</p>',
+<p style="font-size:15px;color:#333;">— The Circle Nexus</p>',
 ];

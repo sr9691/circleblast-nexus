@@ -8,11 +8,11 @@
 defined('ABSPATH') || exit;
 
 return [
-	'subject' => 'Welcome to CircleBlast, {{first_name}}!',
+	'subject' => 'Welcome to The Circle, {{first_name}}!',
 	'body'    => '
 <p style="font-size:16px;color:#333;margin:0 0 16px;">Hi {{first_name}},</p>
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">
-Welcome to <strong>CircleBlast</strong>! We\'re excited to have you join our professional networking community.</p>
+Welcome to <strong>The Circle</strong>! We\'re excited to have you join our professional networking community.</p>
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">
 Your account has been created. Here\'s how to get started:</p>
 <ol style="font-size:15px;color:#333;line-height:1.8;margin:0 0 20px;padding-left:20px;">
@@ -27,5 +27,5 @@ Your account has been created. Here\'s how to get started:</p>
 </td></tr></table>
 <p style="font-size:13px;color:#6c757d;word-break:break-all;margin:0 0 20px;">{{login_url}}</p>
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 8px;">See you at the next CircleUp!</p>
-<p style="font-size:15px;color:#333;margin:0;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;margin:0;">— The Circle Team</p>',
 ];

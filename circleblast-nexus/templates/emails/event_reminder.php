@@ -16,5 +16,5 @@ Just a reminder — <strong>{{event_title}}</strong> is coming up tomorrow!</p>
 {{reminder_notes_block}}
 {{registration_block}}
 <p style="font-size:14px;color:#4a5568;line-height:1.6;">{{description}}</p>
-<p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;margin:16px 0 0;">— The Circle Team</p>',
 ];

@@ -97,7 +97,7 @@ final class CBNexus_AI_Extractor {
 		}
 
 		return <<<PROMPT
-You are analyzing a transcript from a CircleBlast professional networking group meeting (called "CircleUp").
+You are analyzing a transcript from a professional networking group meeting for The Circle (called "CircleUp").
 
 Known group members: {$names_list}
 

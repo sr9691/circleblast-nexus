@@ -15,5 +15,5 @@ Great news — <strong>{{other_name}}</strong> is excited to meet you! They\'ve 
 <a href="{{decline_url}}" style="display:inline-block;padding:12px 24px;color:#4a5568;text-decoration:none;font-size:15px;font-weight:500;">Decline</a>
 </td>
 </tr></table>
-<p style="font-size:15px;color:#333;margin:16px 0 0;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;margin:16px 0 0;">— The Circle Team</p>',
 ];

@@ -58,7 +58,7 @@ final class CBNexus_Portal_Admin_Emails {
 		?>
 		<div class="cbnexus-card">
 			<h2>Email Templates</h2>
-			<p class="cbnexus-text-muted">Customize the emails CircleBlast sends. Edits override the default templates.</p>
+			<p class="cbnexus-text-muted">Customize the emails The Circle sends. Edits override the default templates.</p>
 
 			<?php foreach ($grouped as $group => $templates) : ?>
 				<h3 style="margin:20px 0 8px;"><?php echo esc_html($group); ?></h3>

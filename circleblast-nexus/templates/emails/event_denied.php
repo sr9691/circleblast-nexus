@@ -10,5 +10,5 @@ Thanks for submitting <strong>{{event_title}}</strong>. After review, the leader
 <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 16px;">
 If you have questions or would like to resubmit with changes, feel free to reach out to any admin — we&rsquo;re happy to help.</p>
 
-<p style="font-size:15px;color:#333;margin-top:24px;">— CircleBlast Nexus</p>',
+<p style="font-size:15px;color:#333;margin-top:24px;">— The Circle Nexus</p>',
 ];

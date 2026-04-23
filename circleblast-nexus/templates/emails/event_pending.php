@@ -36,5 +36,5 @@ return [
 
 <p style="font-size:13px;color:#6b7280;line-height:1.5;">These buttons work without logging in. You can also review this event in the <a href="{{portal_review_url}}" style="color:{{color_primary}};">admin portal</a>.</p>
 
-<p style="font-size:15px;color:#333;margin-top:24px;">— CircleBlast Nexus</p>',
+<p style="font-size:15px;color:#333;margin-top:24px;">— The Circle Nexus</p>',
 ];

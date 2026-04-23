@@ -12,5 +12,5 @@ Great news — <strong>{{responder_name}}</strong> has accepted your 1:1 meeting
 <a href="{{complete_url}}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;">We Met — Submit Notes</a>
 </td></tr></table>
 <p style="font-size:13px;color:#a0aec0;">No login required. Click this after your meeting to record your notes.</p>
-<p style="font-size:15px;color:#333;">— The CircleBlast Team</p>',
+<p style="font-size:15px;color:#333;">— The Circle Team</p>',
 ];
