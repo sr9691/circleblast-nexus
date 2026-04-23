@@ -606,47 +606,71 @@ final class CBNexus_Portal_Admin_Recruitment {
 			return null;
 		}
 
-		if (email_exists($candidate->email)) {
-			if (class_exists('CBNexus_Logger')) {
-				CBNexus_Logger::info('Accepted candidate already has a WP account; skipping auto-create.', [
-					'candidate_id' => $candidate->id,
-					'email'        => $candidate->email,
-				]);
-			}
-			return null;
-		}
-
 		$name_parts = explode(' ', trim($candidate->name), 2);
 		$first_name = $name_parts[0] ?? '';
 		$last_name  = $name_parts[1] ?? '';
 
-		$user_data = [
-			'user_email'   => $candidate->email,
-			'first_name'   => $first_name,
-			'last_name'    => $last_name,
-			'display_name' => trim($candidate->name),
-		];
-
 		$profile_data = [
-			'cb_company'     => $candidate->company ?: '',
-			'cb_industry'    => $candidate->industry ?: '',
-			'cb_referred_by' => $candidate->referrer_id ? get_userdata($candidate->referrer_id)->display_name ?? '' : '',
+			'cb_company'       => $candidate->company ?: '',
+			'cb_industry'      => $candidate->industry ?: '',
+			'cb_referred_by'   => $candidate->referrer_id ? (get_userdata($candidate->referrer_id)->display_name ?? '') : '',
 			'cb_ambassador_id' => $candidate->referrer_id ?: '',
 		];
 
-		$result = CBNexus_Member_Service::create_member($user_data, $profile_data, 'cb_member');
+		// If the email already has a WP account, promote it to cb_member
+		// instead of skipping. This handles candidates who had a subscriber
+		// or other non-member account before being accepted.
+		$existing_user_id = email_exists($candidate->email);
+		if ($existing_user_id) {
+			$user = get_userdata($existing_user_id);
+			if ($user && CBNexus_Member_Repository::is_member($existing_user_id)) {
+				if (class_exists('CBNexus_Logger')) {
+					CBNexus_Logger::info('Accepted candidate is already a member; skipping.', [
+						'candidate_id' => $candidate->id,
+						'user_id'      => $existing_user_id,
+					]);
+				}
+				return $existing_user_id;
+			}
 
-		if (!$result['success']) {
+			// Assign cb_member role and set up profile.
+			$user->add_role('cb_member');
+			$profile_data['cb_member_status'] = 'active';
+			$profile_data['cb_join_date']     = gmdate('Y-m-d');
+			$profile_data['cb_onboarding_stage'] = 'access_setup';
+			CBNexus_Member_Repository::update_profile($existing_user_id, $profile_data);
+
 			if (class_exists('CBNexus_Logger')) {
-				CBNexus_Logger::error('Failed to auto-create member from accepted candidate.', [
+				CBNexus_Logger::info('Existing WP user promoted to cb_member from accepted candidate.', [
 					'candidate_id' => $candidate->id,
-					'errors'       => $result['errors'] ?? [],
+					'user_id'      => $existing_user_id,
 				]);
 			}
-			return null;
-		}
 
-		$user_id = $result['user_id'];
+			$user_id = $existing_user_id;
+		} else {
+			// Create a brand-new WP user + member profile.
+			$user_data = [
+				'user_email'   => $candidate->email,
+				'first_name'   => $first_name,
+				'last_name'    => $last_name,
+				'display_name' => trim($candidate->name),
+			];
+
+			$result = CBNexus_Member_Service::create_member($user_data, $profile_data, 'cb_member');
+
+			if (!$result['success']) {
+				if (class_exists('CBNexus_Logger')) {
+					CBNexus_Logger::error('Failed to auto-create member from accepted candidate.', [
+						'candidate_id' => $candidate->id,
+						'errors'       => $result['errors'] ?? [],
+					]);
+				}
+				return null;
+			}
+
+			$user_id = $result['user_id'];
+		}
 
 		$profile = CBNexus_Member_Repository::get_profile($user_id);
 		if ($profile) {
