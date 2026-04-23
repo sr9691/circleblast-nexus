@@ -600,6 +600,11 @@ final class CBNexus_Club_Tips_Service {
 
 	/**
 	 * Get new members (joined within last 90 days).
+	 *
+	 * Uses cb_join_date as primary, but cross-checks against the WP
+	 * user_registered date — if the account existed before the cutoff,
+	 * they are NOT new regardless of cb_join_date. This prevents
+	 * long-standing members from appearing after a data import/update.
 	 */
 	public static function get_new_members(int $limit = 5): array {
 		$members = CBNexus_Member_Repository::get_all_members('active');
@@ -607,9 +612,14 @@ final class CBNexus_Club_Tips_Service {
 
 		$new = [];
 		foreach ($members as $m) {
-			if (($m['cb_join_date'] ?? '') >= $cutoff) {
-				$new[] = $m;
-			}
+			$join_date = $m['cb_join_date'] ?? '';
+			if ($join_date === '' || $join_date < $cutoff) { continue; }
+
+			// Cross-check: WP account must also have been created recently.
+			$user = get_userdata($m['user_id']);
+			if ($user && substr($user->user_registered, 0, 10) < $cutoff) { continue; }
+
+			$new[] = $m;
 		}
 
 		usort($new, fn($a, $b) => ($b['cb_join_date'] ?? '') <=> ($a['cb_join_date'] ?? ''));
@@ -617,7 +627,7 @@ final class CBNexus_Club_Tips_Service {
 	}
 
 	/**
-	 * Get visitors (candidates at 'visited' or 'invited' stage).
+	 * Get upcoming visitors (candidates at 'invited' stage only).
 	 */
 	public static function get_visitors(int $limit = 5): array {
 		global $wpdb;
@@ -631,7 +641,7 @@ final class CBNexus_Club_Tips_Service {
 			"SELECT c.*, u.display_name as referrer_name
 			 FROM {$table} c
 			 LEFT JOIN {$wpdb->users} u ON c.referrer_id = u.ID
-			 WHERE c.stage IN ('invited', 'visited')
+			 WHERE c.stage = 'invited'
 			 ORDER BY c.updated_at DESC LIMIT %d",
 			$limit
 		)) ?: [];

@@ -295,14 +295,14 @@ final class CBNexus_Portal_Club {
 		$p_colors = ['high' => '#ef4444', 'medium' => '#f59e0b', 'low' => '#10b981'];
 		?>
 		<style>
-			.cbnexus-present-wrap{position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,<?php echo esc_attr($accent); ?> 0%,<?php echo esc_attr(self::darken_hex($accent,20)); ?> 50%,<?php echo esc_attr(self::darken_hex($accent,35)); ?> 100%);color:#fff;overflow:hidden;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif}
+			.cbnexus-present-wrap{position:fixed;inset:0;z-index:999999;background:linear-gradient(135deg,<?php echo esc_attr($accent); ?> 0%,<?php echo esc_attr(self::darken_hex($accent,20)); ?> 50%,<?php echo esc_attr(self::darken_hex($accent,35)); ?> 100%);color:#fff;overflow:hidden;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif}
 			.cbnexus-present-inner{max-width:960px;margin:0 auto;padding:0 32px;height:100vh;position:relative}
-			.cbnexus-present-section{position:absolute;inset:0;padding:48px 0;display:flex;flex-direction:column;justify-content:center;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s ease;overflow-y:auto}
+			.cbnexus-present-section{position:absolute;inset:0;padding:56px 0 80px;display:flex;flex-direction:column;justify-content:center;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s ease;overflow-y:auto}
 			.cbnexus-present-section--active{opacity:1;visibility:visible}
-			.cbnexus-present-exit{position:fixed;top:16px;right:20px;z-index:100000;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:14px;padding:8px 18px;border-radius:10px;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .2s}
+			.cbnexus-present-exit{position:fixed;top:16px;right:20px;z-index:999999;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:14px;padding:8px 18px;border-radius:10px;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .2s}
 			.cbnexus-present-exit:hover{background:rgba(255,255,255,.22);color:#fff}
-			.cbnexus-present-nav-hint{position:fixed;bottom:20px;right:20px;z-index:100000;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:12px;padding:6px 14px;border-radius:8px;pointer-events:none}
-			.cbnexus-present-dots{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100000;display:flex;gap:8px}
+			.cbnexus-present-nav-hint{position:fixed;bottom:20px;right:20px;z-index:999999;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:12px;padding:6px 14px;border-radius:8px;pointer-events:none}
+			.cbnexus-present-dots{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;gap:8px}
 			.cbnexus-present-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:all .2s}
 			.cbnexus-present-dot--active{background:<?php echo esc_attr($secondary); ?>;transform:scale(1.3)}
 			.cbnexus-present-title{text-align:center;font-size:clamp(40px,6vw,64px);font-weight:800;margin:0 0 4px;background:linear-gradient(90deg,<?php echo esc_attr($secondary); ?>,<?php echo esc_attr(self::lighten_hex($secondary,25)); ?>,<?php echo esc_attr($secondary); ?>);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -335,7 +335,7 @@ final class CBNexus_Portal_Club {
 			.cbnexus-present-month{display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin:16px 0 0}
 			.cbnexus-present-month-num{display:block;font-size:28px;font-weight:700;color:<?php echo esc_attr($secondary); ?>}
 			.cbnexus-present-month-label{font-size:13px;color:rgba(255,255,255,.45)}
-			.cbnexus-present-qr-persistent{position:fixed;bottom:16px;left:20px;z-index:100000;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 14px 8px 8px;cursor:default;transition:background .2s}
+			.cbnexus-present-qr-persistent{position:fixed;bottom:16px;left:20px;z-index:999999;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 14px 8px 8px;cursor:default;transition:background .2s}
 			.cbnexus-present-qr-persistent:hover{background:rgba(255,255,255,.14)}
 			.cbnexus-present-qr-persistent img{width:56px;height:56px;border-radius:8px}
 			.cbnexus-present-qr-persistent-label{color:rgba(255,255,255,.5);font-size:12px;line-height:1.3}
