@@ -192,6 +192,7 @@ final class CBNexus_Portal_Router {
 
 			<?php CBNexus_Portal_Help::render_drawer(); ?>
 			<?php CBNexus_Referral_Form::render_modal(); ?>
+			<?php CBNexus_Referral_Form::render_floating_button(); ?>
 			<?php CBNexus_Feedback_Form::render_modal(); ?>
 		</div>
 		<?php

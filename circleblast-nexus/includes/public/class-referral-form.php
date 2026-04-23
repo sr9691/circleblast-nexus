@@ -156,7 +156,7 @@ final class CBNexus_Referral_Form {
 					<div class="cbnexus-referral-field">
 						<label><?php esc_html_e('Category', 'circleblast-nexus'); ?></label>
 						<select name="category_id">
-							<option value="0"><?php esc_html_e('— Select —', 'circleblast-nexus'); ?></option>
+							<option value="0"><?php esc_html_e('Not sure — council will figure it out', 'circleblast-nexus'); ?></option>
 							<?php foreach ($categories as $cat) : ?>
 								<option value="<?php echo esc_attr($cat->id); ?>"><?php echo esc_html($cat->title); ?></option>
 							<?php endforeach; ?>
@@ -175,6 +175,28 @@ final class CBNexus_Referral_Form {
 				</div>
 			</form>
 		</div>
+		<?php
+	}
+
+	// ─── Floating Button ───────────────────────────────────────────
+
+	/**
+	 * Render the floating "Know Someone?" button.
+	 * Visible on every portal page for logged-in members.
+	 */
+	public static function render_floating_button(): void {
+		if (!is_user_logged_in()) {
+			return;
+		}
+		?>
+		<button type="button"
+			class="cbnexus-referral-fab"
+			data-referral-open
+			aria-label="<?php esc_attr_e('Refer someone', 'circleblast-nexus'); ?>"
+			title="<?php esc_attr_e('Know someone?', 'circleblast-nexus'); ?>">
+			<span class="cbnexus-referral-fab-icon" aria-hidden="true">👋</span>
+			<span class="cbnexus-referral-fab-label"><?php esc_html_e('Know Someone?', 'circleblast-nexus'); ?></span>
+		</button>
 		<?php
 	}
 }
