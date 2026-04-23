@@ -159,30 +159,6 @@
 	margin-top: 18px;
 }
 
-/* ── Header Referral Button ──────────────────────────────────── */
-.cbnexus-referral-header-btn {
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
-	border: 2px solid var(--cb-accent);
-	background: var(--cb-accent-soft);
-	font-size: 18px;
-	cursor: pointer;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0;
-	line-height: 1;
-	flex-shrink: 0;
-	transition: background .15s, border-color .15s, transform .15s;
-}
-.cbnexus-referral-header-btn:hover,
-.cbnexus-referral-header-btn:focus-visible {
-	background: var(--cb-accent);
-	transform: scale(1.1);
-	outline: none;
-}
-
 /* Responsive */
 @media (max-width: 500px) {
 	.cbnexus-referral-modal {
