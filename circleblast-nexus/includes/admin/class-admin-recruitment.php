@@ -127,11 +127,13 @@ final class CBNexus_Admin_Recruitment {
 			$stage_counts[$key] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE stage = %s", $key));
 		}
 
-		// All candidates.
+		// All candidates — hide accepted/declined from default "All" view since they are now members.
 		$filter = isset($_GET['stage']) ? sanitize_key($_GET['stage']) : '';
 		$sql = "SELECT c.*, u.display_name as referrer_name FROM {$table} c LEFT JOIN {$wpdb->users} u ON c.referrer_id = u.ID";
 		if ($filter !== '' && isset(self::$stages[$filter])) {
 			$sql .= $wpdb->prepare(" WHERE c.stage = %s", $filter);
+		} else {
+			$sql .= " WHERE c.stage NOT IN ('accepted', 'declined')";
 		}
 		$sql .= " ORDER BY c.updated_at DESC";
 		$candidates = $wpdb->get_results($sql);
@@ -144,7 +146,8 @@ final class CBNexus_Admin_Recruitment {
 
 			<!-- Pipeline Funnel -->
 			<div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;">
-				<a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-recruitment')); ?>" class="button <?php echo $filter === '' ? 'button-primary' : ''; ?>"><?php esc_html_e('All', 'circleblast-nexus'); ?> (<?php echo array_sum($stage_counts); ?>)</a>
+				<?php $active_count = array_sum($stage_counts) - ($stage_counts['accepted'] ?? 0) - ($stage_counts['declined'] ?? 0); ?>
+					<a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-recruitment')); ?>" class="button <?php echo $filter === '' ? 'button-primary' : ''; ?>"><?php esc_html_e('All', 'circleblast-nexus'); ?> (<?php echo $active_count; ?>)</a>
 				<?php foreach (self::$stages as $key => $label) : ?>
 					<a href="<?php echo esc_url(admin_url('admin.php?page=cbnexus-recruitment&stage=' . $key)); ?>" class="button <?php echo $filter === $key ? 'button-primary' : ''; ?>"><?php echo esc_html($label); ?> (<?php echo esc_html($stage_counts[$key]); ?>)</a>
 				<?php endforeach; ?>

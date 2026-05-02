@@ -42,10 +42,12 @@ final class CBNexus_Portal_Admin_Recruitment {
 			$stage_counts[$key] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE stage = %s", $key));
 		}
 
-		// Candidates.
+		// Candidates — hide accepted/declined from default "All" view since they are now members.
 		$sql = "SELECT c.*, u.display_name as referrer_name FROM {$table} c LEFT JOIN {$wpdb->users} u ON c.referrer_id = u.ID";
 		if ($filter !== '' && isset(self::$recruit_stages[$filter])) {
 			$sql .= $wpdb->prepare(" WHERE c.stage = %s", $filter);
+		} else {
+			$sql .= " WHERE c.stage NOT IN ('accepted', 'declined')";
 		}
 		$sql .= " ORDER BY c.updated_at DESC";
 		$candidates = $wpdb->get_results($sql);
@@ -59,7 +61,8 @@ final class CBNexus_Portal_Admin_Recruitment {
 
 			<!-- Funnel -->
 			<div class="cbnexus-admin-filters">
-				<a href="<?php echo esc_url($base); ?>" class="<?php echo $filter === '' ? 'active' : ''; ?>">All (<?php echo array_sum($stage_counts); ?>)</a>
+				<?php $active_count = array_sum($stage_counts) - ($stage_counts['accepted'] ?? 0) - ($stage_counts['declined'] ?? 0); ?>
+				<a href="<?php echo esc_url($base); ?>" class="<?php echo $filter === '' ? 'active' : ''; ?>">All (<?php echo $active_count; ?>)</a>
 				<?php foreach (self::$recruit_stages as $key => $label) : ?>
 					<a href="<?php echo esc_url(add_query_arg('stage', $key, $base)); ?>" class="<?php echo $filter === $key ? 'active' : ''; ?>"><?php echo esc_html($label); ?> (<?php echo esc_html($stage_counts[$key]); ?>)</a>
 				<?php endforeach; ?>
