@@ -337,6 +337,17 @@ final class CBNexus_Portal_Admin_Recruitment {
 			}
 		}
 
+		// Check for conversion errors to surface to the admin.
+		$convert_err = get_transient('cbnexus_recruit_convert_error_' . $id);
+		if ($convert_err) {
+			delete_transient('cbnexus_recruit_convert_error_' . $id);
+			wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', [
+				'pa_notice'    => 'candidate_convert_failed',
+				'candidate_id' => $id,
+			]));
+			exit;
+		}
+
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'candidate_saved']));
 		exit;
 	}
@@ -405,6 +416,17 @@ final class CBNexus_Portal_Admin_Recruitment {
 			}
 		}
 
+		// Check for conversion errors to surface to the admin.
+		$convert_err = get_transient('cbnexus_recruit_convert_error_' . $id);
+		if ($convert_err) {
+			delete_transient('cbnexus_recruit_convert_error_' . $id);
+			wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', [
+				'pa_notice'    => 'candidate_convert_failed',
+				'candidate_id' => $id,
+			]));
+			exit;
+		}
+
 		wp_safe_redirect(CBNexus_Portal_Admin::admin_url('recruitment', ['pa_notice' => 'candidate_updated']));
 		exit;
 	}
@@ -462,7 +484,17 @@ final class CBNexus_Portal_Admin_Recruitment {
 		// ── 1. "Accepted" → auto-create member account ──
 		$accepted_referrer_emailed = false;
 		if ($new_stage === 'accepted') {
-			$created_user_id = self::convert_candidate_to_member($candidate);
+			$conversion     = self::convert_candidate_to_member($candidate);
+			$created_user_id = $conversion['user_id'];
+
+			// Store errors in a transient so the admin sees them after redirect.
+			if (!empty($conversion['errors'])) {
+				set_transient(
+					'cbnexus_recruit_convert_error_' . $candidate->id,
+					implode(' ', $conversion['errors']),
+					60
+				);
+			}
 
 			if ($referrer && $created_user_id) {
 				CBNexus_Email_Service::send('recruit_accepted', $referrer->user_email, [
@@ -597,16 +629,19 @@ final class CBNexus_Portal_Admin_Recruitment {
 
 	/**
 	 * Convert an accepted candidate into a full The Circle member.
+	 *
+	 * @return array{user_id: int|null, errors: string[]}
 	 */
-	private static function convert_candidate_to_member(object $candidate): ?int {
+	private static function convert_candidate_to_member(object $candidate): array {
 		if (empty($candidate->email)) {
+			$err = 'Cannot create member — candidate has no email address.';
 			if (class_exists('CBNexus_Logger')) {
-				CBNexus_Logger::warning('Cannot auto-create member for accepted candidate — no email.', [
+				CBNexus_Logger::warning($err, [
 					'candidate_id' => $candidate->id,
 					'candidate'    => $candidate->name,
 				]);
 			}
-			return null;
+			return ['user_id' => null, 'errors' => [$err]];
 		}
 
 		$name_parts = explode(' ', trim($candidate->name), 2);
@@ -633,7 +668,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 						'user_id'      => $existing_user_id,
 					]);
 				}
-				return $existing_user_id;
+				return ['user_id' => $existing_user_id, 'errors' => []];
 			}
 
 			// Assign cb_member role and set up profile.
@@ -663,13 +698,14 @@ final class CBNexus_Portal_Admin_Recruitment {
 			$result = CBNexus_Member_Service::create_member($user_data, $profile_data, 'cb_member');
 
 			if (!$result['success']) {
+				$errors = $result['errors'] ?? ['Unknown error creating member.'];
 				if (class_exists('CBNexus_Logger')) {
 					CBNexus_Logger::error('Failed to auto-create member from accepted candidate.', [
 						'candidate_id' => $candidate->id,
-						'errors'       => $result['errors'] ?? [],
+						'errors'       => $errors,
 					]);
 				}
-				return null;
+				return ['user_id' => null, 'errors' => $errors];
 			}
 
 			$user_id = $result['user_id'];
@@ -680,7 +716,7 @@ final class CBNexus_Portal_Admin_Recruitment {
 			CBNexus_Email_Service::send_welcome($user_id, $profile);
 		}
 
-		return $user_id;
+		return ['user_id' => $user_id, 'errors' => []];
 	}
 
 	/**

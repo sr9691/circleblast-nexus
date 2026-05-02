@@ -109,6 +109,14 @@ final class CBNexus_Admin_Recruitment {
 			}
 		}
 
+		// Check for conversion errors to surface to the admin.
+		$convert_err = get_transient('cbnexus_recruit_convert_error_' . $id);
+		if ($convert_err) {
+			delete_transient('cbnexus_recruit_convert_error_' . $id);
+			wp_safe_redirect(admin_url('admin.php?page=cbnexus-recruitment&cbnexus_notice=candidate_convert_failed&candidate_id=' . $id));
+			exit;
+		}
+
 		wp_safe_redirect(admin_url('admin.php?page=cbnexus-recruitment&cbnexus_notice=updated'));
 		exit;
 	}
@@ -143,6 +151,14 @@ final class CBNexus_Admin_Recruitment {
 
 			<?php if ($notice === 'added') : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e('Candidate added.', 'circleblast-nexus'); ?></p></div><?php endif; ?>
 			<?php if ($notice === 'updated') : ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e('Candidate updated.', 'circleblast-nexus'); ?></p></div><?php endif; ?>
+			<?php if ($notice === 'candidate_convert_failed') :
+				$cid = absint($_GET['candidate_id'] ?? 0);
+				$err = $cid ? get_transient('cbnexus_recruit_convert_error_' . $cid) : '';
+				if ($cid) { delete_transient('cbnexus_recruit_convert_error_' . $cid); }
+				$detail = $err ?: 'Unknown error.';
+			?>
+			<div class="notice notice-error is-dismissible"><p><?php echo esc_html('Could not create member account: ' . $detail . ' Please fill in the missing fields and try again, or create the member manually.'); ?></p></div>
+			<?php endif; ?>
 
 			<!-- Pipeline Funnel -->
 			<div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;">

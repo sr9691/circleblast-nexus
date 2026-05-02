@@ -392,6 +392,18 @@ final class CBNexus_Portal_Admin {
 		];
 		$msg = $messages[$notice] ?? '';
 
+		// Dynamic error message for candidate-to-member conversion failures.
+		if ($notice === 'candidate_convert_failed') {
+			$cid = absint($_GET['candidate_id'] ?? 0);
+			$err = $cid ? get_transient('cbnexus_recruit_convert_error_' . $cid) : '';
+			if ($cid) { delete_transient('cbnexus_recruit_convert_error_' . $cid); }
+			$detail = $err ?: 'Unknown error.';
+			$msg = 'Could not create member account for this candidate: ' . $detail
+				 . ' Please fill in the missing fields and try again, or create the member manually.';
+			echo '<div class="cbnexus-portal-notice cbnexus-notice-error">' . esc_html($msg) . '</div>';
+			return;
+		}
+
 		// Dynamic error message for extraction failures.
 		if ($notice === 'extraction_failed') {
 			$circleup_id = absint($_GET['circleup_id'] ?? 0);
